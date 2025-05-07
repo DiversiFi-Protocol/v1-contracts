@@ -1,0 +1,15 @@
+{
+  "name": "hardhat-project",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
+    "hardhat": "^2.22.19",
+    "hardhat-gas-reporter": "^2.2.2",
+    "viem": "^2.22.17"
+  },
+  "dependencies": {
+    "hardhat-contract-sizer": "^2.10.0",
+    "openzeppelin": "^1.0.0",
+    "smock": "^0.0.2",
+    "ws": "^8.18.1"
+  }
+}
