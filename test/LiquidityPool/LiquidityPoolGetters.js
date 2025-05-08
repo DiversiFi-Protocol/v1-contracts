@@ -10,12 +10,12 @@ const { assetParams0, assetParams1, assetParams2 } = require("../../deployments/
 
 const ONE_BILLION = 1_000_000_000n
 const DECIMAL_SCALE = 18n
-describe("BackingPool - Getters", function () {
+describe("LiquidityPool - Getters", function () {
   async function deployAll() {
     const tokenName = "Diversified USD";
     const tokenSymbol = "USD1";
     const [admin, unpriviledged] = await hre.ethers.getSigners();
-    const backingPoolAddress = getCreateAddress({
+    const liquidityPoolAddress = getCreateAddress({
       from: admin.address,
       nonce: 2n,
     });
@@ -23,18 +23,18 @@ describe("BackingPool - Getters", function () {
     const poolMathLibraryFactory = await hre.ethers.getContractFactory("PoolMath")
     const poolMathLibrary = await poolMathLibraryFactory.deploy()
 
-    const backedToken = await hre.ethers.deployContract("BackedToken", [
+    const liquidityToken = await hre.ethers.deployContract("LiquidityToken", [
       tokenName,
       tokenSymbol,
-      backingPoolAddress,
+      liquidityPoolAddress,
       admin.address,
     ]);
 
     const maxReservesLimitRatioQ128 = utils.decimalToFixed(0.1)
 
-    const backingPool = await hre.ethers.deployContract("BackingPool", [
+    const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
-      await backedToken.getAddress(),
+      await liquidityToken.getAddress(),
       ethers.MaxUint256,
       maxReservesLimitRatioQ128
     ], {
@@ -62,23 +62,23 @@ describe("BackingPool - Getters", function () {
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
 
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
 
     // @ts-ignore
-    await backingPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
+    await liquidityPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
 
     return {
-      backedToken,
-      backingPool,
+      liquidityToken,
+      liquidityPool,
       admin,
       unpriviledged,
       tokenName,
@@ -91,96 +91,96 @@ describe("BackingPool - Getters", function () {
   }
 
   it("Deployments", async () => {
-    const { backedToken, backingPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
+    const { liquidityToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
-    // backed token
-    expect(await backedToken.backingPool()).to.equal(getAddress(backingPool.target));
-    expect(await backedToken.admin()).to.equal(getAddress(admin.address));
-    expect(await backedToken.name()).to.equal(tokenName);
-    expect(await backedToken.symbol()).to.equal(tokenSymbol);
+    // liquidity token
+    expect(await liquidityToken.liquidityPool()).to.equal(getAddress(liquidityPool.target));
+    expect(await liquidityToken.admin()).to.equal(getAddress(admin.address));
+    expect(await liquidityToken.name()).to.equal(tokenName);
+    expect(await liquidityToken.symbol()).to.equal(tokenSymbol);
 
-    // backing pool
-    expect(await backingPool.getBackedToken()).to.equal(getAddress(backedToken.target));
-    expect(await backingPool.getAdmin()).to.equal(getAddress(admin.address));
+    // liquidity pool
+    expect(await liquidityPool.getLiquidityToken()).to.equal(getAddress(liquidityToken.target));
+    expect(await liquidityPool.getAdmin()).to.equal(getAddress(admin.address));
   });
 
   it("getMaxReservesLimit", async function () {
-    const { backingPool } = await loadFixture(deployAll);
+    const { liquidityPool } = await loadFixture(deployAll);
 
     // Call the getMaxReservesLimit function
-    const result = await backingPool.getMaxReservesLimit();
+    const result = await liquidityPool.getMaxReservesLimit();
 
     // Assert that the result matches the expected value
     expect(result).to.equal(ethers.MaxUint256);
   })
 
   it("getMaxReservesLimitRatioQ128", async function () {
-    const { backingPool, maxReservesLimitRatioQ128 } = await loadFixture(deployAll);
+    const { liquidityPool, maxReservesLimitRatioQ128 } = await loadFixture(deployAll);
 
     // Call the getMaxReservesLimitRatioQ128 function
-    const result = await backingPool.getMaxReservesLimitRatioQ128();
+    const result = await liquidityPool.getMaxReservesLimitRatioQ128();
 
     // Assert that the result matches the expected value
     expect(result).to.equal(maxReservesLimitRatioQ128);
   })
 
   it("getMintFeeQ128", async function() {
-    const { backingPool } = await loadFixture(deployAll);
+    const { liquidityPool } = await loadFixture(deployAll);
     // Set the mint fee to a random value
     const randomMintFee = utils.decimalToFixed(0.01); // Example: 1% mint fee
-    await backingPool.setMintFeeQ128(randomMintFee);
+    await liquidityPool.setMintFeeQ128(randomMintFee);
 
     // Assert that the mint fee was set correctly
-    const setMintFee = await backingPool.getMintFeeQ128();
+    const setMintFee = await liquidityPool.getMintFeeQ128();
     expect(setMintFee).to.equal(randomMintFee);
   })
 
   it("getBurnFeeQ128", async function() {
-    const { backingPool } = await loadFixture(deployAll);
+    const { liquidityPool } = await loadFixture(deployAll);
     // Set the burn fee to a random value
     const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
-    await backingPool.setBurnFeeQ128(randomBurnFee);
+    await liquidityPool.setBurnFeeQ128(randomBurnFee);
 
     // Assert that the burn fee was set correctly
-    const setBurnFee = await backingPool.getBurnFeeQ128();
+    const setBurnFee = await liquidityPool.getBurnFeeQ128();
     expect(setBurnFee).to.equal(randomBurnFee);
   })
 
   it("getIsSwapEnabled", async function () {
-    const { backingPool } = await loadFixture(deployAll);
-    const result = await backingPool.getIsSwapEnabled();
+    const { liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getIsSwapEnabled();
     expect(result).to.equal(true);
   })
 
   it("getIsDirectMintEnabled", async () => {
-    const { backingPool } = await loadFixture(deployAll);
-    const result = await backingPool.getIsDirectMintEnabled();
+    const { liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getIsDirectMintEnabled();
     expect(result).to.equal(true);
   })
 
   it("getFeesCollected", async function () {
-    const { backingPool } = await loadFixture(deployAll);
-    const result = await backingPool.getFeesCollected();
+    const { liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getFeesCollected();
     expect(result).to.equal(0n);
   })
 
-  it("getBackedToken", async function () {
-    const { backedToken, backingPool } = await loadFixture(deployAll);
-    const result = await backingPool.getBackedToken();
-    expect(result).to.equal(getAddress(backedToken.target));
+  it("getLiquidityToken", async function () {
+    const { liquidityToken, liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getLiquidityToken();
+    expect(result).to.equal(getAddress(liquidityToken.target));
   });
 
   it("getAdmin", async function () {
-    const { admin, backingPool } = await loadFixture(deployAll);
-    const result = await backingPool.getAdmin();
+    const { admin, liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getAdmin();
     expect(result).to.equal(getAddress(admin.address));
   });
 
   it("getAllAssets", async function () {
-    const { backingPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+    const { liquidityPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
 
     // Call the getAllAssets function
-    const allAssets = await backingPool.getAllAssets();
+    const allAssets = await liquidityPool.getAllAssets();
 
     // Assert that the returned assets match the expected assets
     expect(allAssets.length).to.equal(3); // Ensure there are 3 assets
@@ -190,14 +190,14 @@ describe("BackingPool - Getters", function () {
   });
 
   it("getAsset", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, mintable3 } = await loadFixture(deployAll);
-    const result0 = await backingPool.getAsset(0n);
+    const { liquidityPool, mintable0, mintable1, mintable2, mintable3 } = await loadFixture(deployAll);
+    const result0 = await liquidityPool.getAsset(0n);
     expect(result0).to.equal(getAddress(mintable0.target));
 
-    const result1 = await backingPool.getAsset(1n);
+    const result1 = await liquidityPool.getAsset(1n);
     expect(result1).to.equal(getAddress(mintable1.target));
 
-    const result2 = await backingPool.getAsset(2n);
+    const result2 = await liquidityPool.getAsset(2n);
     expect(result2).to.equal(getAddress(mintable2.target));
   });
 
@@ -214,27 +214,27 @@ describe("BackingPool - Getters", function () {
         expect(result.tickData[i].mLower).to.equal(params.tickData[i].mLower)
       }
     }
-    const { backingPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
-    const result0 = await backingPool.getAssetParams(mintable0.target);
+    const { liquidityPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+    const result0 = await liquidityPool.getAssetParams(mintable0.target);
     checkAssetParamsEquivalence(result0, assetParams0)
-    const result1 = await backingPool.getAssetParams(mintable1.target);
+    const result1 = await liquidityPool.getAssetParams(mintable1.target);
     checkAssetParamsEquivalence(result1, assetParams1)
-    const result2 = await backingPool.getAssetParams(mintable2.target);
+    const result2 = await liquidityPool.getAssetParams(mintable2.target);
     checkAssetParamsEquivalence(result2, assetParams2)
   });
 
   it("getSpecificReservesScaled", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
-    const result = await backingPool.getSpecificReservesScaled(mintable0.target);
+    const { liquidityPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
+    const result = await liquidityPool.getSpecificReservesScaled(mintable0.target);
     expect(result).to.equal(0n);
 
     // Mint 3 million tokens with 18 decimal places
-    await backingPool.mint(ethers.parseEther("3000000"), admin.address);
+    await liquidityPool.mint(ethers.parseEther("3000000"), admin.address);
 
     // Expect specificReservesScaled of all assets to equal 1 million with 18 decimal places
-    const result0 = await backingPool.getSpecificReservesScaled(mintable0.target);
-    const result1 = await backingPool.getSpecificReservesScaled(mintable1.target);
-    const result2 = await backingPool.getSpecificReservesScaled(mintable2.target);
+    const result0 = await liquidityPool.getSpecificReservesScaled(mintable0.target);
+    const result1 = await liquidityPool.getSpecificReservesScaled(mintable1.target);
+    const result2 = await liquidityPool.getSpecificReservesScaled(mintable2.target);
 
     // Check that results are close to 1 million with 18 decimal places plus or minus 1 million / 1 billion
     const million = ethers.parseEther("1000000");
@@ -245,17 +245,17 @@ describe("BackingPool - Getters", function () {
   });
 
   it("getTotalReservesScaled", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
+    const { liquidityPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
 
     // Initially, total reserves should be 0
-    const initialTotalReserves = await backingPool.getTotalReservesScaled();
+    const initialTotalReserves = await liquidityPool.getTotalReservesScaled();
     expect(initialTotalReserves).to.equal(0n);
 
     // Mint 3 million tokens with 18 decimal places
-    await backingPool.mint(ethers.parseEther("3000000"), admin.address);
+    await liquidityPool.mint(ethers.parseEther("3000000"), admin.address);
 
     // Expect totalReservesScaled to equal 3 million with 18 decimal places
-    const totalReserves = await backingPool.getTotalReservesScaled();
+    const totalReserves = await liquidityPool.getTotalReservesScaled();
     const expectedTotal = ethers.parseEther("3000000");
     const tolerance = expectedTotal / 1_000_000_000n; // 1 billionth tolerance
 
@@ -263,29 +263,29 @@ describe("BackingPool - Getters", function () {
   });
 
   it("getReserves", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
+    const { liquidityPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
 
     // Initially, reserves for all assets should be 0
-    const initialReserves0 = await backingPool.getReserves(mintable0.target);
-    const initialReserves1 = await backingPool.getReserves(mintable1.target);
-    const initialReserves2 = await backingPool.getReserves(mintable2.target);
+    const initialReserves0 = await liquidityPool.getReserves(mintable0.target);
+    const initialReserves1 = await liquidityPool.getReserves(mintable1.target);
+    const initialReserves2 = await liquidityPool.getReserves(mintable2.target);
 
     expect(initialReserves0).to.equal(0n);
     expect(initialReserves1).to.equal(0n);
     expect(initialReserves2).to.equal(0n);
 
     // Mint 3 million tokens with 18 decimal places
-    await backingPool.mint(ethers.parseEther("3000000"), admin.address);
+    await liquidityPool.mint(ethers.parseEther("3000000"), admin.address);
 
     // Get the reserves for each asset
-    const reserves0 = await backingPool.getReserves(mintable0.target);
-    const reserves1 = await backingPool.getReserves(mintable1.target);
-    const reserves2 = await backingPool.getReserves(mintable2.target);
+    const reserves0 = await liquidityPool.getReserves(mintable0.target);
+    const reserves1 = await liquidityPool.getReserves(mintable1.target);
+    const reserves2 = await liquidityPool.getReserves(mintable2.target);
 
     // Get the decimals for each asset from the assetParams map
-    const assetParams0 = await backingPool.getAssetParams(mintable0.target);
-    const assetParams1 = await backingPool.getAssetParams(mintable1.target);
-    const assetParams2 = await backingPool.getAssetParams(mintable2.target);
+    const assetParams0 = await liquidityPool.getAssetParams(mintable0.target);
+    const assetParams1 = await liquidityPool.getAssetParams(mintable1.target);
+    const assetParams2 = await liquidityPool.getAssetParams(mintable2.target);
 
     const decimals0 = assetParams0.decimals;
     const decimals1 = assetParams1.decimals;
@@ -308,19 +308,19 @@ describe("BackingPool - Getters", function () {
   });
 
   it("getPriceQ128 for all assets after minting", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
+    const { liquidityPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
 
     // Mint 1 million tokens with 18 decimal places
-    await backingPool.mint(ethers.parseEther("1000000"), admin.address);
+    await liquidityPool.mint(ethers.parseEther("1000000"), admin.address);
 
     // Define the expected price using utils
     const expectedPrice = utils.decimalToFixed(1); // Convert decimal 1 to fixed-point format
     const tolerance = expectedPrice / 1_000_000_000n; // 1 billionth tolerance
 
     // Get the price for each asset
-    const price0Raw = await backingPool.getPriceQ128(mintable0.target);
-    const price1Raw = await backingPool.getPriceQ128(mintable1.target);
-    const price2Raw = await backingPool.getPriceQ128(mintable2.target);
+    const price0Raw = await liquidityPool.getPriceQ128(mintable0.target);
+    const price1Raw = await liquidityPool.getPriceQ128(mintable1.target);
+    const price2Raw = await liquidityPool.getPriceQ128(mintable2.target);
 
 
     // Assert that the prices are close to the expected price
@@ -330,16 +330,16 @@ describe("BackingPool - Getters", function () {
   });
 
   it("getLowerTick for all assets", async function () {
-    const { backingPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
+    const { liquidityPool, mintable0, mintable1, mintable2, admin } = await loadFixture(deployAll);
 
     // Define the index of the lower tick to test against
     const lowerTickIndex = 2;
-    await backingPool.mint(ethers.parseEther("3000000"), admin.address);
+    await liquidityPool.mint(ethers.parseEther("3000000"), admin.address);
 
     // Get the asset parameters for each token
-    const assetParams0 = await backingPool.getAssetParams(mintable0.target);
-    const assetParams1 = await backingPool.getAssetParams(mintable1.target);
-    const assetParams2 = await backingPool.getAssetParams(mintable2.target);
+    const assetParams0 = await liquidityPool.getAssetParams(mintable0.target);
+    const assetParams1 = await liquidityPool.getAssetParams(mintable1.target);
+    const assetParams2 = await liquidityPool.getAssetParams(mintable2.target);
 
     // Get the expected lower tick data for each token
     const expectedLowerTick0 = assetParams0.tickData[lowerTickIndex];
@@ -347,9 +347,9 @@ describe("BackingPool - Getters", function () {
     const expectedLowerTick2 = assetParams2.tickData[lowerTickIndex];
 
     // Get the actual lower tick for each token
-    const lowerTick0 = await backingPool.getLowerTick(mintable0.target);
-    const lowerTick1 = await backingPool.getLowerTick(mintable1.target);
-    const lowerTick2 = await backingPool.getLowerTick(mintable2.target);
+    const lowerTick0 = await liquidityPool.getLowerTick(mintable0.target);
+    const lowerTick1 = await liquidityPool.getLowerTick(mintable1.target);
+    const lowerTick2 = await liquidityPool.getLowerTick(mintable2.target);
 
     // Assert that the actual lower ticks match the expected lower ticks
     expect(lowerTick0).to.deep.equal(expectedLowerTick0);

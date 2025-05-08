@@ -37,40 +37,40 @@ async function main() {
   await PoolMathLibary.waitForDeployment();
 
   const nonce = await client.getTransactionCount({ address: await deployer.getAddress() });
-  const backingPoolAddress = getCreateAddress({
+  const liquidityPoolAddress = getCreateAddress({
     from: await deployer.getAddress(),
     nonce: nonce + 1,
   });
 
-  // Deploy BackedToken Contract
-  console.log("Deploying BackedToken contract...");
-  const BackedToken = await ethers.getContractFactory("BackedToken");
-  const backedToken = await BackedToken.deploy("Diversified USD", "USD1", backingPoolAddress, deployer.getAddress());
-  await backedToken.waitForDeployment();
-  console.log(`BackedToken deployed to: ${await backedToken.getAddress()}`);
+  // Deploy LiquidityToken Contract
+  console.log("Deploying LiquidityToken contract...");
+  const LiquidityToken = await ethers.getContractFactory("LiquidityToken");
+  const liquidityToken = await LiquidityToken.deploy("Diversified USD", "USD1", liquidityPoolAddress, deployer.getAddress());
+  await liquidityToken.waitForDeployment();
+  console.log(`LiquidityToken deployed to: ${await liquidityToken.getAddress()}`);
 
-  // Deploy BackingPool Contract
-  console.log("Deploying BackingPool contract...");
-  const BackingPool = await ethers.getContractFactory("BackingPool", {
+  // Deploy liquidityPool Contract
+  console.log("Deploying liquidityPool contract...");
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool", {
     libraries: {
       PoolMath: PoolMathLibary.target,
     },
   });
-  const backingPool = await BackingPool.deploy(
+  const liquidityPool = await LiquidityPool.deploy(
     deployer.getAddress(), 
-    backedToken.getAddress(),
+    liquidityToken.getAddress(),
     ethers.MaxUint256,
     utils.decimalToFixed(0.1)
   );
-  await backingPool.waitForDeployment();
-  await backingPool.setAssetParams(
+  await liquidityPool.waitForDeployment();
+  await liquidityPool.setAssetParams(
     [token0.getAddress(), token1.getAddress(), token2.getAddress()],
     [assetParams0, assetParams1, assetParams2]
   );
-  await backingPool.setIsDirectMintEnabled(true);
-  await backingPool.setIsSwapEnabled(true)
-  console.log(`BackingPool deployed to: ${await backingPool.getAddress()}`);
-  console.log("predicted backingPool address:", backingPoolAddress);
+  await liquidityPool.setIsDirectMintEnabled(true);
+  await liquidityPool.setIsSwapEnabled(true)
+  console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
+  console.log("predicted liquidityPool address:", liquidityPoolAddress);
 
   console.log("minting tokens...")
   await token0.mint(await deployer.getAddress(), ethers.parseUnits("1000000", assetParams0.decimals));
@@ -83,18 +83,18 @@ async function main() {
   console.log("token2 balance:", (await token2.balanceOf(await deployer.getAddress())).toString(), "token2 decimals:", assetParams2.decimals);
 
 
-  console.log("minting base assets for backing pool")
-  await token0.approve(backingPool.getAddress(), utils.MAX_UINT_256);
-  await token1.approve(backingPool.getAddress(), utils.MAX_UINT_256);
-  await token2.approve(backingPool.getAddress(), utils.MAX_UINT_256);
-  await backingPool.mint(ethers.parseUnits("100000", await backedToken.decimals()), await deployer.getAddress())
+  console.log("minting base assets for liquidity pool")
+  await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await liquidityPool.mint(ethers.parseUnits("100000", await liquidityToken.decimals()), await deployer.getAddress())
   console.log("done")
 
   console.log("final balances:")
   console.log("token0 balance:      ", (await token0.balanceOf(await deployer.getAddress())).toString(), "token0 decimals:", assetParams0.decimals);
   console.log("token1 balance:      ", (await token1.balanceOf(await deployer.getAddress())).toString(), "token1 decimals:", assetParams1.decimals);
   console.log("token32balance:      ", (await token2.balanceOf(await deployer.getAddress())).toString(), "token2 decimals:", assetParams2.decimals);
-  console.log("backed token balance:", (await backedToken.balanceOf(await deployer.getAddress())).toString(), "backed token decimals:", await backedToken.decimals());
+  console.log("liquidity token balance:", (await liquidityToken.balanceOf(await deployer.getAddress())).toString(), "liquidity token decimals:", await liquidityToken.decimals());
 
   const multiMinterFactory = await ethers.getContractFactory("MultiMinter");
   const multiMinter = await multiMinterFactory.deploy([token0.getAddress(), token1.getAddress(), token2.getAddress()]);

@@ -3,7 +3,7 @@ const utils = require("./utils")
 /*
   The definite integral of the price function with respect to specific reserves
   taken from the current specific reserves to r + x (x=input)
-  returns the change in backed tokens given the change in specific reserves
+  returns the change in liquidity tokens given the change in specific reserves
 */
 function priceIntegral(r, d, a, m, p, x) {
   const mSubAxMxX = (m - a * m) * x;
@@ -16,7 +16,7 @@ function priceIntegral(r, d, a, m, p, x) {
 
 /*
   solves the price integral for x (input)
-  returns the change in specific reserves given the change in backed tokens
+  returns the change in specific reserves given the change in liquidity tokens
 */
 function solveForXNewton(I, r, d, a, m, p, tol = 0, maxIter = 20) {
   if(tol != 0) {

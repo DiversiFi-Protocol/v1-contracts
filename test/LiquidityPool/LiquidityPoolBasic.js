@@ -11,12 +11,12 @@ const { assetParams0, assetParams1, assetParams2 } = require("./assetParams.js")
 const ONE_BILLION = 1_000_000_000n
 const DECIMAL_SCALE = 18n
 
-describe("BackingPool", function() {
+describe("LiquidityPool", function() {
   async function deployAll() {
     const tokenName = "Diversified USD";
     const tokenSymbol = "USD1";
     const [admin, unpriviledged] = await hre.ethers.getSigners();
-    const backingPoolAddress = getCreateAddress({
+    const liquidityPoolAddress = getCreateAddress({
       from: admin.address,
       nonce: 2n,
     });
@@ -24,16 +24,16 @@ describe("BackingPool", function() {
     const poolMathLibraryFactory = await hre.ethers.getContractFactory("PoolMath")
     const poolMathLibrary = await poolMathLibraryFactory.deploy()
 
-    const backedToken = await hre.ethers.deployContract("BackedToken", [
+    const liquidityToken = await hre.ethers.deployContract("LiquidityToken", [
       tokenName,
       tokenSymbol,
-      backingPoolAddress,
+      liquidityPoolAddress,
       admin.address,
     ]);
 
-    const backingPool = await hre.ethers.deployContract("BackingPool", [
+    const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
-      await backedToken.getAddress(),
+      await liquidityToken.getAddress(),
       ethers.MaxUint256,
       utils.decimalToFixed(0.1)
     ], {
@@ -61,27 +61,27 @@ describe("BackingPool", function() {
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.approve(backingPool.target, utils.MAX_UINT_256)
-    await backedToken.approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await liquidityToken.approve(liquidityPool.target, utils.MAX_UINT_256)
 
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await backedToken.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await liquidityToken.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
 
     // @ts-ignore
-    await backingPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
+    await liquidityPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
 
-    await backingPool.mint(utils.scale10Pow18(1000000n), admin.address)
+    await liquidityPool.mint(utils.scale10Pow18(1000000n), admin.address)
 
     return {
-      backedToken,
-      backingPool,
+      liquidityToken,
+      liquidityPool,
       admin,
       unpriviledged,
       tokenName,
@@ -94,76 +94,76 @@ describe("BackingPool", function() {
 
   describe("SwapGivenIn", function () {
     it("swap underlying for liquidity token", async function () {
-      const { backingPool, backedToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
 
       const inputAmount = utils.scaleDecimals(1000n, 0n, assetParams0.decimals); // 1000 tokens
       const minOutput = utils.scaleDecimals(900n, 0n, 18n); // Minimum acceptable output
   
       // Initial balances
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const initialAdminBalanceBacked = await backedToken.balanceOf(admin.address);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const initialPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
+      const initialAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const initialPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
   
       // Approve and perform the swap    
-      await mintable0.approve(backingPool.target, inputAmount);
-      await backingPool.swapGivenIn(admin.address, mintable0.target, backedToken.target, inputAmount, minOutput);
+      await mintable0.approve(liquidityPool.target, inputAmount);
+      await liquidityPool.swapGivenIn(admin.address, mintable0.target, liquidityToken.target, inputAmount, minOutput);
       
       // Final balances
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const finalAdminBalanceBacked = await backedToken.balanceOf(admin.address);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const finalPoolBalanceBacked = await backedToken.balanceOf(backingPool.target)
+      const finalAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const finalPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target)
       // Calculate output amount based on balance changes
-      const outputAmount = finalAdminBalanceBacked - initialAdminBalanceBacked;
+      const outputAmount = finalAdminBalanceLiquidity - initialAdminBalanceLiquidity;
       // Assertions
       expect(finalAdminBalance0).to.equal(initialAdminBalance0 - inputAmount);
-      expect(finalAdminBalanceBacked).to.be.closeTo(initialAdminBalanceBacked + outputAmount, outputAmount / 1_000_000n);
+      expect(finalAdminBalanceLiquidity).to.be.closeTo(initialAdminBalanceLiquidity + outputAmount, outputAmount / 1_000_000n);
       expect(finalPoolBalance0).to.equal(initialPoolBalance0 + inputAmount);
-      expect(finalPoolBalanceBacked - initialPoolBalanceBacked).to.equal(0n)
+      expect(finalPoolBalanceLiquidity - initialPoolBalanceLiquidity).to.equal(0n)
       // Check fees collected
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const expectedFeesCollected = (utils.scaleFee(assetParams0.tickData[2].increaseFee) * (outputAmount + feesCollected)) >> utils.SHIFT
       expect(feesCollected).to.be.closeTo(expectedFeesCollected, expectedFeesCollected / 1_000_000n);
     });
   
     it("swap liquidity token for underlying", async function () {
-      const { backingPool, backedToken, admin, mintable0 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityToken, admin, mintable0 } = await loadFixture(deployAll);
 
-      const inputAmount = utils.scaleDecimals(1000n, 0n, 18n); // 1000 backed tokens
+      const inputAmount = utils.scaleDecimals(1000n, 0n, 18n); // 1000 liquidity tokens
       const minOutput = utils.scaleDecimals(900n, 0n, assetParams0.decimals); // Minimum acceptable output
     
       // Initial balances
-      const initialAdminBalanceBacked = await backedToken.balanceOf(admin.address);
+      const initialAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const initialPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
+      const initialPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
     
       // Approve and perform the swap
-      await backedToken.approve(backingPool.target, inputAmount);
-      await backingPool.swapGivenIn(admin.address, backedToken.target, mintable0.target, inputAmount, minOutput);
+      await liquidityToken.approve(liquidityPool.target, inputAmount);
+      await liquidityPool.swapGivenIn(admin.address, liquidityToken.target, mintable0.target, inputAmount, minOutput);
     
       // Final balances
-      const finalAdminBalanceBacked = await backedToken.balanceOf(admin.address);
+      const finalAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
     
       // Calculate output amount based on balance changes
       const outputAmount = finalAdminBalance0 - initialAdminBalance0;
     
       // Assertions
-      expect(finalAdminBalanceBacked).to.equal(initialAdminBalanceBacked - inputAmount);
+      expect(finalAdminBalanceLiquidity).to.equal(initialAdminBalanceLiquidity - inputAmount);
       expect(finalAdminBalance0).to.be.closeTo(initialAdminBalance0 + outputAmount, outputAmount / 1_000_000n);
       expect(finalPoolBalance0).to.equal(initialPoolBalance0 - outputAmount);
     
       // Check fees collected
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const expectedFeesCollected = (utils.scaleFee(assetParams0.tickData[1].decreaseFee) * inputAmount) >> utils.SHIFT;
       expect(feesCollected).to.be.closeTo(expectedFeesCollected, expectedFeesCollected / 1_000_000n);
     });
   
     it("swap underlying for underlying", async function () {
-      const { backingPool, admin, mintable0, mintable1 } = await loadFixture(deployAll);
+      const { liquidityPool, admin, mintable0, mintable1 } = await loadFixture(deployAll);
 
       const inputAmount = utils.scaleDecimals(1000n, 0n, assetParams0.decimals); // 1000 tokens
       const minOutput = utils.scaleDecimals(900n, 0n, assetParams1.decimals); // Minimum acceptable output
@@ -171,18 +171,18 @@ describe("BackingPool", function() {
       // Initial balances
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
       const initialAdminBalance1 = await mintable1.balanceOf(admin.address);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const initialPoolBalance1 = await mintable1.balanceOf(backingPool.target);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const initialPoolBalance1 = await mintable1.balanceOf(liquidityPool.target);
 
       // Approve and perform the swap
-      await mintable0.approve(backingPool.target, inputAmount);
-      await backingPool.swapGivenIn(admin.address, mintable0.target, mintable1.target, inputAmount, minOutput);
+      await mintable0.approve(liquidityPool.target, inputAmount);
+      await liquidityPool.swapGivenIn(admin.address, mintable0.target, mintable1.target, inputAmount, minOutput);
 
       // Final balances
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
       const finalAdminBalance1 = await mintable1.balanceOf(admin.address);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const finalPoolBalance1 = await mintable1.balanceOf(backingPool.target);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const finalPoolBalance1 = await mintable1.balanceOf(liquidityPool.target);
 
       // Calculate output amount based on balance changes
       const outputAmount = finalAdminBalance1 - initialAdminBalance1;
@@ -196,7 +196,7 @@ describe("BackingPool", function() {
       // Check fees collected (rough estimate within 1%)
       const scaledInputAmount = utils.scaleDecimals(inputAmount, assetParams0.decimals, DECIMAL_SCALE);
       const scaledOutputAmount = utils.scaleDecimals(outputAmount, assetParams1.decimals, DECIMAL_SCALE);
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const expectedFeesCollected = 
         (utils.scaleFee(assetParams0.tickData[2].increaseFee) * scaledInputAmount +
         utils.scaleFee(assetParams1.tickData[1].decreaseFee) * scaledOutputAmount) >> utils.SHIFT;
@@ -206,81 +206,81 @@ describe("BackingPool", function() {
 
   describe.only("SwapGivenOut", function () {
     it("swap underlying for liquidity token", async function () {
-      const { backingPool, backedToken, admin, mintable0 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityToken, admin, mintable0 } = await loadFixture(deployAll);
   
-      const outputAmount = utils.scaleDecimals(900n, 0n, 18n); // 900 backed tokens
+      const outputAmount = utils.scaleDecimals(900n, 0n, 18n); // 900 liquidity tokens
       const maxInput = utils.scaleDecimals(1000n, 0n, assetParams0.decimals); // Maximum acceptable input
   
       // Initial balances
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const initialAdminBalanceBacked = await backedToken.balanceOf(admin.address);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const initialPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
+      const initialAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const initialPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
   
       // Approve and perform the swap
-      await mintable0.approve(backingPool.target, maxInput);
-      await backingPool.swapGivenOut(admin.address, mintable0.target, backedToken.target, outputAmount, maxInput);
+      await mintable0.approve(liquidityPool.target, maxInput);
+      await liquidityPool.swapGivenOut(admin.address, mintable0.target, liquidityToken.target, outputAmount, maxInput);
   
       // Final balances
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const finalAdminBalanceBacked = await backedToken.balanceOf(admin.address);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const finalPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
+      const finalAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const finalPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
   
       // Calculate input amount based on balance changes
       const inputAmount = initialAdminBalance0 - finalAdminBalance0;
   
       // Assertions
       expect(finalAdminBalance0).to.equal(initialAdminBalance0 - inputAmount);
-      expect(finalAdminBalanceBacked).to.equal(initialAdminBalanceBacked + outputAmount);
+      expect(finalAdminBalanceLiquidity).to.equal(initialAdminBalanceLiquidity + outputAmount);
       expect(finalPoolBalance0).to.equal(initialPoolBalance0 + inputAmount);
-      expect(finalPoolBalanceBacked).to.equal(initialPoolBalanceBacked);
+      expect(finalPoolBalanceLiquidity).to.equal(initialPoolBalanceLiquidity);
   
       // Check fees collected
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const expectedFeesCollected = (utils.scaleFee(assetParams0.tickData[2].increaseFee) * (outputAmount + feesCollected)) >> utils.SHIFT;
       expect(feesCollected).to.be.closeTo(expectedFeesCollected, expectedFeesCollected / 1_000_000n);
     });
   
     it("swap liquidity token for underlying", async function () {
-      const { backingPool, backedToken, admin, mintable0 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityToken, admin, mintable0 } = await loadFixture(deployAll);
   
       const outputAmount = utils.scaleDecimals(900n, 0n, assetParams0.decimals); // 900 tokens
       const maxInput = utils.scaleDecimals(1000n, 0n, 18n); // Maximum acceptable input
   
       // Initial balances
-      const initialAdminBalanceBacked = await backedToken.balanceOf(admin.address);
+      const initialAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const initialPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
+      const initialPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
   
       // Approve and perform the swap
-      await backedToken.approve(backingPool.target, maxInput);
-      await backingPool.swapGivenOut(admin.address, backedToken.target, mintable0.target, outputAmount, maxInput);
+      await liquidityToken.approve(liquidityPool.target, maxInput);
+      await liquidityPool.swapGivenOut(admin.address, liquidityToken.target, mintable0.target, outputAmount, maxInput);
   
       // Final balances
-      const finalAdminBalanceBacked = await backedToken.balanceOf(admin.address);
+      const finalAdminBalanceLiquidity = await liquidityToken.balanceOf(admin.address);
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
-      const finalPoolBalanceBacked = await backedToken.balanceOf(backingPool.target);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
+      const finalPoolBalanceLiquidity = await liquidityToken.balanceOf(liquidityPool.target);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
   
       // Calculate input amount based on balance changes
-      const inputAmount = initialAdminBalanceBacked - finalAdminBalanceBacked;
+      const inputAmount = initialAdminBalanceLiquidity - finalAdminBalanceLiquidity;
   
       // Assertions
-      expect(finalAdminBalanceBacked).to.equal(initialAdminBalanceBacked - inputAmount);
+      expect(finalAdminBalanceLiquidity).to.equal(initialAdminBalanceLiquidity - inputAmount);
       expect(finalAdminBalance0).to.equal(initialAdminBalance0 + outputAmount);
-      expect(finalPoolBalanceBacked).to.equal(initialPoolBalanceBacked);
+      expect(finalPoolBalanceLiquidity).to.equal(initialPoolBalanceLiquidity);
       expect(finalPoolBalance0).to.equal(initialPoolBalance0 - outputAmount);
   
       // Check fees collected
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const expectedFeesCollected = (utils.scaleFee(assetParams0.tickData[1].decreaseFee) * inputAmount) >> utils.SHIFT;
       expect(feesCollected).to.be.closeTo(expectedFeesCollected, expectedFeesCollected / 1_000_000n);
     });
   
     it("swap underlying for underlying", async function () {
-      const { backingPool, admin, mintable0, mintable1 } = await loadFixture(deployAll);
+      const { liquidityPool, admin, mintable0, mintable1 } = await loadFixture(deployAll);
   
       const outputAmount = utils.scaleDecimals(900n, 0n, assetParams1.decimals); // 900 tokens
       const maxInput = utils.scaleDecimals(1000n, 0n, assetParams0.decimals); // Maximum acceptable input
@@ -288,18 +288,18 @@ describe("BackingPool", function() {
       // Initial balances
       const initialAdminBalance0 = await mintable0.balanceOf(admin.address);
       const initialAdminBalance1 = await mintable1.balanceOf(admin.address);
-      const initialPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const initialPoolBalance1 = await mintable1.balanceOf(backingPool.target);
+      const initialPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const initialPoolBalance1 = await mintable1.balanceOf(liquidityPool.target);
   
       // Approve and perform the swap
-      await mintable0.approve(backingPool.target, maxInput);
-      await backingPool.swapGivenOut(admin.address, mintable0.target, mintable1.target, outputAmount, maxInput);
+      await mintable0.approve(liquidityPool.target, maxInput);
+      await liquidityPool.swapGivenOut(admin.address, mintable0.target, mintable1.target, outputAmount, maxInput);
   
       // Final balances
       const finalAdminBalance0 = await mintable0.balanceOf(admin.address);
       const finalAdminBalance1 = await mintable1.balanceOf(admin.address);
-      const finalPoolBalance0 = await mintable0.balanceOf(backingPool.target);
-      const finalPoolBalance1 = await mintable1.balanceOf(backingPool.target);
+      const finalPoolBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const finalPoolBalance1 = await mintable1.balanceOf(liquidityPool.target);
   
       // Calculate input amount based on balance changes
       const inputAmount = initialAdminBalance0 - finalAdminBalance0;
@@ -311,7 +311,7 @@ describe("BackingPool", function() {
       expect(finalPoolBalance1).to.equal(initialPoolBalance1 - outputAmount);
   
       // Check fees collected (rough estimate within 1%)
-      const feesCollected = await backingPool.getFeesCollected();
+      const feesCollected = await liquidityPool.getFeesCollected();
       const roughExpectedFees = outputAmount / 100n; // 1% rough estimate
       expect(feesCollected).to.be.closeTo(feesCollected, roughExpectedFees);
     });
