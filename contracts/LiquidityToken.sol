@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title YourContractName
+ * @title LiquidityToken
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -13,15 +13,13 @@
 pragma solidity ^0.8.27;
 
 import "openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "hardhat/console.sol";
 
 contract LiquidityToken is ERC20 {
-  address public backingPool;
+  address public liquidityPool;
   address public admin;
 
-  modifier onlyBackingPool {
-    // console.log("_msgSender()", _msgSender(), "backingPool:", backingPool);
-    require(_msgSender() == backingPool, "only backing pool");
+  modifier onlyLiquidityPool {
+    require(_msgSender() == liquidityPool, "only liquidity pool");
     _;
   }
 
@@ -33,10 +31,10 @@ contract LiquidityToken is ERC20 {
   constructor(
     string memory _name, 
     string memory _symbol,
-    address _backingPool,
+    address _liquidityPool,
     address _admin
   ) ERC20(_name, _symbol) {
-    backingPool = _backingPool;
+    liquidityPool = _liquidityPool;
     admin = _admin;
   }
 
@@ -44,15 +42,15 @@ contract LiquidityToken is ERC20 {
     admin = _admin;
   }
 
-  function setBackingPool(address _backingPool) external onlyAdmin {
-    backingPool = _backingPool;
+  function setLiquidityPool(address _liquidityPool) external onlyAdmin {
+    liquidityPool = _liquidityPool;
   }
 
-  function mint(address _recipient, uint256 _amount) external onlyBackingPool {
+  function mint(address _recipient, uint256 _amount) external onlyLiquidityPool {
     _mint(_recipient, _amount);
   }
 
-  function burnFrom(address _burnAddress, uint256 _amount) external onlyBackingPool {
+  function burnFrom(address _burnAddress, uint256 _amount) external onlyLiquidityPool {
     _burn(_burnAddress, _amount);
   }
 }

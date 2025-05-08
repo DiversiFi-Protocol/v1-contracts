@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - IBackingPool.sol
+ * @title DiversiFi - ILiquidityPool.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-interface IBackingPool {
+interface ILiquidityPool {
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Events ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     event Swap(
         address indexed sender,
@@ -80,7 +80,7 @@ interface IBackingPool {
 
     function getInsuranceFund() external view returns (address);
 
-    function getBackedToken() external view returns (address);
+    function getLiquidityToken() external view returns (address);
 
     function getAdmin() external view returns (address);
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - BackingPool.sol
+ * @title DiversiFi - LiquidityPool.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -18,9 +18,9 @@ import "./PoolMath.sol";
 import "./DataStructs.sol";
 
 
-contract BackingPool is ReentrancyGuard {
+contract LiquidityPool is ReentrancyGuard {
   //assets in this pool will be scaled to have this number of decimals
-  //must be the same number of decimals as the backed token
+  //must be the same number of decimals as the liquidity token
   uint8 public immutable DECIMAL_SCALE;
 
   //pool state
@@ -53,13 +53,13 @@ contract BackingPool is ReentrancyGuard {
 
   constructor(
     address _admin,
-    address _backedToken,
+    address _liquidityToken,
     uint256 _initialMaxReservesLimit,
     uint256 _maxReservesLimitRatioQ128
     ) {
-    liquidityToken_ = BackedToken(_backedToken);
+    liquidityToken_ = LiquidityToken(_liquidityToken);
     admin_ = _admin;
-    DECIMAL_SCALE = BackedToken(_backedToken).decimals();
+    DECIMAL_SCALE = LiquidityToken(_liquidityToken).decimals();
     maxReservesLimit_ = _initialMaxReservesLimit;
     maxReservesLimitRatioQ128_ = _maxReservesLimitRatioQ128;
   }
@@ -82,7 +82,7 @@ contract BackingPool is ReentrancyGuard {
     uint256 feesPaid
   );
 
-  // emitted when a user mints the backed token directly in exchange
+  // emitted when a user mints the liquidity token directly in exchange
   // for depositing every asset in the pool at the same time
   // we can't track the deltas of each asset in this event.
   // they can be calculated by multiplying the mintAmount plus fees paid
@@ -93,7 +93,7 @@ contract BackingPool is ReentrancyGuard {
     uint256 feesPaid
   );
 
-  // emitted when a user burns the backed token directly
+  // emitted when a user burns the liquidity token directly
   // to redeem every asset in the pool at the same time
   // we can't track the deltas of each asset in this event.
   // they can be calculated by multiplying the burn amount 
@@ -219,7 +219,7 @@ contract BackingPool is ReentrancyGuard {
     return feesCollected_;
   }
 
-  function getBackedToken() external view returns (address) {
+  function getLiquidityToken() external view returns (address) {
     return address(liquidityToken_);
   }
 
@@ -302,12 +302,12 @@ contract BackingPool is ReentrancyGuard {
 
   function withdrawFees(address _recipient) external onlyAdmin {
     uint256 fees = feesCollected_ - 1;
-    //check that all tokens are backed by 1 unit of totalReserves.
+    //check that all tokens are liquidity by 1 unit of totalReserves.
     //it may be possible to 
-    uint256 totalBackedTokens = fees + liquidityToken_.totalSupply();
+    uint256 totalLiquidityTokens = fees + liquidityToken_.totalSupply();
     //If there is a defecit, use fees to pay it before withdrawal
-    if(totalReservesScaled_  < totalBackedTokens) {
-      uint256 shortfall = totalBackedTokens - totalReservesScaled_;
+    if(totalReservesScaled_  < totalLiquidityTokens) {
+      uint256 shortfall = totalLiquidityTokens - totalReservesScaled_;
       require(shortfall <= fees, "insufficient fees to cover shortfall");
       fees -= shortfall;
     }
