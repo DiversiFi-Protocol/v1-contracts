@@ -15,7 +15,7 @@ pragma solidity ^0.8.27;
 import "openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "hardhat/console.sol";
 
-contract BackedToken is ERC20 {
+contract LiquidityToken is ERC20 {
   address public backingPool;
   address public admin;
 
