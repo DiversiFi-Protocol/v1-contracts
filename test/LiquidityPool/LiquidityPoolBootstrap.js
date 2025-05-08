@@ -10,12 +10,12 @@ const { assetParams0, assetParams1, assetParams2 } = require("../../deployments/
 
 const ONE_BILLION = 1_000_000_000n
 const DECIMAL_SCALE = 18n
-describe("BackingPool", function() {
+describe("LiquidityPool", function() {
   async function deployAll() {
     const tokenName = "Diversified USD";
     const tokenSymbol = "USD1";
     const [admin, unpriviledged] = await hre.ethers.getSigners();
-    const backingPoolAddress = getCreateAddress({
+    const liquidityPoolAddress = getCreateAddress({
       from: admin.address,
       nonce: 2n,
     });
@@ -23,16 +23,16 @@ describe("BackingPool", function() {
     const poolMathLibraryFactory = await hre.ethers.getContractFactory("PoolMath")
     const poolMathLibrary = await poolMathLibraryFactory.deploy()
 
-    const backedToken = await hre.ethers.deployContract("BackedToken", [
+    const liquidityToken = await hre.ethers.deployContract("LiquidityToken", [
       tokenName,
       tokenSymbol,
-      backingPoolAddress,
+      liquidityPoolAddress,
       admin.address,
     ]);
 
-    const backingPool = await hre.ethers.deployContract("BackingPool", [
+    const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
-      await backedToken.getAddress(),
+      await liquidityToken.getAddress(),
       ethers.MaxUint256,
       utils.decimalToFixed(0.1)
     ], {
@@ -60,23 +60,23 @@ describe("BackingPool", function() {
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
 
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable1.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
-    await mintable2.attach(unpriviledged).approve(backingPool.target, utils.MAX_UINT_256)
+    await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
 
     // @ts-ignore
-    await backingPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
+    await liquidityPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
 
     return {
-      backedToken,
-      backingPool,
+      liquidityToken,
+      liquidityPool,
       admin,
       unpriviledged,
       tokenName,
@@ -88,48 +88,48 @@ describe("BackingPool", function() {
   }
 
   it("Deployments", async () => {
-    const { backedToken, backingPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
+    const { liquidityToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
-    // backed token
-    expect(await backedToken.backingPool()).to.equal(getAddress(backingPool.target));
-    expect(await backedToken.admin()).to.equal(getAddress(admin.address));
-    expect(await backedToken.name()).to.equal(tokenName);
-    expect(await backedToken.symbol()).to.equal(tokenSymbol);
+    // liquidity token
+    expect(await liquidityToken.liquidityPool()).to.equal(getAddress(liquidityPool.target));
+    expect(await liquidityToken.admin()).to.equal(getAddress(admin.address));
+    expect(await liquidityToken.name()).to.equal(tokenName);
+    expect(await liquidityToken.symbol()).to.equal(tokenSymbol);
 
-    // backing pool
-    expect(await backingPool.getBackedToken()).to.equal(getAddress(backedToken.target));
-    expect(await backingPool.getAdmin()).to.equal(getAddress(admin.address));
+    // liquidity pool
+    expect(await liquidityPool.getLiquidityToken()).to.equal(getAddress(liquidityToken.target));
+    expect(await liquidityPool.getAdmin()).to.equal(getAddress(admin.address));
   });
 
   describe("Direct mint/burn functions", async function() {
     describe("mint", async function() {
       it("basic intended usage", async function() {
-        const { backingPool, backedToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+        const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
         const mintAmount = utils.scale10Pow18(3000n)
         const prevBal0 = await mintable0.balanceOf(admin.address)
         const prevBal1 = await mintable1.balanceOf(admin.address)
         const prevBal2 = await mintable2.balanceOf(admin.address)
-        const prevBackedBal = await backedToken.balanceOf(admin.address)
+        const prevLiquidityBal = await liquidityToken.balanceOf(admin.address)
 
-        await backingPool.mint(mintAmount, admin.address)
+        await liquidityPool.mint(mintAmount, admin.address)
 
         const balance0 = await mintable0.balanceOf(admin.address)
         const balance1 = await mintable1.balanceOf(admin.address) 
         const balance2 = await mintable2.balanceOf(admin.address) 
-        const backedBal = await backedToken.balanceOf(admin.address)
+        const liquidityBal = await liquidityToken.balanceOf(admin.address)
 
         const payAmount0 = prevBal0 - balance0
         const payAmount1 = prevBal1 - balance1
         const payAmount2 = prevBal2 - balance2
-        const mintedAmount = backedBal - prevBackedBal
+        const mintedAmount = liquidityBal - prevLiquidityBal
 
         const targetReserves0 = mintAmount * utils.scaleAllocation(assetParams0.targetAllocation) >> utils.SHIFT
         const targetReserves1 = mintAmount * utils.scaleAllocation(assetParams1.targetAllocation) >> utils.SHIFT
         const targetReserves2 = mintAmount * utils.scaleAllocation(assetParams2.targetAllocation) >> utils.SHIFT
 
-        const scaledReserves0 = await backingPool.getSpecificScaledReserves(mintable0.target)
-        const scaledReserves1 = await backingPool.getSpecificScaledReserves(mintable1.target)
-        const scaledReserves2 = await backingPool.getSpecificScaledReserves(mintable2.target)
+        const scaledReserves0 = await liquidityPool.getSpecificScaledReserves(mintable0.target)
+        const scaledReserves1 = await liquidityPool.getSpecificScaledReserves(mintable1.target)
+        const scaledReserves2 = await liquidityPool.getSpecificScaledReserves(mintable2.target)
 
         expect(scaledReserves0).to.be.closeTo(targetReserves0, targetReserves0 / ONE_BILLION)
         expect(scaledReserves1).to.be.closeTo(targetReserves1, targetReserves0 / ONE_BILLION)
@@ -147,42 +147,42 @@ describe("BackingPool", function() {
       });
 
       it("usage with mint fee", async function() {
-        const { backingPool, backedToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+        const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
         const mintAmount = utils.scale10Pow18(3000n)
         const prevBal0 = await mintable0.balanceOf(admin.address)
         const prevBal1 = await mintable1.balanceOf(admin.address)
         const prevBal2 = await mintable2.balanceOf(admin.address)
         
         //get prev balances of the pool
-        const prevBalPool0 = await mintable0.balanceOf(backingPool.target)
-        const prevBalPool1 = await mintable1.balanceOf(backingPool.target)
-        const prevBalPool2 = await mintable2.balanceOf(backingPool.target)
+        const prevBalPool0 = await mintable0.balanceOf(liquidityPool.target)
+        const prevBalPool1 = await mintable1.balanceOf(liquidityPool.target)
+        const prevBalPool2 = await mintable2.balanceOf(liquidityPool.target)
 
 
-        const prevBackedBal = await backedToken.balanceOf(admin.address)
+        const prevLiquidityBal = await liquidityToken.balanceOf(admin.address)
         const fee = 0.01
 
-        await backingPool.setMintFee(utils.decimalToFixed(fee))
+        await liquidityPool.setMintFee(utils.decimalToFixed(fee))
 
-        await backingPool.mint(mintAmount, admin.address)
+        await liquidityPool.mint(mintAmount, admin.address)
 
         const balance0 = await mintable0.balanceOf(admin.address)
         const balance1 = await mintable1.balanceOf(admin.address) 
         const balance2 = await mintable2.balanceOf(admin.address) 
-        const backedBal = await backedToken.balanceOf(admin.address)
+        const liquidityBal = await liquidityToken.balanceOf(admin.address)
 
         //get balances of the pool
-        const balPool0 = await mintable0.balanceOf(backingPool.target)
-        const balPool1 = await mintable1.balanceOf(backingPool.target)
-        const balPool2 = await mintable2.balanceOf(backingPool.target)
+        const balPool0 = await mintable0.balanceOf(liquidityPool.target)
+        const balPool1 = await mintable1.balanceOf(liquidityPool.target)
+        const balPool2 = await mintable2.balanceOf(liquidityPool.target)
 
         //compute the actual amounts paid into the pool
         const poolPayAmount0 = prevBalPool0 - balPool0
         const poolPayAmount1 = prevBalPool1 - balPool1
         const poolPayAmount2 = prevBalPool2 - balPool2
 
-        const mintedAmount = backedBal - prevBackedBal
-        const feesCollected = await backingPool.getFeesCollected()
+        const mintedAmount = liquidityBal - prevLiquidityBal
+        const feesCollected = await liquidityPool.getFeesCollected()
         const expectedFeesCollected = ((mintAmount+feesCollected) * utils.decimalToFixed(fee)) >> utils.SHIFT
 
         expect(feesCollected).to.equal(expectedFeesCollected)
@@ -191,49 +191,49 @@ describe("BackingPool", function() {
       })
 
       it("should fail when disabled", async function() {
-        const { backingPool, backedToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
-        await backingPool.setIsDirectMintEnabled(false)
+        const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+        await liquidityPool.setIsDirectMintEnabled(false)
         await expect(
-          backingPool.mint(utils.scale10Pow18(3000n), admin.address)
+          liquidityPool.mint(utils.scale10Pow18(3000n), admin.address)
         ).to.be.revertedWith("direct minting disabled")
       })
     });
 
     describe("burn", async function() {
       it("basic intended usage", async function() {
-        const { backingPool, backedToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target, m0Params, m1Params, m2Params, m3Params } = await loadFixture(deployAll);
+        const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target, m0Params, m1Params, m2Params, m3Params } = await loadFixture(deployAll);
         const mintAmount = utils.scale10Pow18(1000n)
         const prevBal0 = await mintable0.balanceOf(admin.address)
         const prevBal1 = await mintable1.balanceOf(admin.address)
         const prevBal2 = await mintable2.balanceOf(admin.address)
-        const prevBackedBal = await backedToken.balanceOf(admin.address)
+        const prevLiquidityBal = await liquidityToken.balanceOf(admin.address)
 
-        await backingPool.mint(mintAmount)
+        await liquidityPool.mint(mintAmount)
 
         const preBurnBalance0 = await mintable0.balanceOf(admin.address)
         const preBurnBalance1 = await mintable1.balanceOf(admin.address)
         const preBurnBalance2 = await mintable2.balanceOf(admin.address)
-        const backedBalPreBurn = await backedToken.balanceOf(admin.address)
+        const liquidityBalPreBurn = await liquidityToken.balanceOf(admin.address)
 
         const payAmount0 = prevBal0 - preBurnBalance0
         const payAmount1 = prevBal1 - preBurnBalance1
         const payAmount2 = prevBal2 - preBurnBalance2
         const payAmount3 = prevBal3 - preBurnBalance3
-        const mintedAmount = backedBalPreBurn - prevBackedBal
+        const mintedAmount = liquidityBalPreBurn - prevLiquidityBal
 
-        await backingPool.burn(backedBalPreBurn)
+        await liquidityPool.burn(liquidityBalPreBurn)
 
         const balance0 = await mintable0.balanceOf(admin.address)
         const balance1 = await mintable1.balanceOf(admin.address) 
         const balance2 = await mintable2.balanceOf(admin.address) 
         const balance3 = await mintable3.balanceOf(admin.address) 
-        const backedBal = await backedToken.balanceOf(admin.address)
+        const liquidityBal = await liquidityToken.balanceOf(admin.address)
 
         const claimAmount0 = balance0 - preBurnBalance0
         const claimAmount1 = balance1 - preBurnBalance1
         const claimAmount2 = balance2 - preBurnBalance2
         const claimAmount3 = balance3 - preBurnBalance3
-        const burnedAmount = backedBalPreBurn - backedBal
+        const burnedAmount = liquidityBalPreBurn - liquidityBal
 
         //all balances should be the same as previous balances after burning
         expect(utils.closeToBigPct(claimAmount0, payAmount0, utils.ONE_MILLIONTH_STRING)).to.equal(true)
@@ -244,28 +244,28 @@ describe("BackingPool", function() {
       });
 
       it("should not be usable above max allocation", async function() {
-        const { backingPool, bootstrapLiqThreshold, backedToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target } = await loadFixture(deployAll);
-        backingPool.mint(utils.scale10Pow18(bootstrapLiqThreshold))
+        const { liquidityPool, bootstrapLiqThreshold, liquidityToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target } = await loadFixture(deployAll);
+        liquidityPool.mint(utils.scale10Pow18(bootstrapLiqThreshold))
         await expect(
-          backingPool.mint(utils.scale10Pow18(bootstrapLiqThreshold+1n))
+          liquidityPool.mint(utils.scale10Pow18(bootstrapLiqThreshold+1n))
         ).to.be.revertedWith("Reserves above redeem threshold")
       })
 
       it("should adjust the reserves properly", async function() {
-        const { backingPool, bootstrapLiqThreshold, backedToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target, m0Params, m1Params, m2Params, m3Params } = await loadFixture(deployAll);
-        await backingPool.mint(utils.scale10Pow18(bootstrapLiqThreshold))
-        const mintedAmount = backedToken.balanceOf(admin.address)
-        await backingPool.burn(mintedAmount)
-        const m0Reserves = await backingPool.getAdjustedReserves(mintable0.target)
-        const m1Reserves = await backingPool.getAdjustedReserves(mintable1.target)
-        const m2Reserves = await backingPool.getAdjustedReserves(mintable2.target)
-        const m3Reserves = await backingPool.getAdjustedReserves(mintable3.target)
-        const totalAdjustedReserves = await backingPool.getTotalAdjustedReserves()
+        const { liquidityPool, bootstrapLiqThreshold, liquidityToken, admin, mintable0, mintable1, mintable2, mintable3, t0Target, t1Target, t2Target, t3Target, m0Params, m1Params, m2Params, m3Params } = await loadFixture(deployAll);
+        await liquidityPool.mint(utils.scale10Pow18(bootstrapLiqThreshold))
+        const mintedAmount = liquidityToken.balanceOf(admin.address)
+        await liquidityPool.burn(mintedAmount)
+        const m0Reserves = await liquidityPool.getAdjustedReserves(mintable0.target)
+        const m1Reserves = await liquidityPool.getAdjustedReserves(mintable1.target)
+        const m2Reserves = await liquidityPool.getAdjustedReserves(mintable2.target)
+        const m3Reserves = await liquidityPool.getAdjustedReserves(mintable3.target)
+        const totalAdjustedReserves = await liquidityPool.getTotalAdjustedReserves()
 
-        const poolBalance0 = await mintable0.balanceOf(backingPool.target)
-        const poolBalance1 = await mintable1.balanceOf(backingPool.target) 
-        const poolBalance2 = await mintable2.balanceOf(backingPool.target) 
-        const poolBalance3 = await mintable3.balanceOf(backingPool.target) 
+        const poolBalance0 = await mintable0.balanceOf(liquidityPool.target)
+        const poolBalance1 = await mintable1.balanceOf(liquidityPool.target) 
+        const poolBalance2 = await mintable2.balanceOf(liquidityPool.target) 
+        const poolBalance3 = await mintable3.balanceOf(liquidityPool.target) 
 
         expect(m0Reserves).to.equal(poolBalance0 * 10n ** (18n - m0Params.decimals))
         expect(m1Reserves).to.equal(poolBalance1 * 10n ** (18n - m1Params.decimals))
