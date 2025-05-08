@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-import "./BackedToken.sol";
+import "./LiquidityToken.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PoolMath.sol";
@@ -29,7 +29,7 @@ contract BackingPool is ReentrancyGuard {
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
 
   //related contracts
-  BackedToken private backedToken_;
+  LiquidityToken private liquidityToken_;
 
   //configuration
   address private admin_;
@@ -57,7 +57,7 @@ contract BackingPool is ReentrancyGuard {
     uint256 _initialMaxReservesLimit,
     uint256 _maxReservesLimitRatioQ128
     ) {
-    backedToken_ = BackedToken(_backedToken);
+    liquidityToken_ = BackedToken(_backedToken);
     admin_ = _admin;
     DECIMAL_SCALE = BackedToken(_backedToken).decimals();
     maxReservesLimit_ = _initialMaxReservesLimit;
@@ -156,9 +156,9 @@ contract BackingPool is ReentrancyGuard {
   ) external returns (uint256 /* outputAmount */) {
     require(_inputAsset != _outputAsset, "input/output assets are the same");
     uint256 output;
-    if (_inputAsset == address(backedToken_)) {
+    if (_inputAsset == address(liquidityToken_)) {
       output = handleWithdrawalGivenBurn(_outputAsset, _inputAmount, _recipient);
-    } else if (_outputAsset == address(backedToken_)) {
+    } else if (_outputAsset == address(liquidityToken_)) {
       output = handleMintGivenDeposit(_inputAsset, _inputAmount, _recipient);
     } else {
       output = handleSwapUnderlyingGivenIn(_inputAsset, _outputAsset, _inputAmount, _recipient);
@@ -176,9 +176,9 @@ contract BackingPool is ReentrancyGuard {
   ) external returns (uint256 /* inputAmount */) {
     require(_inputAsset != _outputAsset, "input/output assets are the same");
     uint256 input;
-    if (_inputAsset == address(backedToken_)) {
+    if (_inputAsset == address(liquidityToken_)) {
       input = handleBurnGivenWithdraw(_outputAsset, _outputAmount, _recipient);
-    } else if (_outputAsset == address(backedToken_)) {
+    } else if (_outputAsset == address(liquidityToken_)) {
       input = handleDepositGivenMint(_inputAsset, _outputAmount, _recipient);
     } else {
       input = handleSwapUnderlyingGivenOut(_inputAsset, _outputAsset, _outputAmount, _recipient);
@@ -220,7 +220,7 @@ contract BackingPool is ReentrancyGuard {
   }
 
   function getBackedToken() external view returns (address) {
-    return address(backedToken_);
+    return address(liquidityToken_);
   }
 
   function getAdmin() external view returns (address) {
@@ -304,7 +304,7 @@ contract BackingPool is ReentrancyGuard {
     uint256 fees = feesCollected_ - 1;
     //check that all tokens are backed by 1 unit of totalReserves.
     //it may be possible to 
-    uint256 totalBackedTokens = fees + backedToken_.totalSupply();
+    uint256 totalBackedTokens = fees + liquidityToken_.totalSupply();
     //If there is a defecit, use fees to pay it before withdrawal
     if(totalReservesScaled_  < totalBackedTokens) {
       uint256 shortfall = totalBackedTokens - totalReservesScaled_;
@@ -312,7 +312,7 @@ contract BackingPool is ReentrancyGuard {
       fees -= shortfall;
     }
     feesCollected_ = 1;
-    backedToken_.mint(
+    liquidityToken_.mint(
       _recipient,
       fees
     );
@@ -370,7 +370,7 @@ contract BackingPool is ReentrancyGuard {
 
     checkMaxTotalReservesLimit();
 
-    backedToken_.mint(
+    liquidityToken_.mint(
       _recipient,
       _mintAmount
     );
@@ -385,7 +385,7 @@ contract BackingPool is ReentrancyGuard {
   }
 
   function burn(uint256 _burnAmount) external nonReentrant {
-    backedToken_.burnFrom(msg.sender, _burnAmount);
+    liquidityToken_.burnFrom(msg.sender, _burnAmount);
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -456,7 +456,7 @@ contract BackingPool is ReentrancyGuard {
 
     //transfer tokens
     IERC20(_depositAsset).transferFrom(msg.sender, address(this), _depositAmount);
-    backedToken_.mint(_recipient, mintAmount);
+    liquidityToken_.mint(_recipient, mintAmount);
     feesCollected_ += fee;
 
     //emit event
@@ -507,7 +507,7 @@ contract BackingPool is ReentrancyGuard {
     //transfer tokens
     depositAmount = PoolMath.scaleDecimals(depositAmountScaled, DECIMAL_SCALE, params.decimals);
     IERC20(_depositAsset).transferFrom(msg.sender, address(this), depositAmount);
-    backedToken_.mint(_recipient, _mintAmount);
+    liquidityToken_.mint(_recipient, _mintAmount);
     feesCollected_ += fee;
 
     //emit event
@@ -557,7 +557,7 @@ contract BackingPool is ReentrancyGuard {
 
     //transfer tokens
     IERC20(_withdrawAsset).transfer(_recipient, _withdrawAmount);
-    backedToken_.burnFrom(msg.sender, burnAmount);
+    liquidityToken_.burnFrom(msg.sender, burnAmount);
     feesCollected_ += fee;
 
     //emit event
@@ -606,7 +606,7 @@ contract BackingPool is ReentrancyGuard {
     //transfer tokens
     withdrawAmount = PoolMath.scaleDecimals(withdrawAmountScaled, DECIMAL_SCALE, params.decimals);
     IERC20(_withdrawAsset).transfer(msg.sender, withdrawAmount);
-    backedToken_.burnFrom(_recipient, _burnAmount);
+    liquidityToken_.burnFrom(_recipient, _burnAmount);
     feesCollected_ += fee;
 
     //emit event
