@@ -1,4 +1,4 @@
-# Contracts-v0
+# Contracts-v1
 Smart Contracts and test scripts
 
 ## License
