@@ -17,7 +17,7 @@ import "./DataStructs.sol";
 import "hardhat/console.sol";
 // import "./NaturalLog128x128.sol";
 
-uint256 constant EQ128 = 0xB17217F7D1CF8032BEEA9A2102AD522C;//Euler's number in fixed point 128.128
+uint256 constant LnEQ128 = 0xB17217F7D1CF8032BEEA9A2102AD522C;//The natural Logarithm of Euler's number in fixed point 128.128
 
 library PoolMath {
   uint256 constant SHIFT = 128; //shift a normal integer to get 128.128 fixed point
@@ -212,9 +212,9 @@ library PoolMath {
   function lnQ128 (uint256 x) internal pure returns (int256) {
     int256 logTerm = log2Q128(x);
     if (logTerm > 0) {
-      return int256(Math.mulDiv(uint256(logTerm), EQ128, SCALE));
+      return int256(Math.mulDiv(uint256(logTerm), LnEQ128, SCALE));
     } else {
-      return -1 * int256(Math.mulDiv(uint256(logTerm * -1), EQ128, SCALE));
+      return -1 * int256(Math.mulDiv(uint256(logTerm * -1), LnEQ128, SCALE));
     }
   }
 
