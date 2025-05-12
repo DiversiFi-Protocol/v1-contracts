@@ -334,13 +334,19 @@ contract LiquidityPool is ReentrancyGuard {
   }
 
   //transfer assets that have been inappropriately deposited
-  function recoverBadDeposit(address _asset, address _recipient, uint256 _amount) external onlyAdmin {
-    uint8 tokenDecimals = assetParams_[_asset].decimals;
-    uint256 expectedBalance = PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, tokenDecimals);
-    uint256 trueBalance = IERC20(_asset).balanceOf(address(this));
-    uint256 diff = trueBalance - expectedBalance;
-    require(_amount <= diff, "recovery larger than excess");
-    IERC20(_asset).transfer(_recipient, _amount);
+  function recoverFunds(address _asset, address _recipient, uint256 _amount) external onlyAdmin {
+    if(address == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+      //transfer Ether
+      (bool success, ) = _recipient.call{value: _amount}("");
+      require(success, "Ether transfer failed");
+    } else {
+      uint8 tokenDecimals = assetParams_[_asset].decimals;
+      uint256 expectedBalance = PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, tokenDecimals);
+      uint256 trueBalance = IERC20(_asset).balanceOf(address(this));
+      uint256 diff = trueBalance - expectedBalance;
+      require(_amount <= diff, "recovery larger than excess");
+      IERC20(_asset).transfer(_recipient, _amount);
+    }
   }
 
   /*
