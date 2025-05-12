@@ -248,7 +248,7 @@ contract LiquidityPool is ReentrancyGuard {
   }
 
   //returns the actual reserves of _asset in atomic units
-  function getReserves(address _asset) external view returns (uint256) {
+  function getSpecificReserves(address _asset) external view returns (uint256) {
     return PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, assetParams_[_asset].decimals);
   }
 
