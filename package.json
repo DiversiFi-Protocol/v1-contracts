@@ -1,12 +1,18 @@
 {
-  "name": "hardhat-project",
+  "name": "diversifi-protocol",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "start": "npx hardhat node",
+    "deploy-local": "npx hardhat run deployments/testnetDeploy.js --network localhost"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "hardhat": "^2.22.19",
-    "hardhat-gas-reporter": "^2.2.2",
+    "hardhat-gas-reporter": "^1.0.8",
     "viem": "^2.22.17"
   },
   "dependencies": {
+    "chalk": "^5.4.1",
     "hardhat-contract-sizer": "^2.10.0",
     "openzeppelin": "^1.0.0",
     "smock": "^0.0.2",
