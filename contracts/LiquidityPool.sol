@@ -16,9 +16,10 @@ import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PoolMath.sol";
 import "./DataStructs.sol";
+import "./ILiquidityPool.sol";
 
 
-contract LiquidityPool is ReentrancyGuard {
+contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the liquidity token
   uint8 public immutable DECIMAL_SCALE;
