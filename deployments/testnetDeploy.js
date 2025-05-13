@@ -6,6 +6,7 @@ const {
 } = require("./assetParams.js");
 const { getCreateAddress, createPublicClient, http } = require("viem");
 const { localhost } = require("viem/chains");
+const chalk = require("chalk");
 const utils = require("../test/testModules/utils.js");
 
 async function main() {
@@ -16,7 +17,7 @@ async function main() {
   });
 
   // Deploy MintableStableCoin Contracts
-  console.log("Deploying MintableStableCoin tokens...");
+  console.log(chalk.cyan("Deploying MintableStableCoin tokens..."));
   const MintableStableCoin = await ethers.getContractFactory("MintableERC20");
   const PoolMathLibraryFactory = await ethers.getContractFactory("PoolMath");
 
@@ -43,7 +44,7 @@ async function main() {
   );
   await token2.waitForDeployment();
   console.log(`Token2 deployed to: ${await token2.getAddress()}`);
-  console.log("----------------------------------\n");
+  console.log("\n----------------------------------\n");
 
   const PoolMathLibary = await PoolMathLibraryFactory.deploy();
   await PoolMathLibary.waitForDeployment();
@@ -57,7 +58,7 @@ async function main() {
   });
 
   // Deploy LiquidityToken Contract
-  console.log("Deploying LiquidityToken contract...");
+  console.log(chalk.cyan("Deploying LiquidityToken contract..."));
   const LiquidityToken = await ethers.getContractFactory("LiquidityToken");
   const liquidityToken = await LiquidityToken.deploy(
     "Diversified USD",
@@ -70,10 +71,10 @@ async function main() {
     `LiquidityToken deployed to: ${await liquidityToken.getAddress()}`
   );
 
-  console.log("----------------------------------\n");
+  console.log("\n----------------------------------\n");
 
   // Deploy liquidityPool Contract
-  console.log("Deploying LiquidityPool contract...");
+  console.log(chalk.cyan("Deploying LiquidityPool contract..."));
   const LiquidityPool = await ethers.getContractFactory("LiquidityPool", {
     libraries: {
       PoolMath: PoolMathLibary.target,
@@ -93,10 +94,13 @@ async function main() {
   await liquidityPool.setIsDirectMintEnabled(true);
   await liquidityPool.setIsSwapEnabled(true);
   console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
-  console.log("predicted LiquidityPool address:", liquidityPoolAddress);
-  console.log("----------------------------------\n");
+  console.log(
+    chalk.yellow("Predicted LiquidityPool address:"),
+    liquidityPoolAddress
+  );
+  console.log("\n----------------------------------\n");
 
-  console.log("minting tokens...");
+  console.log(chalk.cyan("Minting Reserve Asset tokens..."));
   await token0.mint(
     await deployer.getAddress(),
     ethers.parseUnits("1000000", assetParams0.decimals)
@@ -109,29 +113,32 @@ async function main() {
     await deployer.getAddress(),
     ethers.parseUnits("1000000", assetParams2.decimals)
   );
-  console.log("tokens minted");
-  console.log("balances:");
+
+  console.log("Token Balances:");
   console.log(
     "token0 balance:",
     (await token0.balanceOf(await deployer.getAddress())).toString(),
-    "token0 decimals:",
+    "decimals:",
     assetParams0.decimals
   );
   console.log(
     "token1 balance:",
     (await token1.balanceOf(await deployer.getAddress())).toString(),
-    "token1 decimals:",
+    "decimals:",
     assetParams1.decimals
   );
   console.log(
     "token2 balance:",
     (await token2.balanceOf(await deployer.getAddress())).toString(),
-    "token2 decimals:",
+    "decimals:",
     assetParams2.decimals
   );
-  console.log("----------------------------------\n");
 
-  console.log("minting base assets for liquidity pool");
+  console.log(chalk.green("Tokens successfully minted"));
+
+  console.log("\n----------------------------------\n");
+
+  console.log(chalk.cyan("Minting base assets for Liquidity Pool"));
   await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
@@ -139,34 +146,36 @@ async function main() {
     ethers.parseUnits("100000", await liquidityToken.decimals()),
     await deployer.getAddress()
   );
-  console.log("done");
-  console.log("----------------------------------\n");
 
-  console.log("final balances:");
+  console.log(chalk.cyan("Final Balances:"));
   console.log(
     "token0 balance:      ",
     (await token0.balanceOf(await deployer.getAddress())).toString(),
-    "token0 decimals:",
+    "decimals:",
     assetParams0.decimals
   );
   console.log(
     "token1 balance:      ",
     (await token1.balanceOf(await deployer.getAddress())).toString(),
-    "token1 decimals:",
+    "decimals:",
     assetParams1.decimals
   );
   console.log(
-    "token2balance:      ",
+    "token2 balance:      ",
     (await token2.balanceOf(await deployer.getAddress())).toString(),
-    "token2 decimals:",
+    "decimals:",
     assetParams2.decimals
   );
   console.log(
-    "liquidity token balance:",
+    "liquidityToken balance:",
     (await liquidityToken.balanceOf(await deployer.getAddress())).toString(),
-    "liquidity token decimals:",
+    "decimals:",
     await liquidityToken.decimals()
   );
+
+  console.log(chalk.green("Done"));
+
+  console.log("\n----------------------------------\n");
 
   const multiMinterFactory = await ethers.getContractFactory("MultiMinter");
   const multiMinter = await multiMinterFactory.deploy([
