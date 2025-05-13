@@ -335,7 +335,7 @@ contract LiquidityPool is ReentrancyGuard {
 
   //transfer assets that have been inappropriately deposited
   function recoverFunds(address _asset, address _recipient, uint256 _amount) external onlyAdmin {
-    if(address == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
+    if(_asset == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
       //transfer Ether
       (bool success, ) = _recipient.call{value: _amount}("");
       require(success, "Ether transfer failed");
