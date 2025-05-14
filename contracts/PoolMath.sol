@@ -14,8 +14,6 @@ pragma solidity ^0.8.27;
 import "openzeppelin/contracts/utils/math/Math.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 import "./DataStructs.sol";
-import "hardhat/console.sol";
-// import "./NaturalLog128x128.sol";
 
 uint256 constant LnEQ128 = 0xB17217F7D1CF8032BEEA9A2102AD522C;//The natural Logarithm of Euler's number in fixed point 128.128
 
