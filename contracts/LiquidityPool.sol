@@ -154,18 +154,16 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _outputAsset,
     uint256 _inputAmount,
     uint256 _minOutput
-  ) external returns (uint256 /* outputAmount */) {
+  ) external returns (uint256 output, uint256 fee) {
     require(_inputAsset != _outputAsset, "input/output assets are the same");
-    uint256 output;
     if (_inputAsset == address(liquidityToken_)) {
-      output = handleWithdrawalGivenBurn(_outputAsset, _inputAmount, _recipient);
+      (output, fee) = handleWithdrawalGivenBurn(_outputAsset, _inputAmount, _recipient);
     } else if (_outputAsset == address(liquidityToken_)) {
-      output = handleMintGivenDeposit(_inputAsset, _inputAmount, _recipient);
+      (output, fee) = handleMintGivenDeposit(_inputAsset, _inputAmount, _recipient);
     } else {
-      output = handleSwapUnderlyingGivenIn(_inputAsset, _outputAsset, _inputAmount, _recipient);
+      (output, fee) = handleSwapUnderlyingGivenIn(_inputAsset, _outputAsset, _inputAmount, _recipient);
     }
     require(output >= _minOutput, "insufficient output");
-    return output;
   }
 
   function swapGivenOut(
@@ -174,18 +172,17 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _outputAsset,
     uint256 _outputAmount,
     uint256 _maxInput
-  ) external returns (uint256 /* inputAmount */) {
+  ) external returns (uint256 input, uint256 fee) {
     require(_inputAsset != _outputAsset, "input/output assets are the same");
-    uint256 input;
     if (_inputAsset == address(liquidityToken_)) {
-      input = handleBurnGivenWithdraw(_outputAsset, _outputAmount, _recipient);
+      (input, fee) = handleBurnGivenWithdraw(_outputAsset, _outputAmount, _recipient);
     } else if (_outputAsset == address(liquidityToken_)) {
-      input = handleDepositGivenMint(_inputAsset, _outputAmount, _recipient);
+      (input, fee) = handleDepositGivenMint(_inputAsset, _outputAmount, _recipient);
     } else {
-      input = handleSwapUnderlyingGivenOut(_inputAsset, _outputAsset, _outputAmount, _recipient);
+      (input, fee) = handleSwapUnderlyingGivenOut(_inputAsset, _outputAsset, _outputAmount, _recipient);
     }
     require(input <= _maxInput, "too much input");
-    return input;
+    return (input, fee);
   }
 
   /*
@@ -430,11 +427,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _depositAsset,
     uint256 _depositAmount,
     address _recipient
-  ) internal returns (uint256 mintAmount) {
+  ) internal returns (uint256 mintAmount, uint256 fee) {
     //prepare values
     AssetParams memory params = assetParams_[_depositAsset];
     uint256 depositAmountScaled = PoolMath.scaleDecimals(_depositAmount, params.decimals, DECIMAL_SCALE);
-    uint256 fee;
     uint256 specificReservesScaled = specificReservesScaled_[_depositAsset];
     uint256 totalReservesScaled = totalReservesScaled_;
     //compute deposit
@@ -481,14 +477,15 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _depositAsset,
     uint256 _mintAmount,
     address _recipient
-  ) internal returns (uint256 depositAmount) {
+  ) internal returns (uint256 depositAmount, uint256 fee) {
     //prepare values
     AssetParams memory params = assetParams_[_depositAsset];
     uint256 specificReservesScaled = specificReservesScaled_[_depositAsset];
     uint256 totalReservesScaled = totalReservesScaled_;
 
     //compute deposit
-    (uint256 depositAmountScaled, uint256 fee) = PoolMath.computeDepositGivenMint(
+    uint256 depositAmountScaled;
+    (depositAmountScaled, fee) = PoolMath.computeDepositGivenMint(
       params, 
       _mintAmount,
       specificReservesScaled,
@@ -532,11 +529,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _withdrawAsset,
     uint256 _withdrawAmount,
     address _recipient
-  ) internal returns (uint256 burnAmount) {
+  ) internal returns (uint256 burnAmount, uint256 fee) {
     //prepare values
     AssetParams memory params = assetParams_[_withdrawAsset];
     uint256 withdrawAmountScaled = PoolMath.scaleDecimals(_withdrawAmount, params.decimals, DECIMAL_SCALE);
-    uint256 fee;
     uint256 specificReservesScaled = specificReservesScaled_[_withdrawAsset];
     uint256 totalReservesScaled = totalReservesScaled_;
 
@@ -582,14 +578,15 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _withdrawAsset,
     uint256 _burnAmount,
     address _recipient
-  ) internal returns (uint256 withdrawAmount) {
+  ) internal returns (uint256 withdrawAmount, uint256 fee) {
     //prepare values
     AssetParams memory params = assetParams_[_withdrawAsset];
     uint256 specificReservesScaled = specificReservesScaled_[_withdrawAsset];
     uint256 totalReservesScaled = totalReservesScaled_;
     
     //compute withdrawal
-    (uint256 withdrawAmountScaled, uint256 fee) = PoolMath.computeWithdrawalGivenBurn(
+    uint256 withdrawAmountScaled;
+    (withdrawAmountScaled, fee) = PoolMath.computeWithdrawalGivenBurn(
       params, 
       _burnAmount,
       specificReservesScaled,
@@ -632,7 +629,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _outputAsset,
     uint256 _inputAmount,
     address _recipient
-  ) internal returns (uint256 /* outputAmount */) {
+  ) internal returns (uint256, /* outputAmount */ uint256 /* fee */) {
     //prepare values
     AssetParams memory inputAssetParams = assetParams_[_inputAsset];
     AssetParams memory outputAssetParams = assetParams_[_outputAsset];
@@ -685,7 +682,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       fee
     );
 
-    return outputAmount;
+    return (outputAmount, fee);
   }
 
   function handleSwapUnderlyingGivenOut(
@@ -693,7 +690,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     address _outputAsset,
     uint256 _outputAmount,
     address _recipient
-  ) internal returns (uint256 /* inputAmount */) {
+  ) internal returns (uint256, /* inputAmount */ uint256 /* fee */) {
     //prepare values
     AssetParams memory inputAssetParams = assetParams_[_inputAsset];
     AssetParams memory outputAssetParams = assetParams_[_outputAsset];
@@ -746,7 +743,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       fee
     );
 
-    return inputAmount;
+    return (inputAmount, fee);
   }
 
   /*
