@@ -21,7 +21,7 @@ interface ILiquidityPool {
         address _outputAsset,
         uint256 _inputAmount,
         uint256 _minOutput
-    ) external returns (uint256);
+    ) external returns (uint256, uint256);
 
     function swapGivenOut(
         address _recipient,
@@ -29,7 +29,7 @@ interface ILiquidityPool {
         address _outputAsset,
         uint256 _outputAmount,
         uint256 _maxInput
-    ) external returns (uint256);
+    ) external returns (uint256, uint256);
 
     function mint(uint256 _mintAmount, address _recipient) external;
 
