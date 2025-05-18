@@ -635,10 +635,14 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     AssetParams memory outputAssetParams = assetParams_[_outputAsset];
     uint256 inputReservesScaled = specificReservesScaled_[_inputAsset];
     uint256 outputReservesScaled = specificReservesScaled_[_outputAsset];
+    uint256 outputAmountScaled;
+    uint256 fee;
+
+    {//block to reduce the scope of the following variable to reduce stack depth
     uint256 inputAmountScaled = PoolMath.scaleDecimals(_inputAmount, inputAssetParams.decimals, DECIMAL_SCALE);
 
     //compute swap
-    (uint256 outputAmountScaled, uint256 fee) = PoolMath.computeSwapUnderlyingGivenIn(
+    (outputAmountScaled, fee) = PoolMath.computeSwapUnderlyingGivenIn(
       inputAssetParams,
       outputAssetParams,
       inputAmountScaled,
@@ -647,12 +651,24 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       totalReservesScaled_
     );
 
+    //emit swap event
+    emit Swap(
+      msg.sender,
+      _recipient,
+      _inputAsset,
+      _outputAsset,
+      int256(inputAmountScaled),
+      -int256(outputAmountScaled),
+      fee
+    );
+
     //check new allocations
     inputReservesScaled += inputAmountScaled;
     outputReservesScaled -= outputAmountScaled;
     //totalReservesScaled storage variable must be updated first because
     //there is not enough stack space to create a cached version
     totalReservesScaled_ += inputAmountScaled - outputAmountScaled;
+    }
     checkAllocationsSwap(
       inputReservesScaled,
       outputReservesScaled,
@@ -671,17 +687,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     IERC20(_inputAsset).transferFrom(msg.sender, address(this), _inputAmount);
     IERC20(_outputAsset).transfer(_recipient, outputAmount);
 
-    //emit swap event
-    emit Swap(
-      msg.sender,
-      _recipient,
-      _inputAsset,
-      _outputAsset,
-      int256(inputAmountScaled),
-      -int256(outputAmountScaled),
-      fee
-    );
-
     return (outputAmount, fee);
   }
 
@@ -696,16 +701,31 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     AssetParams memory outputAssetParams = assetParams_[_outputAsset];
     uint256 inputReservesScaled = specificReservesScaled_[_inputAsset];
     uint256 outputReservesScaled = specificReservesScaled_[_outputAsset];
+    uint256 inputAmountScaled;
+    uint256 fee;
+
+    {//block to reduce the scope of the following variable to reduce stack depth
     uint256 outputAmountScaled = PoolMath.scaleDecimals(_outputAmount, outputAssetParams.decimals, DECIMAL_SCALE);
 
     //compute swap
-    (uint256 inputAmountScaled, uint256 fee) = PoolMath.computeSwapUnderlyingGivenOut(
+    (inputAmountScaled, fee) = PoolMath.computeSwapUnderlyingGivenOut(
       inputAssetParams,
       outputAssetParams,
       outputAmountScaled,
       inputReservesScaled,
       outputReservesScaled,
       totalReservesScaled_
+    );
+
+    //emit swap event
+    emit Swap(
+      msg.sender,
+      _recipient,
+      _inputAsset,
+      _outputAsset,
+      int256(inputAmountScaled),
+      -int256(outputAmountScaled),
+      fee
     );
 
     //check new allocations
@@ -721,7 +741,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       inputAssetParams.maxAllocation,
       outputAssetParams.minAllocation
     );
-
+    }
     //update storage
     specificReservesScaled_[_inputAsset] = inputReservesScaled;
     specificReservesScaled_[_outputAsset] = outputReservesScaled;
@@ -731,17 +751,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     uint256 inputAmount = PoolMath.scaleDecimals(inputAmountScaled, DECIMAL_SCALE, inputAssetParams.decimals);
     IERC20(_inputAsset).transferFrom(msg.sender, address(this), inputAmount);
     IERC20(_outputAsset).transfer(_recipient, _outputAmount);
-
-    //emit swap event
-    emit Swap(
-      msg.sender,
-      _recipient,
-      _inputAsset,
-      _outputAsset,
-      int256(inputAmountScaled),
-      -int256(outputAmountScaled),
-      fee
-    );
 
     return (inputAmount, fee);
   }
