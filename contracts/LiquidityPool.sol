@@ -668,7 +668,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     //totalReservesScaled storage variable must be updated first because
     //there is not enough stack space to create a cached version
     totalReservesScaled_ += inputAmountScaled - outputAmountScaled;
-    }
+    }//end block
+
     checkAllocationsSwap(
       inputReservesScaled,
       outputReservesScaled,
@@ -741,7 +742,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       inputAssetParams.maxAllocation,
       outputAssetParams.minAllocation
     );
-    }
+    }//end block
+
     //update storage
     specificReservesScaled_[_inputAsset] = inputReservesScaled;
     specificReservesScaled_[_outputAsset] = outputReservesScaled;
