@@ -195,7 +195,7 @@ library PoolMath {
       int256 result = (mostSignificantBit - 128) << 128;
 
       //determine fractional part
-      x = uint256(int256(_logArg)) << uint256 (255 - mostSignificantBit) >> 128;
+      x = uint256(int256(_logArg)) << uint256(255 - mostSignificantBit) >> 128;
       for (int256 bit = 0x80000000000000000000000000000000; bit > 0; bit >>= 1) {
         x *= x;
         uint256 b = x >> 255;
