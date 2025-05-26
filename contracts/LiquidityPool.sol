@@ -233,14 +233,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     return admin_;
   }
 
-function getAllAssets() external view returns (address[] memory) {
-    address[] memory assetsList = new address[](assetParamsList_.length);
-    for (uint i = 0; i < assetParamsList_.length; i++) {
-        assetsList[i] = assetParamsList_[i].assetAddress;
-    }
-    return assetsList;
-}
-
+  function getAllAssets() external view returns (address[] memory) {
+      address[] memory assetsList = new address[](assetParamsList_.length);
+      for (uint i = 0; i < assetParamsList_.length; i++) {
+          assetsList[i] = assetParamsList_[i].assetAddress;
+      }
+      return assetsList;
+  }
 
   function getAllAssetParams() external view returns (AssetParams[] memory) {
     return assetParamsList_;
