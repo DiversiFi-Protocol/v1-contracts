@@ -67,9 +67,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   // they can be calculated by multiplying the mintAmount plus fees paid
   // by the targetAllocation of each asset 
   event Mint(
-    address indexed recipient,
-    uint256 mintAmount,
-    uint256 feesPaid
+    address   indexed recipient,
+    uint256   mintAmount,
+    uint256[] scaledReserves,
+    uint256   feesPaid
   );
 
   // emitted when a user burns the liquidity token directly
@@ -78,9 +79,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   // they can be calculated by multiplying the burn amount 
   // minus feePaid by the current allocations of each asset
   event Burn(
-    address indexed recipient,
-    uint256 burnAmount,
-    uint256 feesPaid
+    address   indexed recipient,
+    uint256   burnAmount,
+    uint256[] scaledReserves,
+    uint256   feesPaid
   );
 
   event MintFeeChange(
@@ -93,7 +95,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   event AssetParamsChange(
     address indexed asset,
-    uint88 targetAllocation
+    uint88 targetAllocation,
+    uint8 decimals
   );
 
   event IsMintEnabledChange(
@@ -115,6 +118,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   event FeesCollected(
     uint256 feesCollected
   );
+
+  event AdminChange(
+    address admin
+  );
   
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Core Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +131,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     require(isMintEnabled_, "minting disabled");
     uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
     uint256 trueMintAmount = _mintAmount + fee;
+    uint256[] memory scaledReservesList = new uint256[](assetParamsList_.length);
+    uint256 totalReservesIncrease = 0;
     for (uint i = 0; i < assetParamsList_.length; i++) {
       AssetParams memory params = assetParamsList_[i];
       uint256 targetDeposit = PoolMath.fromFixed(
@@ -132,10 +141,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       uint256 trueDeposit = PoolMath.scaleDecimals(targetDeposit, DECIMAL_SCALE, params.decimals);
       uint256 trueScaledDeposit = PoolMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
-      totalReservesScaled_ += trueScaledDeposit;
-      specificReservesScaled_[params.assetAddress] += trueScaledDeposit;
+      totalReservesIncrease += trueScaledDeposit;
+      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueScaledDeposit;
+      specificReservesScaled_[assetParamsList_[i].assetAddress] = scaledReservesList[i];
     }
-
+    totalReservesScaled_ += totalReservesIncrease;
     checkMaxTotalReservesLimit();
 
     liquidityToken_.mint(
@@ -148,6 +158,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     emit Mint(
       _recipient,
       _mintAmount,
+      scaledReservesList,
       fee
     );
   }
@@ -157,6 +168,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
+    uint256[] memory scaledReservesList = new uint256[](assetParamsList_.length);
     for (uint i = 0; i < assetParamsList_.length; i++) {
       AssetParams memory params = assetParamsList_[i];
       uint256 reserveProportion = PoolMath.toFixed(specificReservesScaled_[params.assetAddress]) / totalReservesScaled_;
@@ -172,7 +184,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
       IERC20(params.assetAddress).transfer(msg.sender, trueTransferAmount);
       totalReserveReduction += trueScaledTransferAmount;
-      specificReservesScaled_[params.assetAddress] -= trueScaledTransferAmount;
+      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueScaledTransferAmount;
     }
     totalReservesScaled_ -= totalReserveReduction;
     feesCollected_ += fee;
@@ -180,6 +192,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     emit Burn(
       msg.sender,
       _burnAmount,
+      scaledReservesList,
       fee
     );
   }
@@ -250,6 +263,14 @@ function getAllAssets() external view returns (address[] memory) {
     return PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, assetParams_[_asset].decimals);
   }
 
+  function getMaxReservesIncreaseCooldown() external view returns (uint256) {
+    return maxReservesIncreaseCooldown_;
+  }
+
+  function getLastLimitChangeTimestamp() external view returns (uint256) {
+    return lastLimitChangeTimestamp_;
+  }
+
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Admin Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
@@ -257,6 +278,11 @@ function getAllAssets() external view returns (address[] memory) {
   modifier onlyAdmin {
     require(msg.sender == admin_, "only_admin");
     _;
+  }
+
+  function setAdmin(address _newAdmin) external onlyAdmin {
+    admin_ = _newAdmin;
+    emit AdminChange(_newAdmin);
   }
 
   function setMintFeeQ128(uint256 _mintFeeQ128) external onlyAdmin {
@@ -281,6 +307,7 @@ function getAllAssets() external view returns (address[] memory) {
 
   function setMaxReserves(uint256 _maxReserves) external onlyAdmin {
     maxReserves_ = _maxReserves;
+    lastLimitChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves);
   }
 
@@ -291,7 +318,8 @@ function getAllAssets() external view returns (address[] memory) {
       assetParamsList_.push(_params[i]);
       emit AssetParamsChange(
         _params[i].assetAddress,
-        _params[i].targetAllocation
+        _params[i].targetAllocation,
+        _params[i].decimals
       );
     }
   }
