@@ -4,6 +4,6 @@ pragma solidity ^0.8.27;
 
 struct AssetParams {
   address assetAddress;
-  uint32 targetAllocation; // a portion of MAX_UINT_32
+  uint88 targetAllocation; // a portion of MAX_UINT_88
   uint8 decimals;
 }
