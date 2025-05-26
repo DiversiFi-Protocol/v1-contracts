@@ -14,6 +14,10 @@ contract PoolMathWrapper {
     return PoolMath.allocationToFixed(_allocation);
   }
 
+  function fixedToAllocation(uint256 _fixed) public pure returns (uint32) {
+    return PoolMath.fixedToAllocation(_fixed);
+  }
+
   function toFixed(uint256 _num) public pure returns (uint256) {
     return PoolMath.toFixed(_num);
   }
@@ -22,17 +26,8 @@ contract PoolMathWrapper {
     return PoolMath.fromFixed(_num);
   }
 
-  //returns the lower bound of the current tick
-  function getTickLowerBoundIndex(
-    AssetParams memory _assetParams,
-    uint256 _specificReservesScaled,
-    uint256 _totalReservesScaled
-  ) public pure returns (uint index) {
-    return PoolMath.getTickLowerBoundIndex(
-        _assetParams,
-        _specificReservesScaled,
-        _totalReservesScaled
-    );
+  function calcCompoundingFeeRate(uint256 _feeRateQ128) public pure returns (uint256) {
+    return PoolMath.calcCompoundingFeeRate(_feeRateQ128);
   }
 
   //scale a token with specified decimals to be the same scale as _targetDecimals
@@ -140,6 +135,11 @@ contract PoolMathWrapper {
     );
   }
 
+  function calcStepDeposit(
+    uint256 _mintAmount,
+    uint256 _totalReserves,
+    uint256 _specificReserves,
+    TickData memory _tick
   function calcStepDeposit(
     uint256 _mintAmount,
     uint256 _totalReserves,
