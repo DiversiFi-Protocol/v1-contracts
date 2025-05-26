@@ -2,15 +2,14 @@
 pragma solidity ^0.8.27;
 
 import "../PoolMath.sol";
-import "hardhat/console.sol";
 
 contract PoolMathWrapper {
 
-  function allocationToFixed(uint32 _allocation) public pure returns (uint256) {
+  function allocationToFixed(uint88 _allocation) public pure returns (uint256) {
     return PoolMath.allocationToFixed(_allocation);
   }
 
-  function fixedToAllocation(uint256 _fixed) public pure returns (uint32) {
+  function fixedToAllocation(uint256 _fixed) public pure returns (uint88) {
     return PoolMath.fixedToAllocation(_fixed);
   }
 
