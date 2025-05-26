@@ -10,13 +10,7 @@ const tolerance = (val) => {
 
 describe("PoolMath", function() {
   async function deployAll() {
-    const poolMathLibraryFactory = await hre.ethers.getContractFactory("PoolMath")
-    const poolMathLibrary = await poolMathLibraryFactory.deploy()
-    const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper", {
-      libraries: {
-        PoolMath: poolMathLibrary.target
-      }
-    });
+    const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
     return {poolMathWrapper};
   }
@@ -42,10 +36,8 @@ describe("PoolMath", function() {
     it("should convert back to original allocation", async function() {
       const { poolMathWrapper } = await loadFixture(deployAll);
       const allocation = utils.formatAllocationFromDecimal(0.1)
-      const specificReserves = 1000000000000000000n
-      const totalReserves =    10000000000000000000n
       const fixed = await poolMathWrapper.allocationToFixed(allocation)
-      const endingAlloc = await poolMathWrapper.fixedToAllocation(fixed, specificReserves, totalReserves)
+      const endingAlloc = await poolMathWrapper.fixedToAllocation(fixed)
       expect(endingAlloc).to.equal(allocation)
     })
   })
@@ -72,11 +64,10 @@ describe("PoolMath", function() {
   describe("calcCompoundingFeeRate", function() {
     it("should calculate the correct compounding fee rate", async function() {
       const { poolMathWrapper } = await loadFixture(deployAll);
-      const baseRate = 0.01
-      const compoundingFrequency = 365
-      const expectedRate = (1 + baseRate) ** compoundingFrequency - 1
-      const rate = await poolMathWrapper.calcCompoundingFeeRate(baseRate, compoundingFrequency)
-      expect(rate).to.be.closeTo(expectedRate, tolerance(expectedRate))
+      const baseRate = utils.decimalToFixed(0.01) // 1% base rate
+      const expectedRate = (baseRate << utils.SHIFT) / (utils.SCALE - baseRate)
+      const rate = await poolMathWrapper.calcCompoundingFeeRate(baseRate)
+      expect(rate).to.equal(expectedRate)
     })
   })
 
