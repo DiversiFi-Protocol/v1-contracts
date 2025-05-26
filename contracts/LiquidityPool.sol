@@ -280,9 +280,10 @@ function getAllAssets() external view returns (address[] memory) {
   }
 
   function setAssetParams(AssetParams[] calldata _params) external onlyAdmin {
-    assetParamsList_ = _params;
+    delete assetParamsList_;
     for (uint i = 0; i < _params.length; i++) {
       assetParams_[_params[i].assetAddress] = _params[i];
+      assetParamsList_.push(_params[i]);
       emit AssetParamsChange(
         _params[i].assetAddress,
         _params[i].targetAllocation

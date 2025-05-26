@@ -1,5 +1,3 @@
-
-
 const SHIFT = 128n; //shift a normal integer to get 128.128 fixed point
 
 const ALLOCATION_SHIFT = SHIFT - 88n; //shift 0.88 fixed point to get 128.128 fixed point
@@ -135,31 +133,17 @@ module.exports = {
   scaleAllocation,
   formatAllocationFromDecimal,
   formatAllocationFromFixed,
-  formatPriceFromFixed,
-  formatPriceSlopeFromFixed,
-  formatFeeFromFixed,
   scalePrice,
   formatPriceFromDecimal,
-  scalePriceSlope,
-  formatPriceSlopeFromDecimal,
-  scaleFee,
-  formatFeeFromDecimal,
   decimalToFixed,
   fixedToDecimal,
   unscale10Pow18,
-  createTicks,
-  createTickData,
   createAssetParams,
-  makeSlope,
   closeToBig,
   closeToBigPct,
   compareFunctions,
   SCALE,
-  MAX_UINT_16,
   MAX_UINT_256,
   ALLOCATION_SHIFT,
   SHIFT,
-  FEE_SHIFT,
-  PRICE_SHIFT,
-  PRICE_SLOPE_SHIFT,
 }
