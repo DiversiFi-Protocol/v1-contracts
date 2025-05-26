@@ -14,7 +14,7 @@ pragma solidity ^0.8.27;
 
 library PoolMath {
   uint256 constant SHIFT = 128; //shift a normal integer to get 128.128 fixed point
-  uint256 constant ALLOCATION_SHIFT = SHIFT - 88; //shift 0.32 fixed point to get 128.128 fixed point
+  uint256 constant ALLOCATION_SHIFT = SHIFT - 32; //shift 0.32 fixed point to get 128.128 fixed point
   uint256 constant SCALE = 2 ** SHIFT; //1 shifted by shift
 
   function allocationToFixed(uint32 _allocation) internal pure returns (uint256) {
