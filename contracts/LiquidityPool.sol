@@ -93,7 +93,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   event AssetParamsChange(
     address indexed asset,
-    uint32 targetAllocation
+    uint88 targetAllocation
   );
 
   event IsMintEnabledChange(

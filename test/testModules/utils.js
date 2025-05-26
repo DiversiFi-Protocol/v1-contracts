@@ -2,9 +2,8 @@
 
 const SHIFT = 128n; //shift a normal integer to get 128.128 fixed point
 
-const ALLOCATION_SHIFT = SHIFT - 32n; //shift 0.32 fixed point to get 128.128 fixed point
+const ALLOCATION_SHIFT = SHIFT - 88n; //shift 0.88 fixed point to get 128.128 fixed point
 const SCALE = 2n ** SHIFT; //1 shifted by shift
-const MAX_UINT_16 = 65535n;
 const MAX_UINT_256 = (2n ** 256n) - 1n;
 
 //returns the proportion difference between the output of two functions
