@@ -121,7 +121,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   */
 
   function mint(uint256 _mintAmount, address _recipient) external nonReentrant {
-    require(isMintEnabled_, "direct minting disabled");
+    require(isMintEnabled_, "minting disabled");
     uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
     uint256 trueMintAmount = _mintAmount + fee;
     for (uint i = 0; i < assetParamsList_.length; i++) {
@@ -322,6 +322,7 @@ function getAllAssets() external view returns (address[] memory) {
     }
   }
 
+  /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
   function checkMaxTotalReservesLimit() private {
     //check if limit has been violated
