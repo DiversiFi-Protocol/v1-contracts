@@ -15,7 +15,6 @@ const assetParams1 = utils.createAssetParams(
   decimals,
   targetAllocation,
   maxAllocation,
-  incompleteTicks
 );
 
 assetParams1.decimals = 18n
@@ -24,13 +23,12 @@ const assetParams2 = utils.createAssetParams(
   decimals,
   targetAllocation,
   maxAllocation,
-  incompleteTicks
 );
 
 assetParams2.decimals = 6n
 
 const leftOverTargetAllocation =
-  (2n ** 32n - 1n) - assetParams2.targetAllocation - assetParams1.targetAllocation;
+  (2n ** 88n - 1n) - assetParams2.targetAllocation - assetParams1.targetAllocation;
 assetParams2.targetAllocation = leftOverTargetAllocation
 assetParams2.tickBoundaries[2] = leftOverTargetAllocation
 assetParams2.tickData[2].allocation = leftOverTargetAllocation

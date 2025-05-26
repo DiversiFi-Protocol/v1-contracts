@@ -46,8 +46,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   //burning is always enabled because disabling would violate user trust
 
   //automated max reserves limiting
-  uint256 private maxReservesLimit_;//the maximum numerical value of totalScaledReserves
-  uint256 private publicLimitIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReservesLimit again
+  uint256 private maxReserves_;//the maximum numerical value of totalScaledReserves
+  uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReservesLimit again
   uint256 private lastLimitChangeTimestamp_ = 0;
 
   constructor(
@@ -57,7 +57,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     liquidityToken_ = LiquidityToken(_liquidityToken);
     admin_ = _admin;
     DECIMAL_SCALE = LiquidityToken(_liquidityToken).decimals();
-    maxReservesLimit_ = 1e6 * DECIMAL_SCALE; //initial limit is 1 million scaled reserves
+    maxReserves_ = 1e6 * DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
   }
 
@@ -100,12 +100,12 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     bool isMintEnabled
   );
 
-  event MaxReservesLimitChange(
-    uint256 maxReservesLimit
+  event MaxReservesChange(
+    uint256 maxReserves
   );
 
-  event PublicLimitIncreaseCooldownChange(
-    uint256 publicLimitIncreaseCooldown
+  event MaxReservesIncreaseCooldownChange(
+    uint256 publicMaxReservesIncreaseCooldown
   );
 
   event MaxReservesIncreaseRateChange(
@@ -188,8 +188,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Getters~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
-  function getMaxReservesLimit() external view returns (uint256) {
-    return maxReservesLimit_;
+  function getMaxReserves() external view returns (uint256) {
+    return maxReserves_;
   }
 
   function getMaxReservesIncreaseRateQ128() external view returns (uint256) {
@@ -269,14 +269,19 @@ function getAllAssets() external view returns (address[] memory) {
     emit BurnFeeChange(_burnFeeQ128);
   }
 
-  function setPublicLimitIncreaseCooldown(uint256 _publicLimitIncreaseCooldown) external onlyAdmin {
-    publicLimitIncreaseCooldown_ = _publicLimitIncreaseCooldown;
-    emit PublicLimitIncreaseCooldownChange(_publicLimitIncreaseCooldown);
+  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyAdmin {
+    maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
+    emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
-  function setMaxReservesLimit(uint256 _maxReservesLimit) external onlyAdmin {
-    maxReservesLimit_ = _maxReservesLimit;
-    emit MaxReservesLimitChange(_maxReservesLimit);
+  function setMaxReservesIncreaseRateQ128(uint256 _maxReservesIncreaseRateQ128) external onlyAdmin {
+    maxReservesIncreaseRateQ128_ = _maxReservesIncreaseRateQ128;
+    emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ128);
+  }
+
+  function setMaxReserves(uint256 _maxReserves) external onlyAdmin {
+    maxReserves_ = _maxReserves;
+    emit MaxReservesChange(_maxReserves);
   }
 
   function setAssetParams(AssetParams[] calldata _params) external onlyAdmin {
@@ -327,14 +332,14 @@ function getAllAssets() external view returns (address[] memory) {
 
   function checkMaxTotalReservesLimit() private {
     //check if limit has been violated
-    if (totalReservesScaled_ > maxReservesLimit_) {
+    if (totalReservesScaled_ > maxReserves_) {
       //check if limit increase is on cooldown
-      require(lastLimitChangeTimestamp_ + publicLimitIncreaseCooldown_ <= block.timestamp, "max reserves limit");
+      require(lastLimitChangeTimestamp_ + maxReservesIncreaseCooldown_ <= block.timestamp, "max reserves limit");
       //update the limit if it isn't on cooldown
       lastLimitChangeTimestamp_ = block.timestamp;
-      maxReservesLimit_ += PoolMath.fromFixed(maxReservesLimit_ * maxReservesIncreaseRateQ128_);
-      emit MaxReservesLimitChange(
-        maxReservesLimit_
+      maxReserves_ += PoolMath.fromFixed(maxReserves_ * maxReservesIncreaseRateQ128_);
+      emit MaxReservesChange(
+        maxReserves_
       );
     }
   }
