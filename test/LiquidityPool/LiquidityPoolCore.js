@@ -1,7 +1,7 @@
 const {
-  time,
   loadFixture,
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
+const deployAll = require("./deployAll.js");
 const hre = require("hardhat");
 const { getAddress, parseGwei, getCreateAddress, maxUint16 } = require("ethers");
 const utils = require("../testModules/utils.js");
@@ -11,82 +11,6 @@ const { assetParams0, assetParams1, assetParams2 } = require("../../deployments/
 const ONE_BILLION = 1_000_000_000n
 const DECIMAL_SCALE = 18n
 describe("LiquidityPool", function() {
-  async function deployAll() {
-    const tokenName = "Diversified USD";
-    const tokenSymbol = "USD1";
-    const [admin, unpriviledged] = await hre.ethers.getSigners();
-    const liquidityPoolAddress = getCreateAddress({
-      from: admin.address,
-      nonce: 2n,
-    });
-
-    const poolMathLibraryFactory = await hre.ethers.getContractFactory("PoolMath")
-    const poolMathLibrary = await poolMathLibraryFactory.deploy()
-
-    const liquidityToken = await hre.ethers.deployContract("LiquidityToken", [
-      tokenName,
-      tokenSymbol,
-      liquidityPoolAddress,
-      admin.address,
-    ]);
-
-    const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
-      await admin.getAddress(),
-      await liquidityToken.getAddress(),
-      ethers.MaxUint256,
-      utils.decimalToFixed(0.1)
-    ], {
-      libraries: {
-        PoolMath: poolMathLibrary.target
-      }
-    });
-
-    const mintable0 = await hre.ethers.deployContract("MintableERC20", [
-      "Mintable0",
-      "M0",
-      assetParams0.decimals,
-    ]);
-    const mintable1 = await hre.ethers.deployContract("MintableERC20", [
-      "Mintable1",
-      "M1",
-      assetParams1.decimals,
-    ]);
-    const mintable2 = await hre.ethers.deployContract("MintableERC20", [
-      "Mintable2",
-      "M2",
-      assetParams2.decimals,
-    ]);
-
-    await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
-
-    await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-
-    // @ts-ignore
-    await liquidityPool.setAssetParams([mintable0.target, mintable1.target, mintable2.target], [assetParams0, assetParams1, assetParams2]);
-
-    return {
-      liquidityToken,
-      liquidityPool,
-      admin,
-      unpriviledged,
-      tokenName,
-      tokenSymbol,
-      mintable0,
-      mintable1,
-      mintable2,
-    };
-  }
-
   it("Deployments", async () => {
     const { liquidityToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
@@ -276,19 +200,4 @@ describe("LiquidityPool", function() {
       })
     });  
   });
-
 });
-
-/*
-mTick: 10000000000000000000000000000000
-initialPrice: 1000000000000000000
-inputAmount 10000
-prod0: 500
-prod1: 10000
-
-mTick: 50000000000000000000000000000000000
-initialPrice: 999628707205763112
-inputAmount 1000000000000000000000
-prod0: 25000000000000000000000000000000000000000
-prod1: 999628707205763112000
-*/

@@ -42,5 +42,4 @@ interface ILiquidityPool {
     function setAssetParams(AssetParams[] calldata _params) external;
     function withdrawFees(address _recipient) external;
     function setIsMintEnabled(bool _isMintEnabled) external;
-    function recoverFunds(address _asset, address _recipient, uint256 _amount) external;
 }
