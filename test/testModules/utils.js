@@ -66,17 +66,14 @@ const scaleDecimals = (num, fromDecimals, toDecimals) => {
   return num;
 }
 
-const createAssetParams = (
-  decimals,
-  targetAllocation,
-  assetAddress
-) => {
-  const assetParams = {
-    decimals: BigInt(decimals),
-    targetAllocation: formatAllocationFromDecimal(targetAllocation),
-    assetAddress,
-  };
-  return assetParams;
+const allocationRemainder = allocations => {
+  const remainingAlloc = 2n ** 88n - 1n; //the max value of a uint88
+  allocations.forEach(allocation => {
+    if (allocation > remainingAlloc) {
+      throw new Error("Allocation exceeds uint88 max value");
+    }
+    remainingAlloc -= allocation;
+  })
 }
 
 const closeToBig = (actual, expected, tolerance) => {
@@ -130,6 +127,7 @@ module.exports = {
   randomBetween,
   randomBigInt,
   scale10Pow18,
+  allocationRemainder,
   scaleAllocation,
   formatAllocationFromDecimal,
   formatAllocationFromFixed,
@@ -138,7 +136,6 @@ module.exports = {
   decimalToFixed,
   fixedToDecimal,
   unscale10Pow18,
-  createAssetParams,
   closeToBig,
   closeToBigPct,
   compareFunctions,
