@@ -67,13 +67,14 @@ const scaleDecimals = (num, fromDecimals, toDecimals) => {
 }
 
 const allocationRemainder = allocations => {
-  const remainingAlloc = 2n ** 88n - 1n; //the max value of a uint88
+  let remainingAlloc = 2n ** 88n - 1n; //the max value of a uint88
   allocations.forEach(allocation => {
     if (allocation > remainingAlloc) {
       throw new Error("Allocation exceeds uint88 max value");
     }
     remainingAlloc -= allocation;
   })
+  return remainingAlloc
 }
 
 const closeToBig = (actual, expected, tolerance) => {
