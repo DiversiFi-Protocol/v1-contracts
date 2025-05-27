@@ -3,11 +3,6 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const utils = require("./testModules/utils");
 
-const TOLERANCE = 1_000_000
-const tolerance = (val) => {
-  return val / TOLERANCE
-}
-
 describe("PoolMath", function() {
   async function deployAll() {
     const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");

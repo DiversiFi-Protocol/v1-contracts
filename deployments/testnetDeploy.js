@@ -14,7 +14,6 @@ async function main() {
   // Deploy MintableStableCoin Contracts
   console.log(chalk.cyan("Deploying MintableStableCoin tokens..."));
   const MintableStableCoin = await ethers.getContractFactory("MintableERC20");
-  const PoolMathLibraryFactory = await ethers.getContractFactory("PoolMath");
 
   const token0Decimals = 18n
   const token0 = await MintableStableCoin.deploy(
