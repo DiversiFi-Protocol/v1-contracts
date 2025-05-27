@@ -16,33 +16,33 @@ async function main() {
   const MintableStableCoin = await ethers.getContractFactory("MintableERC20");
   const PoolMathLibraryFactory = await ethers.getContractFactory("PoolMath");
 
+  const token0Decimals = 18n
   const token0 = await MintableStableCoin.deploy(
     "Token0",
     "TK0",
-    assetParams0.decimals
+    token0Decimals
   );
   await token0.waitForDeployment();
   console.log(`Token0 deployed to: ${await token0.getAddress()}`);
 
+  const token1Decimals = 20n
   const token1 = await MintableStableCoin.deploy(
     "Token1",
     "TK1",
-    assetParams1.decimals
+    token1Decimals
   );
   await token1.waitForDeployment();
   console.log(`Token1 deployed to: ${await token1.getAddress()}`);
 
+  const token2Decimals = 6n  
   const token2 = await MintableStableCoin.deploy(
     "Token2",
     "TK2",
-    assetParams2.decimals
+    token2Decimals
   );
   await token2.waitForDeployment();
   console.log(`Token2 deployed to: ${await token2.getAddress()}`);
   console.log("\n----------------------------------\n");
-
-  const PoolMathLibary = await PoolMathLibraryFactory.deploy();
-  await PoolMathLibary.waitForDeployment();
 
   const nonce = await client.getTransactionCount({
     address: await deployer.getAddress(),
@@ -70,24 +70,35 @@ async function main() {
 
   // Deploy liquidityPool Contract
   console.log(chalk.cyan("Deploying LiquidityPool contract..."));
-  const LiquidityPool = await ethers.getContractFactory("LiquidityPool", {
-    libraries: {
-      PoolMath: PoolMathLibary.target,
-    },
-  });
+  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
   const liquidityPool = await LiquidityPool.deploy(
     deployer.getAddress(),
     liquidityToken.getAddress(),
-    ethers.MaxUint256,
-    utils.decimalToFixed(0.1)
   );
   await liquidityPool.waitForDeployment();
+  const targetAllocation0 = utils.formatAllocationFromDecimal(0.4);
+  const targetAllocation1 = utils.formatAllocationFromDecimal(0.35);
+  const targetAllocation2 = utils.allocationRemainder([targetAllocation0, targetAllocation1]);
   await liquidityPool.setAssetParams(
-    [token0.getAddress(), token1.getAddress(), token2.getAddress()],
-    [assetParams0, assetParams1, assetParams2]
+    [
+      {
+        assetAddress: await token0.getAddress(),
+        targetAllocation: targetAllocation0,
+        decimals: token0Decimals
+      },
+      {
+        assetAddress: await token1.getAddress(),
+        targetAllocation: targetAllocation1,
+        decimals: token1Decimals
+      },
+      {
+        assetAddress: await token2.getAddress(),
+        targetAllocation: targetAllocation2,
+        decimals: token2Decimals
+      }
+    ]
   );
-  await liquidityPool.setIsDirectMintEnabled(true);
-  await liquidityPool.setIsSwapEnabled(true);
+  await liquidityPool.setIsMintEnabled(true);
   console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
   console.log(
     chalk.yellow("Predicted LiquidityPool address:"),
@@ -98,15 +109,15 @@ async function main() {
   console.log(chalk.cyan("Minting Reserve Asset tokens..."));
   await token0.mint(
     await deployer.getAddress(),
-    ethers.parseUnits("1000000", assetParams0.decimals)
+    ethers.parseUnits("1000000", token0Decimals)
   );
   await token1.mint(
     await deployer.getAddress(),
-    ethers.parseUnits("1000000", assetParams1.decimals)
+    ethers.parseUnits("1000000", token1Decimals)
   );
   await token2.mint(
     await deployer.getAddress(),
-    ethers.parseUnits("1000000", assetParams2.decimals)
+    ethers.parseUnits("1000000", token2Decimals)
   );
 
   console.log("Token Balances:");
@@ -114,19 +125,19 @@ async function main() {
     "token0 balance:",
     (await token0.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams0.decimals
+    token0Decimals
   );
   console.log(
     "token1 balance:",
     (await token1.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams1.decimals
+    token1Decimals
   );
   console.log(
     "token2 balance:",
     (await token2.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams2.decimals
+    token2Decimals
   );
 
   console.log(chalk.green("Tokens successfully minted"));
@@ -147,19 +158,19 @@ async function main() {
     "token0 balance:      ",
     (await token0.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams0.decimals
+    token0Decimals
   );
   console.log(
     "token1 balance:      ",
     (await token1.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams1.decimals
+    token1Decimals
   );
   console.log(
     "token2 balance:      ",
     (await token2.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    assetParams2.decimals
+    token2Decimals
   );
   console.log(
     "liquidityToken balance:",
