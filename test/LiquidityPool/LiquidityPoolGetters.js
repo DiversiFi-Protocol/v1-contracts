@@ -21,7 +21,7 @@ describe("LiquidityPool - Getters", function () {
     expect(await liquidityPool.getAdmin()).to.equal(getAddress(admin.address));
   });
 
-  it("getMaxReservesLimit", async function () {
+  it("getMaxReserves", async function () {
     const { liquidityPool, maxReserves } = await loadFixture(deployAll);
 
     // Call the getMaxReservesfunction
@@ -143,9 +143,9 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(24 * 60 * 60); // 1 day in seconds
   });
 
-  it("getLastLimitChangeTimestamp", async function () {
+  it("getLastMaxReservesChangeTimestamp", async function () {
     const { liquidityPool, setMaxReservesTimestamp } = await loadFixture(deployAll);
-    const result = await liquidityPool.getLastLimitChangeTimestamp();
+    const result = await liquidityPool.getLastMaxReservesChangeTimestamp();
     expect(result).to.equal(setMaxReservesTimestamp);
   });
 })

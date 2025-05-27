@@ -91,7 +91,7 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(tx).to.emit(liquidityPool, "MaxReservesChange").withArgs(newMax);
       expect(await liquidityPool.getMaxReserves()).to.equal(newMax);
       const block = await hre.ethers.provider.getBlock(tx.blockNumber);
-      expect(await liquidityPool.getLastLimitChangeTimestamp()).to.equal(block.timestamp);
+      expect(await liquidityPool.getLastMaxReservesChangeTimestamp()).to.equal(block.timestamp);
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
