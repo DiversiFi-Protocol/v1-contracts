@@ -59,6 +59,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     DECIMAL_SCALE = LiquidityToken(_liquidityToken).decimals();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
+    feesCollected_ = 1;//gas optimization
   }
 
   // emitted when a user mints the liquidity token directly in exchange
@@ -222,7 +223,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   }
 
   function getFeesCollected() external view returns (uint256) {
-    return feesCollected_;
+    return feesCollected_ - 1;
   }
 
   function getLiquidityToken() external view returns (address) {
@@ -340,22 +341,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
-  }
-
-  //transfer assets that have been inappropriately deposited
-  function recoverFunds(address _asset, address _recipient, uint256 _amount) external onlyAdmin {
-    if(_asset == 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE) {
-      //transfer Ether
-      (bool success, ) = _recipient.call{value: _amount}("");
-      require(success, "Ether transfer failed");
-    } else {
-      uint8 tokenDecimals = assetParams_[_asset].decimals;
-      uint256 expectedBalance = PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, tokenDecimals);
-      uint256 trueBalance = IERC20(_asset).balanceOf(address(this));
-      uint256 diff = trueBalance - expectedBalance;
-      require(_amount <= diff, "recovery larger than excess");
-      IERC20(_asset).transfer(_recipient, _amount);
-    }
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
