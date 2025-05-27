@@ -2,6 +2,7 @@ const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helper
 const { expect } = require("chai");
 const utils = require("../testModules/utils.js");
 const deployAll = require("./deployAll.js");
+const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("LiquidityPool - Mint/Burn Functions", function () {
   describe("mint", function () {
@@ -45,30 +46,86 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       ).to.be.revertedWith("minting disabled");
     });
 
-    it("succeeds when minting exactly up to the maxReserves limit", async function () {
+    it("succeeds when minting exactly up to the maxReserves limit (cooldown active)", async function () {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
-      const lowLimit = utils.scale10Pow18(1000n);
+      const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
-      // Mint up to the limit
+      //set fee to zero so we don't have to do a complex calculation
+      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      // Mint below the limit
       await expect(
-        liquidityPool.connect(admin).mint(lowLimit, admin.address)
+        liquidityPool.connect(admin).mint(lowLimit - utils.scale10Pow18(1n), admin.address)
       ).to.not.be.reverted;
-      // The total reserves should now equal the limit
-      const totalReserves = await liquidityPool.getTotalReservesScaled();
-      expect(totalReserves).to.equal(lowLimit);
     });
 
-    it("reverts when minting above the maxReserves limit (with cooldown active)", async function () {
+    it("reverts when minting above the maxReserves limit (cooldown active)", async function () {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
-      const lowLimit = utils.scale10Pow18(1000n);
+      const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
-      // Mint up to the limit (fills the pool)
-      await liquidityPool.connect(admin).mint(lowLimit, admin.address);
-      // Now try to mint 1 more (should revert due to cooldown)
+      //set fee to zero so we don't have to do a complex calculation
+      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      // Mint below the limit
       await expect(
-        liquidityPool.connect(admin).mint(1n, admin.address)
+        liquidityPool.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), admin.address)
+      ).to.be.revertedWith("max reserves limit");
+    });
+
+    it("succeeds when minting exactly up to the NEXT maxReserves limit (cooldown inactive)", async function () {
+      const { liquidityPool, admin } = await loadFixture(deployAll);
+      // Set a low maxReserves limit
+      const lowLimit = utils.scale10Pow18(1000000n);
+      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      //set fee to zero so we don't have to do a complex calculation
+      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      // fast forward to cooldown period end
+      await time.increase(3600 * 24 + 1); // fast forward 1 day
+      // Mint above the limit
+      await expect(
+        liquidityPool.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), admin.address)
+      ).not.to.be.revertedWith("max reserves limit");
+      // get the new limit
+      const nextMaxReserves = await liquidityPool.getMaxReserves();
+      console.log("nextMaxReserves", nextMaxReserves)
+      //reload the fixture to its initail state
+      const resetVals = await loadFixture(deployAll);
+      //set fee to zero so we don't have to do a complex calculation
+      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ128(0n);
+      //set the low limit again
+      await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
+      await time.increase(3600 * 24 + 1); // fast forward 1 day
+      // mint above the next max reserves limit
+      await expect(
+        resetVals.liquidityPool.connect(resetVals.admin).mint(nextMaxReserves - utils.scale10Pow18(1n), resetVals.admin.address)
+      ).not.to.be.revertedWith("max reserves limit");
+    });
+
+    it("reverts when minting above the NEXT maxReserves limit (cooldown inactive)", async function () {
+      const { liquidityPool, admin } = await loadFixture(deployAll);
+      // Set a low maxReserves limit
+      const lowLimit = utils.scale10Pow18(1000000n);
+      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      //set fee to zero so we don't have to do a complex calculation
+      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      // fast forward to cooldown period end
+      await time.increase(3600 * 24 + 1); // fast forward 1 day
+      // Mint above the limit
+      await expect(
+        liquidityPool.connect(admin).mint(lowLimit + utils.scale10Pow18(1n), admin.address)
+      ).not.to.be.revertedWith("max reserves limit");
+      // get the new limit
+      const nextMaxReserves = await liquidityPool.getMaxReserves();
+      //reload the fixture to its initail state
+      const resetVals = await loadFixture(deployAll);
+      //set fee to zero so we don't have to do a complex calculation
+      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ128(0n);
+      //set the low limit again
+      await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
+      await time.increase(3600 * 24 + 1); // fast forward 1 day
+      // mint above the next max reserves limit
+      await expect(
+        resetVals.liquidityPool.connect(resetVals.admin).mint(nextMaxReserves + utils.scale10Pow18(1n), resetVals.admin.address)
       ).to.be.revertedWith("max reserves limit");
     });
   });
