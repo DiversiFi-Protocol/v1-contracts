@@ -39,7 +39,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   mapping(address => AssetParams) private assetParams_;
   uint256 private mintFeeQ128_ = 0;
   uint256 private burnFeeQ128_ = 0;
-  uint256 private maxReservesIncreaseRateQ128_;//maxReservesLimit can be increased by this number * maxReservesLimit every time it is increased via public cooldown
+  uint256 private maxReservesIncreaseRateQ128_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
 
   /*~~~~~~~~~~~~~~~~~~~~~loss prevention measures~~~~~~~~~~~~~~~~~~~~*/
   //admin switches
@@ -48,7 +48,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   //automated max reserves limiting
   uint256 private maxReserves_;//the maximum numerical value of totalScaledReserves
-  uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReservesLimit again
+  uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
   constructor(
