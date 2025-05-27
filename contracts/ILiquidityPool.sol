@@ -19,8 +19,6 @@ interface ILiquidityPool {
     function burn(uint256 _burnAmount) external;
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Public Getters ~~~~~~~~~~~~~~~~~~~~~~~~
-    function getMaxReserves() external view returns (uint256);
-    function getMaxReservesIncreaseRateQ128() external view returns (uint256);
     function getMintFeeQ128() external view returns (uint256);
     function getBurnFeeQ128() external view returns (uint256);
     function getIsMintEnabled() external view returns (bool);
@@ -33,12 +31,18 @@ interface ILiquidityPool {
     function getSpecificReservesScaled(address asset) external view returns (uint256);
     function getTotalReservesScaled() external view returns (uint256);
     function getSpecificReserves(address _asset) external view returns (uint256);
+    function getMaxReserves() external view returns (uint256);
+    function getMaxReservesIncreaseRateQ128() external view returns (uint256);
+    function getMaxReservesIncreaseCooldown() external view returns (uint256);
+    function getLastMaxReservesChangeTimestamp() external view returns (uint256);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Admin Functions ~~~~~~~~~~~~~~~~~~~~~~~~
+    function setAdmin(address _admin) external;
     function setMintFeeQ128(uint256 _mintFeeQ128) external;
     function setBurnFeeQ128(uint256 _burnFeeQ128) external;
-    function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external;
     function setMaxReserves(uint256 _maxReserves) external;
+    function setMaxReservesIncreaseRateQ128(uint256 _maxReservesIncreaseRateQ128) external;
+    function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external;
     function setAssetParams(AssetParams[] calldata _params) external;
     function withdrawFees(address _recipient) external;
     function setIsMintEnabled(bool _isMintEnabled) external;
