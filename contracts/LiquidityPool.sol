@@ -57,7 +57,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     liquidityToken_ = LiquidityToken(_liquidityToken);
     admin_ = _admin;
     DECIMAL_SCALE = LiquidityToken(_liquidityToken).decimals();
-    maxReserves_ = 1e6 * DECIMAL_SCALE; //initial limit is 1 million scaled reserves
+    maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
   }
 
@@ -312,6 +312,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   function setAssetParams(AssetParams[] calldata _params) external onlyAdmin {
     delete assetParamsList_;
+    uint88 totalAllocation = 0;
     for (uint i = 0; i < _params.length; i++) {
       assetParams_[_params[i].assetAddress] = _params[i];
       assetParamsList_.push(_params[i]);
@@ -320,7 +321,9 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
         _params[i].targetAllocation,
         _params[i].decimals
       );
+      totalAllocation += _params[i].targetAllocation;
     }
+    require(totalAllocation == type(uint88).max, "total allocation must be 1");
   }
 
   function withdrawFees(address _recipient) external onlyAdmin {

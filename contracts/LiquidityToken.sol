@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title LiquidityToken
+ * @title DiversiFi - LiquidityToken
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without

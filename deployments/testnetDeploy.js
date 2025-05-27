@@ -1,9 +1,4 @@
 const { ethers } = require("hardhat");
-const {
-  assetParams0,
-  assetParams1,
-  assetParams2,
-} = require("./assetParams.js");
 const { getCreateAddress, createPublicClient, http } = require("viem");
 const { localhost } = require("viem/chains");
 const chalk = require("chalk");
