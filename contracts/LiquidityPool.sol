@@ -17,6 +17,7 @@ import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./PoolMath.sol";
 import "./DataStructs.sol";
 import "./ILiquidityPool.sol";
+import "hardhat/console.sol";
 
 
 contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
@@ -353,6 +354,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
       //update the limit if it isn't on cooldown
       lastLimitChangeTimestamp_ = block.timestamp;
       maxReserves_ += PoolMath.fromFixed(maxReserves_ * maxReservesIncreaseRateQ128_);
+      require(maxReserves_ >= totalReservesScaled_, "max reserves limit");
       emit MaxReservesChange(
         maxReserves_
       );
