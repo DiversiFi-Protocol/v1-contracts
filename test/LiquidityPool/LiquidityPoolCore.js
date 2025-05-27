@@ -13,7 +13,9 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await liquidityToken.balanceOf(admin.address);
 
-      await liquidityPool.connect(admin).mint(mintAmount, admin.address);
+      await expect(
+        liquidityPool.connect(admin).mint(mintAmount, admin.address)
+      ).to.emit(liquidityPool, "Mint");
 
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
@@ -42,6 +44,33 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         liquidityPool.connect(admin).mint(utils.scale10Pow18(1000n), admin.address)
       ).to.be.revertedWith("minting disabled");
     });
+
+    it("succeeds when minting exactly up to the maxReserves limit", async function () {
+      const { liquidityPool, admin } = await loadFixture(deployAll);
+      // Set a low maxReserves limit
+      const lowLimit = utils.scale10Pow18(1000n);
+      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      // Mint up to the limit
+      await expect(
+        liquidityPool.connect(admin).mint(lowLimit, admin.address)
+      ).to.not.be.reverted;
+      // The total reserves should now equal the limit
+      const totalReserves = await liquidityPool.getTotalReservesScaled();
+      expect(totalReserves).to.equal(lowLimit);
+    });
+
+    it("reverts when minting above the maxReserves limit (with cooldown active)", async function () {
+      const { liquidityPool, admin } = await loadFixture(deployAll);
+      // Set a low maxReserves limit
+      const lowLimit = utils.scale10Pow18(1000n);
+      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      // Mint up to the limit (fills the pool)
+      await liquidityPool.connect(admin).mint(lowLimit, admin.address);
+      // Now try to mint 1 more (should revert due to cooldown)
+      await expect(
+        liquidityPool.connect(admin).mint(1n, admin.address)
+      ).to.be.revertedWith("max reserves limit");
+    });
   });
 
   describe("burn", function () {
@@ -55,7 +84,9 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevLiquidityBal = await liquidityToken.balanceOf(admin.address);
 
       await liquidityToken.connect(admin).approve(liquidityPool.target, mintAmount);
-      await liquidityPool.connect(admin).burn(mintAmount);
+      await expect(
+        liquidityPool.connect(admin).burn(mintAmount)
+      ).to.emit(liquidityPool, "Burn");
 
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
