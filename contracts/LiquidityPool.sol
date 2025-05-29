@@ -282,6 +282,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
   // also retires assets from the currentAssetParamsList if they were removed completely by this action
   function equalizeToTarget(bool _execute) external returns (int256[] memory deltas) {
+    //calculate the deltas required to equalize the current allocations to the target allocations
     deltas = new int256[](currentAssetParamsList_.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
