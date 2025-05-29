@@ -40,6 +40,7 @@ interface ILiquidityPool {
     function getMaxReservesIncreaseRateQ128() external view returns (uint256);
     function getMaxReservesIncreaseCooldown() external view returns (uint256);
     function getLastMaxReservesChangeTimestamp() external view returns (uint256);
+    function getIsEqualized() external view returns (bool);
 
     // ~~~~~~~~~~~~~~~~~~~~~~~~ Admin Functions ~~~~~~~~~~~~~~~~~~~~~~~~
     function setAdmin(address _admin) external;
