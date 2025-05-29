@@ -14,6 +14,7 @@ pragma solidity ^0.8.27;
 import "./IndexToken.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "openzeppelin/contracts/utils/math/SignedMath.sol";
 import "./PoolMath.sol";
 import "./DataStructs.sol";
 import "./ILiquidityPool.sol";
@@ -398,6 +399,18 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   function getLastMaxReservesChangeTimestamp() external view returns (uint256) {
     return lastMaxReservesChangeTimestamp_;
+  }
+
+  function getIsEqualized() external view returns (bool) {
+    //check if the current allocations match the target allocations
+    uint256 totalReservesDiscrepency = 0;
+    for (uint i = 0; i < currentAssetParamsList_.length; i++) {
+      AssetParams memory params = currentAssetParamsList_[i];
+      uint256 targetReserves = PoolMath.fromFixed(PoolMath.allocationToFixed(params.targetAllocation) * totalReservesScaled_);
+      totalReservesDiscrepency += SignedMath.abs(int256(targetReserves) - int256(specificReservesScaled_[params.assetAddress]));
+    }
+    uint256 discrepencyTolerance = totalReservesScaled_ / 1_000_000_000; //total discrepency must be less than one billionth of total reserves to be considered equalized
+    return totalReservesDiscrepency < discrepencyTolerance;
   }
 
   /*
