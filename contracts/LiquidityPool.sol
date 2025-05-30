@@ -12,16 +12,16 @@
 pragma solidity ^0.8.27;
 
 import "./IndexToken.sol";
+import "./PoolMath.sol";
+import "./DataStructs.sol";
+import "./ILiquidityPoolAdmin.sol";
+import "./ILiquidityPoolGetters.sol";
+import "./ILiquidityPoolWrite.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
-import "./PoolMath.sol";
-import "./DataStructs.sol";
-import "./ILiquidityPool.sol";
-import "hardhat/console.sol";
 
-
-contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
+contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -41,6 +41,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   mapping(address => AssetParams) private assetParams_;
   uint256 private mintFeeQ128_ = 0;
   uint256 private burnFeeQ128_ = 0;
+  uint256 private equalizationBounty_ = 0;//a bounty paid to callers of swapTowardsTarget or EqualizeToTarget in the form of a discount applied to the swap
   uint256 private maxReservesIncreaseRateQ128_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
 
   /*~~~~~~~~~~~~~~~~~~~~~loss prevention measures~~~~~~~~~~~~~~~~~~~~*/
@@ -62,7 +63,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     DECIMAL_SCALE = IndexToken(_indexToken).decimals();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
-    feesCollected_ = 1;//gas optimization
+    feesCollected_ = 0;
   }
 
   // emitted when a user mints the index token directly in exchange
@@ -91,7 +92,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   event Swap(
     address indexed asset,
-    int256 delta //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    int256 delta, //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    uint256 bountyPaid
+  );
+
+  event Equalization(
+    int256[] deltasScaled, //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    uint256 bountyPaid
   );
 
   event MintFeeChange(
@@ -102,16 +109,14 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     uint256 burnFeeQ128_
   );
 
-  event TargetAssetParamsChange(
+  event AssetParamsChange(
     address indexed asset,
     uint88 targetAllocation,
     uint8 decimals
   );
 
-  event CurrentAssetParamsChange(
-    address indexed asset,
-    uint88 targetAllocation,
-    uint8 decimals
+  event AssetRetired(
+    address indexed asset
   );
 
   event IsMintEnabledChange(
@@ -136,6 +141,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   event AdminChange(
     address admin
+  );
+
+  event EqualizationBountySet(
+    uint256 equalizationBounty
   );
   
   /*
@@ -223,6 +232,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
   ) external nonReentrant {
     AssetParams memory params = assetParams_[_asset];
+    uint256 bounty;
+    equalizationBounty_ -= bounty;
     int256 maxDelta = PoolMath.calcMaxIndividualDelta(
       params.targetAllocation,
       specificReservesScaled_[_asset],
@@ -246,11 +257,12 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
         params.decimals,
         DECIMAL_SCALE
       );
+      bounty = calcEqualizationBounty(trueDepositScaled);
       specificReservesScaled_[_asset] += trueDepositScaled;
       totalReservesScaled_ += trueDepositScaled;
       indexToken_.mint(
         msg.sender,
-        trueDepositScaled
+        trueDepositScaled + bounty//bounty is awarded as a bonus
       );
     } else { // withdraw
       uint256 targetDepositScaled = PoolMath.scaleDecimals(
@@ -270,57 +282,57 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
         params.decimals,
         DECIMAL_SCALE
       );
+      bounty = calcEqualizationBounty(trueWithdrawalScaled);
       specificReservesScaled_[_asset] -= trueWithdrawalScaled;
       totalReservesScaled_ -= trueWithdrawalScaled;
-      indexToken_.burnFrom(msg.sender, trueWithdrawalScaled);
+      indexToken_.burnFrom(
+        msg.sender, 
+        trueWithdrawalScaled - bounty//bounty is awarded as a discount
+      );
     }
+    equalizationBounty_ -= bounty;
     emit Swap(
       _asset,
-      _delta
+      _delta,
+      bounty
     );
   }
 
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
-  // also retires assets from the currentAssetParamsList if they were removed completely by this action
-  function equalizeToTarget(bool _execute) external returns (int256[] memory deltas) {
-    //calculate the deltas required to equalize the current allocations to the target allocations
-    deltas = new int256[](currentAssetParamsList_.length);
+  // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
+  function equalizeToTarget() external {
+    int256[] memory deltasScaled = getEqualizationVectorScaled();
+
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
-      int256 targetReserves = int256(PoolMath.allocationToFixed(params.targetAllocation)) * int256(totalReservesScaled_);
-      deltas[i] = targetReserves - int256(specificReservesScaled_[params.assetAddress]);
-    }
-
-    //actually execute the transfers instead of just calculating the deltas
-    if(_execute) {
-      for(uint i = 0; i < currentAssetParamsList_.length; i++) {
-        AssetParams memory params = currentAssetParamsList_[i];
-        if(deltas[i] > 0) {// deposit
-          IERC20(params.assetAddress).transferFrom(
-            msg.sender, 
-            address(this), 
-            PoolMath.scaleDecimals(uint256(deltas[i]), DECIMAL_SCALE, params.decimals)
-          );
-          specificReservesScaled_[params.assetAddress] += uint256(deltas[i]);
-        } else {//withdraw
-          IERC20(params.assetAddress).transfer(
-            msg.sender, 
-            PoolMath.scaleDecimals(uint256(-deltas[i]), DECIMAL_SCALE, params.decimals)
-          );
-          specificReservesScaled_[params.assetAddress] -= uint256(deltas[i] * -1);
+      if(deltasScaled[i] > 0) {// deposit
+        IERC20(params.assetAddress).transferFrom(
+          msg.sender, 
+          address(this), 
+          PoolMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals)
+        );
+        specificReservesScaled_[params.assetAddress] += uint256(deltasScaled[i]);
+      } else {//withdraw
+        IERC20(params.assetAddress).transfer(
+          msg.sender, 
+          PoolMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals)
+        );
+        specificReservesScaled_[params.assetAddress] -= uint256(deltasScaled[i] * -1);
+      }
+      if(params.targetAllocation == 0) {
+        //if the target allocation is 0, remove the asset from the currentAssetParamsList
+        //and delete it from the assetParams mapping
+        delete assetParams_[params.assetAddress];
+        for (uint j = i; j < currentAssetParamsList_.length - 1; j++) {
+          currentAssetParamsList_[j] = currentAssetParamsList_[j + 1];
         }
-        if(params.targetAllocation == 0) {
-          //if the target allocation is 0, remove the asset from the currentAssetParamsList
-          //and delete it from the assetParams mapping
-          delete assetParams_[params.assetAddress];
-          for (uint j = i; j < currentAssetParamsList_.length - 1; j++) {
-            currentAssetParamsList_[j] = currentAssetParamsList_[j + 1];
-          }
-          currentAssetParamsList_.pop();
-        }
+        currentAssetParamsList_.pop();
+        emit AssetRetired(params.assetAddress);
       }
     }
-    return deltas;
+    //send the rest of the equalizationBounty to the caller
+    indexToken_.mint(msg.sender, equalizationBounty_);
+    emit Equalization(deltasScaled, equalizationBounty_);
   }
 
 
@@ -341,7 +353,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
   }
 
   function getFeesCollected() external view returns (uint256) {
-    return feesCollected_ - 1;
+    return feesCollected_;
   }
 
   function getIndexToken() external view returns (address) {
@@ -401,16 +413,32 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     return lastMaxReservesChangeTimestamp_;
   }
 
-  function getIsEqualized() external view returns (bool) {
-    //check if the current allocations match the target allocations
-    uint256 totalReservesDiscrepency = 0;
-    for (uint i = 0; i < currentAssetParamsList_.length; i++) {
+  function getEqualizationVectorScaled() public view returns (int256[] memory deltasScaled) {
+    //calculate the deltas required to equalize the current allocations to the target allocations
+    deltasScaled = new int256[](currentAssetParamsList_.length);
+    for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
-      uint256 targetReserves = PoolMath.fromFixed(PoolMath.allocationToFixed(params.targetAllocation) * totalReservesScaled_);
-      totalReservesDiscrepency += SignedMath.abs(int256(targetReserves) - int256(specificReservesScaled_[params.assetAddress]));
+      int256 targetReserves = int256(PoolMath.allocationToFixed(params.targetAllocation)) * int256(totalReservesScaled_);
+      deltasScaled[i] = targetReserves - int256(specificReservesScaled_[params.assetAddress]);
     }
-    uint256 discrepencyTolerance = totalReservesScaled_ / 1_000_000_000; //total discrepency must be less than one billionth of total reserves to be considered equalized
-    return totalReservesDiscrepency < discrepencyTolerance;
+  }
+
+  function getTotalReservesDiscrepencyScaled() public view returns (uint256) {
+    uint256 totalReservesDiscrepencyScaled = 0;
+    int256[] memory deltasScaled = getEqualizationVectorScaled();
+    for(uint i = 0; i < deltasScaled.length; i++) {
+      totalReservesDiscrepencyScaled += SignedMath.abs(deltasScaled[i]);
+    }
+    return totalReservesDiscrepencyScaled;
+  }
+
+  function getIsEqualized() public view returns (bool) {
+    //check if the current allocations match the target allocations
+    uint256 totalReservesDiscrepencyScaled = getTotalReservesDiscrepencyScaled();
+
+    //total discrepency must be less than one billionth of total reserves to be considered equalized
+    uint256 discrepencyToleranceScaled = totalReservesScaled_ / 1_000_000_000;
+    return totalReservesDiscrepencyScaled < discrepencyToleranceScaled;
   }
 
   /*
@@ -455,33 +483,25 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
 
   function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin {
     delete targetAssetParamsList_;
-    AssetParams[] memory currentParamsList = currentAssetParamsList_;
     uint88 totalTargetAllocation = 0;
     for (uint i = 0; i < _params.length; i++) {
       assetParams_[_params[i].assetAddress] = _params[i];
       targetAssetParamsList_.push(_params[i]);
-      emit TargetAssetParamsChange(
+      totalTargetAllocation += _params[i].targetAllocation;
+      insertOrReplaceCurrentAssetParams(_params[i]);
+      emit AssetParamsChange(
         _params[i].assetAddress,
         _params[i].targetAllocation,
         _params[i].decimals
       );
-      totalTargetAllocation += _params[i].targetAllocation;
-      //if the asset is not in the current params list, add it
-      if (!assetIsInParamsList(_params[i].assetAddress, currentParamsList)) {
-        currentAssetParamsList_.push(_params[i]);
-        emit CurrentAssetParamsChange(
-          _params[i].assetAddress,
-          _params[i].targetAllocation,
-          _params[i].decimals
-        );
-      }
     }
     require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
   }
 
   function withdrawFees(address _recipient) external onlyAdmin {
-    uint256 fees = feesCollected_ - 1;
-    feesCollected_ = 1;
+    require(getIsEqualized(), "pool must be equalized to withdraw fees");
+    uint256 fees = feesCollected_;
+    feesCollected_ = 0;
     indexToken_.mint(
       _recipient,
       fees
@@ -489,10 +509,25 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     emit FeesCollected(fees);
   }
 
-
   function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
+  }
+
+  function setEqualizationBounty(uint256 _equalizationBounty) external onlyAdmin {
+    //uncollected fees may be used for the equalization bounty
+    if(_equalizationBounty > feesCollected_) {
+      //if the bounty is greater than the fees collected, the admin must transfer in additional funds
+      indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty - feesCollected_);
+      emit FeesCollected(feesCollected_);
+      feesCollected_ = 0;
+    } else {
+      //if the bounty is less than the fees collected, the admin can post it purely from fees
+      feesCollected_ -= _equalizationBounty;
+      emit FeesCollected(_equalizationBounty);
+    }
+    equalizationBounty_ = _equalizationBounty;
+    emit EqualizationBountySet(_equalizationBounty);
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -512,12 +547,30 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPool {
     }
   }
 
-  function assetIsInParamsList(address _asset, AssetParams[] memory _assetParams) private pure returns (bool) {
-    for (uint i = 0; i < _assetParams.length; i++) {
-      if (_assetParams[i].assetAddress == _asset) {
-        return true;
+  //if the asset is not in the current params list, add it
+  //if it is in the current params list, update it
+  function insertOrReplaceCurrentAssetParams(AssetParams memory _params) private {
+    bool isInCurrentParamsList = false;
+    for (uint i = 0; i < currentAssetParamsList_.length; i++) {
+      if (_params.assetAddress == currentAssetParamsList_[i].assetAddress) {
+        isInCurrentParamsList = true;
+        currentAssetParamsList_[i] = _params;
+        break;
       }
     }
-    return false;
+    if (!isInCurrentParamsList) {
+      currentAssetParamsList_.push(_params);
+    }
+  }
+
+  //calculates the equalization bounty for a given amount contributed towards equalization
+  function calcEqualizationBounty(
+    uint256 _resolvedDiscrepencyScaled
+  ) private view returns (uint256 bounty) {
+    if(equalizationBounty_ == 0) {
+      return 0; //no bounty set
+    }
+    uint256 bountyPerUnit = PoolMath.toFixed(equalizationBounty_) / getTotalReservesDiscrepencyScaled();
+    return PoolMath.fromFixed(_resolvedDiscrepencyScaled * bountyPerUnit);
   }
 }
