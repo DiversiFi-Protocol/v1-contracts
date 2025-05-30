@@ -8,16 +8,16 @@ const { expect } = require("chai")
 
 describe("LiquidityPool - Getters", function () {
   it("Deployments", async () => {
-    const { liquidityToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
+    const { indexToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
     // liquidity token
-    expect(await liquidityToken.liquidityPool()).to.equal(getAddress(liquidityPool.target));
-    expect(await liquidityToken.admin()).to.equal(getAddress(admin.address));
-    expect(await liquidityToken.name()).to.equal(tokenName);
-    expect(await liquidityToken.symbol()).to.equal(tokenSymbol);
+    expect(await indexToken.liquidityPool()).to.equal(getAddress(liquidityPool.target));
+    expect(await indexToken.admin()).to.equal(getAddress(admin.address));
+    expect(await indexToken.name()).to.equal(tokenName);
+    expect(await indexToken.symbol()).to.equal(tokenSymbol);
 
     // liquidity pool
-    expect(await liquidityPool.getLiquidityToken()).to.equal(getAddress(liquidityToken.target));
+    expect(await liquidityPool.getIndexToken()).to.equal(getAddress(indexToken.target));
     expect(await liquidityPool.getAdmin()).to.equal(getAddress(admin.address));
   });
 
@@ -74,10 +74,10 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(0n);
   })
 
-  it("getLiquidityToken", async function () {
-    const { liquidityToken, liquidityPool } = await loadFixture(deployAll);
-    const result = await liquidityPool.getLiquidityToken();
-    expect(result).to.equal(getAddress(liquidityToken.target));
+  it("getIndexToken", async function () {
+    const { indexToken, liquidityPool } = await loadFixture(deployAll);
+    const result = await liquidityPool.getIndexToken();
+    expect(result).to.equal(getAddress(indexToken.target));
   });
 
   it("getAdmin", async function () {
@@ -99,9 +99,20 @@ describe("LiquidityPool - Getters", function () {
     expect(allAssets[2]).to.equal(getAddress(mintable2.target));
   });
 
-  it("getAllAssetParams", async function () {
+  it("getCurrentAssetParams", async function () {
     const { liquidityPool, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
-    const allAssetParams = await liquidityPool.getAllAssetParams();
+    const allAssetParams = await liquidityPool.getCurrentAssetParams();
+    const expected = [assetParams0, assetParams1, assetParams2]
+    allAssetParams.forEach((params, i) => {
+      expect(params[0]).to.equal(expected[i].assetAddress);
+      expect(params[1]).to.equal(expected[i].targetAllocation);
+      expect(params[2]).to.equal(expected[i].decimals);
+    });
+  });
+
+  it("getTargetAssetParams", async function () {
+    const { liquidityPool, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+    const allAssetParams = await liquidityPool.getTargetAssetParams();
     const expected = [assetParams0, assetParams1, assetParams2]
     allAssetParams.forEach((params, i) => {
       expect(params[0]).to.equal(expected[i].assetAddress);

@@ -14,7 +14,8 @@ pragma solidity ^0.8.27;
 
 library PoolMath {
   uint256 constant SHIFT = 128; //shift a normal integer to get 128.128 fixed point
-  uint256 constant ALLOCATION_SHIFT = SHIFT - 88; //shift 0.32 fixed point to get 128.128 fixed point
+  uint256 constant ALLOCATION_FRAC_BITS = 88;
+  uint256 constant ALLOCATION_SHIFT = SHIFT - ALLOCATION_FRAC_BITS; //shift 0.88 fixed point to get 128.128 fixed point
   uint256 constant SCALE = 2 ** SHIFT; //1 shifted by shift
 
   function allocationToFixed(uint88 _allocation) internal pure returns (uint256) {
@@ -31,6 +32,29 @@ library PoolMath {
 
   function fromFixed(uint256 _num) internal pure returns (uint256) {
     return _num >> SHIFT;
+  }
+
+  /*
+    NOTES: slight rounding errors are present in this function, it should
+    not be expected to return the delta required to move an allocation firmly into
+    the next tick, although we are effectively only off by at most 2e^-18.
+    We should simply behave as if we are in the next tick after depositing this amount.
+    Because these amounts are so small it has been determined that correcting them would
+    be a waste of gas.
+  */
+  function calcMaxIndividualDelta(
+    uint88 _targetAllocation,
+    uint256 _specificReserves,
+    uint256 _totalReserves
+  ) internal pure returns (int256) {
+    require(_targetAllocation != type(uint88).max, "max allocation is 100%, use mint()/burn() instead");
+    uint256 normalizedTargetAllocation = uint256(_targetAllocation) << ALLOCATION_SHIFT;
+    uint256 targetReserves = (normalizedTargetAllocation * _totalReserves) >> SHIFT;
+
+    int256 numerator = (int256(targetReserves) - int256(_specificReserves)) << SHIFT;
+    int256 denominator = int256(SCALE) - int256(normalizedTargetAllocation);
+
+    return numerator / denominator;
   }
 
   //calculates the equivalent fee rate when you need to take a

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - LiquidityToken
+ * @title DiversiFi - IndexToken
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -14,7 +14,7 @@ pragma solidity ^0.8.27;
 
 import "openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract LiquidityToken is ERC20 {
+contract IndexToken is ERC20 {
   address public liquidityPool;
   address public admin;
 

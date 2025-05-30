@@ -101,7 +101,7 @@ describe("LiquidityPool - Admin Functions", function() {
     });
   });
 
-  describe("setAssetParams", function() {
+  describe("setTargetAssetParams", function() {
     it("sets new asset params and emits event(s) when called by admin", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
       const params = [
@@ -111,10 +111,10 @@ describe("LiquidityPool - Admin Functions", function() {
       ];
       const total = params.reduce((a, p) => a + p.targetAllocation, 0n);
       expect(total).to.equal(2n ** 88n - 1n);
-      await expect(liquidityPool.connect(admin).setAssetParams(params))
+      await expect(liquidityPool.connect(admin).setTargetAssetParams(params))
         .to.emit(liquidityPool, "AssetParamsChange");
     });
-    it("reverts if total allocation is above 1", async function() {
+    it("reverts if total target allocation is above 1", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
       const params = [
         { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: 18n },
@@ -122,10 +122,10 @@ describe("LiquidityPool - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3) + 1n, decimals: 6n }
       ];
       await expect(
-        liquidityPool.connect(admin).setAssetParams(params)
+        liquidityPool.connect(admin).setTargetAssetParams(params)
       ).to.be.revertedWithPanic("0x11"); // Arithmetic operation underflowed or overflowed outside of an unchecked block
     });
-        it("reverts if total allocation is below 1", async function() {
+    it("reverts if total allocation is below 1", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
       const params = [
         { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: 18n },
@@ -133,8 +133,8 @@ describe("LiquidityPool - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3) - 1n, decimals: 6n }
       ];
       await expect(
-        liquidityPool.connect(admin).setAssetParams(params)
-      ).to.be.revertedWith("total allocation must be 1");
+        liquidityPool.connect(admin).setTargetAssetParams(params)
+      ).to.be.revertedWith("total target allocation must be 1");
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
@@ -143,21 +143,23 @@ describe("LiquidityPool - Admin Functions", function() {
         { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: 20n },
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n }
       ];
-      await expect(liquidityPool.connect(unpriviledged).setAssetParams(params))
+      await expect(liquidityPool.connect(unpriviledged).setTargetAssetParams(params))
         .to.be.revertedWith("only_admin");
     });
   });
 
   describe("withdrawFees", function() {
     it("withdraws fees and emits event when called by admin", async function() {
-      const { liquidityPool, liquidityToken, admin, unpriviledged } = await loadFixture(deployAll);
+      const { liquidityPool, indexToken, admin, unpriviledged } = await loadFixture(deployAll);
       const feeRecipient = unpriviledged.address;
-      const initialBalance = await liquidityToken.balanceOf(feeRecipient);
+      const initialBalance = await indexToken.balanceOf(feeRecipient);
       await liquidityPool.connect(admin).mint(100000000n, admin.address);
       const feesAvailable = await liquidityPool.getFeesCollected();
+      const discrepency = await liquidityPool.getTotalReservesDiscrepencyScaled()
+      console.log("discrepency:", discrepency)
       await expect(liquidityPool.connect(admin).withdrawFees(feeRecipient))
         .to.emit(liquidityPool, "FeesCollected");
-      const finalBalance = await liquidityToken.balanceOf(feeRecipient);
+      const finalBalance = await indexToken.balanceOf(feeRecipient);
       expect(finalBalance - initialBalance).to.equal(feesAvailable);
       expect(await liquidityPool.getFeesCollected()).to.equal(0n);
     });
