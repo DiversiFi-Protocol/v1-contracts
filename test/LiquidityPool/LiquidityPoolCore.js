@@ -7,12 +7,12 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 describe("LiquidityPool - Mint/Burn Functions", function () {
   describe("mint", function () {
     it("mints liquidity tokens and updates reserves as expected", async function () {
-      const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(3000n);
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
-      const prevLiquidityBal = await liquidityToken.balanceOf(admin.address);
+      const prevLiquidityBal = await indexToken.balanceOf(admin.address);
 
       await expect(
         liquidityPool.connect(admin).mint(mintAmount, admin.address)
@@ -21,7 +21,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
-      const liquidityBal = await liquidityToken.balanceOf(admin.address);
+      const liquidityBal = await indexToken.balanceOf(admin.address);
 
       // Check that liquidity tokens were minted
       expect(liquidityBal - prevLiquidityBal).to.equal(mintAmount);
@@ -132,15 +132,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
   describe("burn", function () {
     it("burns liquidity tokens and returns assets as expected", async function () {
-      const { liquidityPool, liquidityToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(1000n);
       await liquidityPool.connect(admin).mint(mintAmount, admin.address);
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
-      const prevLiquidityBal = await liquidityToken.balanceOf(admin.address);
+      const prevLiquidityBal = await indexToken.balanceOf(admin.address);
 
-      await liquidityToken.connect(admin).approve(liquidityPool.target, mintAmount);
+      await indexToken.connect(admin).approve(liquidityPool.target, mintAmount);
       await expect(
         liquidityPool.connect(admin).burn(mintAmount)
       ).to.emit(liquidityPool, "Burn");
@@ -148,7 +148,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
-      const liquidityBal = await liquidityToken.balanceOf(admin.address);
+      const liquidityBal = await indexToken.balanceOf(admin.address);
 
       // Check that liquidity tokens were burned
       expect(prevLiquidityBal - liquidityBal).to.equal(mintAmount);
@@ -159,10 +159,10 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts if user tries to burn more than their balance", async function () {
-      const { liquidityPool, liquidityToken, admin } = await loadFixture(deployAll);
+      const { liquidityPool, indexToken, admin } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(1000n);
       await liquidityPool.connect(admin).mint(mintAmount, admin.address);
-      await liquidityToken.connect(admin).approve(liquidityPool.target, mintAmount + 1n);
+      await indexToken.connect(admin).approve(liquidityPool.target, mintAmount + 1n);
       await expect(
         liquidityPool.connect(admin).burn(mintAmount + 1n)
       ).to.be.reverted;
