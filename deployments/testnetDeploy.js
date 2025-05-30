@@ -51,18 +51,18 @@ async function main() {
     nonce: nonce + 1,
   });
 
-  // Deploy LiquidityToken Contract
-  console.log(chalk.cyan("Deploying LiquidityToken contract..."));
-  const LiquidityToken = await ethers.getContractFactory("LiquidityToken");
-  const liquidityToken = await LiquidityToken.deploy(
+  // Deploy IndexToken Contract
+  console.log(chalk.cyan("Deploying IndexToken contract..."));
+  const IndexToken = await ethers.getContractFactory("IndexToken");
+  const indexToken = await IndexToken.deploy(
     "Diversified USD",
     "USD1",
     liquidityPoolAddress,
     deployer.getAddress()
   );
-  await liquidityToken.waitForDeployment();
+  await indexToken.waitForDeployment();
   console.log(
-    `LiquidityToken deployed to: ${await liquidityToken.getAddress()}`
+    `IndexToken deployed to: ${await indexToken.getAddress()}`
   );
 
   console.log("\n----------------------------------\n");
@@ -72,13 +72,13 @@ async function main() {
   const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
   const liquidityPool = await LiquidityPool.deploy(
     deployer.getAddress(),
-    liquidityToken.getAddress(),
+    indexToken.getAddress(),
   );
   await liquidityPool.waitForDeployment();
   const targetAllocation0 = utils.formatAllocationFromDecimal(0.4);
   const targetAllocation1 = utils.formatAllocationFromDecimal(0.35);
   const targetAllocation2 = utils.allocationRemainder([targetAllocation0, targetAllocation1]);
-  await liquidityPool.setAssetParams(
+  await liquidityPool.setTargetAssetParams(
     [
       {
         assetAddress: await token0.getAddress(),
@@ -148,7 +148,7 @@ async function main() {
   await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await liquidityPool.mint(
-    ethers.parseUnits("100000", await liquidityToken.decimals()),
+    ethers.parseUnits("100000", await indexToken.decimals()),
     await deployer.getAddress()
   );
 
@@ -172,10 +172,10 @@ async function main() {
     token2Decimals
   );
   console.log(
-    "liquidityToken balance:",
-    (await liquidityToken.balanceOf(await deployer.getAddress())).toString(),
+    "indexToken balance:",
+    (await indexToken.balanceOf(await deployer.getAddress())).toString(),
     "decimals:",
-    await liquidityToken.decimals()
+    await indexToken.decimals()
   );
 
   console.log(chalk.green("Done"));
