@@ -17,7 +17,7 @@ module.exports = async function deployAll() {
       nonce: 1n,
     });
 
-    const liquidityToken = await hre.ethers.deployContract("LiquidityToken", [
+    const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
       liquidityPoolAddress,
@@ -26,7 +26,7 @@ module.exports = async function deployAll() {
 
     const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
-      await liquidityToken.getAddress(),
+      await indexToken.getAddress(),
     ]);
 
     const mintable0 = await hre.ethers.deployContract("MintableERC20", [
@@ -74,7 +74,7 @@ module.exports = async function deployAll() {
       targetAllocation: mintable2TargetAllocation,
       assetAddress: getAddress(mintable2.target),
     }
-    await liquidityPool.setAssetParams([
+    await liquidityPool.setTargetAssetParams([
       assetParams0,
       assetParams1,
       assetParams2,
@@ -89,7 +89,7 @@ module.exports = async function deployAll() {
     await liquidityPool.setBurnFeeQ128(utils.decimalToFixed(0.02)); // 2% burn fee
 
     return {
-      liquidityToken,
+      indexToken,
       liquidityPool,
       admin,
       unpriviledged,
