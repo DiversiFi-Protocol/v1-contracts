@@ -33,4 +33,5 @@ interface ILiquidityPoolGetters {
   function getLastMaxReservesChangeTimestamp() external view returns (uint256);
   function getIsEqualized() external view returns (bool);
   function getEqualizationVectorScaled() external view returns (int256[] memory);
+  function getTotalReservesDiscrepencyScaled() external view returns (uint256);
 }
