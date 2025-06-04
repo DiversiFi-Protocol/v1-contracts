@@ -151,6 +151,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Core Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
+  /// @inheritdoc ILiquidityPoolWrite
   function mint(uint256 _mintAmount, address _recipient) external nonReentrant {
     require(isMintEnabled_, "minting disabled");
     uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
@@ -187,6 +188,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     );
   }
 
+  /// @inheritdoc ILiquidityPoolWrite
   function burn(uint256 _burnAmount) external nonReentrant {
     indexToken_.burnFrom(msg.sender, _burnAmount);
     uint256 totalReserveReduction = 0;
@@ -227,6 +229,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     only available when target allocation differs from current allocation, and
     the exchange moves the current allocation closer to the target allocation.
   */
+  /// @inheritdoc ILiquidityPoolWrite
   function swapTowardsTarget(
     address _asset,
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
@@ -300,6 +303,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
+  /// @inheritdoc ILiquidityPoolWrite
   function equalizeToTarget() external {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
 
@@ -335,35 +339,41 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     emit Equalization(deltasScaled, equalizationBounty_);
   }
 
-
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Getters~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getMintFeeQ128() external view returns (uint256) {
     return mintFeeQ128_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getBurnFeeQ128() external view returns (uint256) {
     return burnFeeQ128_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getIsMintEnabled() external view returns (bool) {
     return isMintEnabled_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getFeesCollected() external view returns (uint256) {
     return feesCollected_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getIndexToken() external view returns (address) {
     return address(indexToken_);
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getAdmin() external view returns (address) {
     return admin_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getAllAssets() external view returns (address[] memory) {
       address[] memory assetsList = new address[](currentAssetParamsList_.length);
       for (uint i = 0; i < currentAssetParamsList_.length; i++) {
@@ -372,47 +382,58 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       return assetsList;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getCurrentAssetParams() external view returns (AssetParams[] memory) {
     return currentAssetParamsList_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getTargetAssetParams() external view returns (AssetParams[] memory) {
     return targetAssetParamsList_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getAssetParams(address asset) external view returns (AssetParams memory) {
     return assetParams_[asset];
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getSpecificReservesScaled(address asset) external view returns (uint256) {
     return specificReservesScaled_[asset];
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getTotalReservesScaled() external view returns (uint256) {
     return totalReservesScaled_;
   }
 
-  //returns the actual reserves of _asset in atomic units
+
+  /// @inheritdoc ILiquidityPoolGetters
   function getSpecificReserves(address _asset) external view returns (uint256) {
     return PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, assetParams_[_asset].decimals);
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getMaxReserves() external view returns (uint256) {
     return maxReserves_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getMaxReservesIncreaseRateQ128() external view returns (uint256) {
     return maxReservesIncreaseRateQ128_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getMaxReservesIncreaseCooldown() external view returns (uint256) {
     return maxReservesIncreaseCooldown_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getLastMaxReservesChangeTimestamp() external view returns (uint256) {
     return lastMaxReservesChangeTimestamp_;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getEqualizationVectorScaled() public view returns (int256[] memory deltasScaled) {
     //calculate the deltas required to equalize the current allocations to the target allocations
     deltasScaled = new int256[](currentAssetParamsList_.length);
@@ -423,6 +444,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getTotalReservesDiscrepencyScaled() public view returns (uint256) {
     uint256 totalReservesDiscrepencyScaled = 0;
     int256[] memory deltasScaled = getEqualizationVectorScaled();
@@ -432,6 +454,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     return totalReservesDiscrepencyScaled;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
   function getIsEqualized() public view returns (bool) {
     //check if the current allocations match the target allocations
     uint256 totalReservesDiscrepencyScaled = getTotalReservesDiscrepencyScaled();
@@ -450,37 +473,44 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     _;
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setAdmin(address _newAdmin) external onlyAdmin {
     admin_ = _newAdmin;
     emit AdminChange(_newAdmin);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setMintFeeQ128(uint256 _mintFeeQ128) external onlyAdmin {
     mintFeeQ128_ = _mintFeeQ128;
     emit MintFeeChange(_mintFeeQ128);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setBurnFeeQ128(uint256 _burnFeeQ128) external onlyAdmin {
     burnFeeQ128_ = _burnFeeQ128;
     emit BurnFeeChange(_burnFeeQ128);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setMaxReserves(uint256 _maxReserves) external onlyAdmin {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setMaxReservesIncreaseRateQ128(uint256 _maxReservesIncreaseRateQ128) external onlyAdmin {
     maxReservesIncreaseRateQ128_ = _maxReservesIncreaseRateQ128;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ128);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyAdmin {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
@@ -498,6 +528,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function withdrawFees(address _recipient) external onlyAdmin {
     require(getIsEqualized(), "pool must be equalized to withdraw fees");
     uint256 fees = feesCollected_;
@@ -509,11 +540,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     emit FeesCollected(fees);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function setEqualizationBounty(uint256 _equalizationBounty) external onlyAdmin {
     //uncollected fees may be used for the equalization bounty
     if(_equalizationBounty > feesCollected_) {
@@ -532,6 +565,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
+  /**
+   * @dev checks that totalReservesScaled_ is below maxReserves_ and attempts to increase maxReserves_ if the
+   * increase functionality is not on cooldown. Reverts if it is on cooldown, or if totalScaledReserves_ is still
+   * greater than maxReserves_ after increase. Sets increase functionality on cooldown if maxReserves_ was increased
+   */
   function checkMaxTotalReservesLimit() private {
     //check if max reserves limit has been violated
     if (totalReservesScaled_ > maxReserves_) {
@@ -547,8 +585,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
   }
 
-  //if the asset is not in the current params list, add it
-  //if it is in the current params list, update it
+  /**
+   * @dev if the asset is not in the current params list, add it
+   * if it is in the current params list, update it
+  */
   function insertOrReplaceCurrentAssetParams(AssetParams memory _params) private {
     bool isInCurrentParamsList = false;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
@@ -563,7 +603,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
   }
 
-  //calculates the equalization bounty for a given amount contributed towards equalization
+  /// @dev calculates the equalization bounty for a given amount contributed towards equalization
   function calcEqualizationBounty(
     uint256 _resolvedDiscrepencyScaled
   ) private view returns (uint256 bounty) {

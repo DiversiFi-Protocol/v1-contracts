@@ -13,6 +13,8 @@ pragma solidity ^0.8.27;
 
 import "./DataStructs.sol";
 
+/// @notice These are administrative functions not for regular users and as such are not documented.
+/// Anyone wishing to understand them will have to interpret the code.
 interface ILiquidityPoolAdmin {
   function setAdmin(address _admin) external;
   function setMintFeeQ128(uint256 _mintFeeQ128) external;
