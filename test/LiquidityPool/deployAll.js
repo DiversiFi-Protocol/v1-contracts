@@ -1,6 +1,7 @@
 const utils = require("../testModules/utils");
 const { getAddress, getCreateAddress } = require("ethers");
 
+const MAX_ALLOCATION = 2n ** 88n - 1n
 module.exports = async function deployAll() {
     const tokenName = "Diversified USD";
     const tokenSymbol = "USD1";
@@ -10,7 +11,7 @@ module.exports = async function deployAll() {
     const mintable1TargetAllocation = utils.formatAllocationFromDecimal(0.333333333333333333333333333333333)
     const mintable2Decimals = 6n;
     //the remaining allocation goes to mintable2
-    const mintable2TargetAllocation = (2n ** 88n - 1n) - mintable0TargetAllocation - mintable1TargetAllocation;
+    const mintable2TargetAllocation = MAX_ALLOCATION - mintable0TargetAllocation - mintable1TargetAllocation;
     const [admin, unpriviledged] = await hre.ethers.getSigners();
     const liquidityPoolAddress = getCreateAddress({
       from: admin.address,
@@ -89,6 +90,16 @@ module.exports = async function deployAll() {
     await liquidityPool.setBurnFeeQ128(utils.decimalToFixed(0.02)); // 2% burn fee
     const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
+
+    const newTargetParams0 = [{
+      assetAddress: assetParams0.assetAddress,
+      targetAllocation: utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams0.decimals
+    }, {
+      assetAddress: assetParams1.assetAddress,
+      targetAllocation: MAX_ALLOCATION - utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams1.decimals
+    }]
     return {
       indexToken,
       liquidityPool,
@@ -105,6 +116,7 @@ module.exports = async function deployAll() {
       assetParams1,
       assetParams2,
       setMaxReservesTimestamp,
-      poolMathWrapper
+      poolMathWrapper,
+      newTargetParams0
     };
   }

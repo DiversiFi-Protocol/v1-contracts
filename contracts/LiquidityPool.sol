@@ -21,6 +21,8 @@ import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
+import "hardhat/console.sol";
+
 contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
@@ -237,6 +239,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
     equalizationBounty_ -= bounty;
+    console.log("targetAllocation/specReserves", params.targetAllocation, specificReservesScaled_[_asset], totalReservesScaled_);
     int256 maxDelta = PoolMath.calcMaxIndividualDelta(
       params.targetAllocation,
       specificReservesScaled_[_asset],
@@ -248,7 +251,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
-      require(targetDepositScaled <= uint256(maxDelta), "deposit exceeds target allocation");
+      require(int256(targetDepositScaled) <= maxDelta, "deposit exceeds target allocation");
       uint256 trueDeposit = PoolMath.scaleDecimals(
         targetDepositScaled,
         DECIMAL_SCALE,
@@ -268,14 +271,15 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         trueDepositScaled + bounty//bounty is awarded as a bonus
       );
     } else { // withdraw
-      uint256 targetDepositScaled = PoolMath.scaleDecimals(
+      uint256 targetWithdrawalScaled = PoolMath.scaleDecimals(
         uint256(_delta * -1),
         params.decimals,
         DECIMAL_SCALE
       );    
-      require(targetDepositScaled <= uint256(maxDelta * -1), "withdraw exceeds target allocation");
+      console.log("maxDelta1:", uint256(maxDelta * -1));
+      require(int256(targetWithdrawalScaled) * -1 >= maxDelta, "withdrawal exceeds target allocation");
       uint256 trueWithdrawal = PoolMath.scaleDecimals(
-        targetDepositScaled,
+        targetWithdrawalScaled,
         DECIMAL_SCALE,
         params.decimals
       );
@@ -524,6 +528,26 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         _params[i].targetAllocation,
         _params[i].decimals
       );
+    }
+    // if an asset is in the current list, but not in the target list, its allocation is implied to be zero
+    for (uint iC = 0; iC < currentAssetParamsList_.length; iC++) {
+      bool inTargetList = false;
+      for (uint iT = 0; iT < _params.length; iT++) {
+        if( _params[iT].assetAddress == currentAssetParamsList_[iC].assetAddress) {
+          inTargetList = true;
+        }
+      }
+      if(!inTargetList) {
+        //update the current list to reflect the zero allocation
+        currentAssetParamsList_[iC].targetAllocation = 0;
+        //update asset params map to reflect the zero allocation
+        assetParams_[currentAssetParamsList_[iC].assetAddress].targetAllocation = 0;
+        emit AssetParamsChange(
+          currentAssetParamsList_[iC].assetAddress,
+          0,
+          currentAssetParamsList_[iC].decimals
+        );
+      }
     }
     require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
   }

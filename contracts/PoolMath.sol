@@ -18,6 +18,17 @@ library PoolMath {
   uint256 constant ALLOCATION_SHIFT = SHIFT - ALLOCATION_FRAC_BITS; //shift 0.88 fixed point to get 128.128 fixed point
   uint256 constant SCALE = 2 ** SHIFT; //1 shifted by shift
 
+  //scale a token with specified decimals to be the same scale as _targetDecimals
+  function scaleDecimals(uint256 _value, uint8 _currentScale, uint8 _targetScale) internal pure returns (uint256) {
+    if (_currentScale == _targetScale) {
+      return _value;
+    } else if (_currentScale < _targetScale) {
+      return _value * uint256(10 ** (_targetScale - _currentScale));
+    } else {
+      return _value / uint256(10 ** (_currentScale - _targetScale));
+    }
+  }
+  
   function allocationToFixed(uint88 _allocation) internal pure returns (uint256) {
     return uint256(_allocation) << ALLOCATION_SHIFT;
   }
@@ -61,16 +72,5 @@ library PoolMath {
   //fee of a fee of a fee .... to infinity
   function calcCompoundingFeeRate(uint256 _feeRateQ128) internal pure returns (uint256) {
     return (_feeRateQ128 << SHIFT) / (SCALE - _feeRateQ128);
-  }
-
-  //scale a token with specified decimals to be the same scale as _targetDecimals
-  function scaleDecimals(uint256 _value, uint8 _currentScale, uint8 _targetScale) internal pure returns (uint256) {
-    if (_currentScale == _targetScale) {
-      return _value;
-    } else if (_currentScale < _targetScale) {
-      return _value * uint256(10 ** (_targetScale - _currentScale));
-    } else {
-      return _value / uint256(10 ** (_currentScale - _targetScale));
-    }
   }
 }

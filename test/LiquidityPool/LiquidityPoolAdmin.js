@@ -104,15 +104,48 @@ describe("LiquidityPool - Admin Functions", function() {
   describe("setTargetAssetParams", function() {
     it("sets new asset params and emits event(s) when called by admin", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
-      const params = [
+      const params0 = [
+        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: 18n },
+        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.2), decimals: 20n },
+        { assetAddress: mintable2.target, targetAllocation: utils.formatAllocationFromDecimal(0.1), decimals: 6n },
+        { assetAddress: "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97", targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.2) - utils.formatAllocationFromDecimal(0.1), decimals: 6n }
+      ];
+      const params1 = [
         { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: 18n },
         { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: 20n },
-        { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n }
+        { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n },
       ];
-      const total = params.reduce((a, p) => a + p.targetAllocation, 0n);
-      expect(total).to.equal(2n ** 88n - 1n);
-      await expect(liquidityPool.connect(admin).setTargetAssetParams(params))
+      await expect(liquidityPool.connect(admin).setTargetAssetParams(params0))
         .to.emit(liquidityPool, "AssetParamsChange");
+      await liquidityPool.connect(admin).setTargetAssetParams(params1)
+      const result = await liquidityPool.getTargetAssetParams()
+      result.forEach((p, i) => {
+        expect(p[0]).to.equal(params1[i].assetAddress, `failed check on index ${i}`)
+        expect(p[1]).to.equal(params1[i].targetAllocation, `failed check on index ${i}`)
+        expect(p[2]).to.equal(params1[i].decimals, `failed check on index ${i}`)
+      })
+      const resultCurrent = await liquidityPool.getCurrentAssetParams()
+      await Promise.all(resultCurrent.map(async (p, i) => {
+        if(i == 3) {
+          expect(p[0]).to.equal(params0[i].assetAddress, `failed check on index ${i}`)
+          expect(p[1]).to.equal(0n, `failed check on index ${i}`)
+          expect(p[2]).to.equal(params0[i].decimals, `failed check on index ${i}`)
+          //expect the assetParams map to be consistent with the currentAssetParamsList
+          const mapResult = await liquidityPool.getAssetParams(p[0])
+          expect(mapResult[0]).to.equal(params0[i].assetAddress, `failed check on index ${i}`)
+          expect(mapResult[1]).to.equal(0n, `failed check on index ${i}`)
+          expect(mapResult[2]).to.equal(params0[i].decimals, `failed check on index ${i}`)
+          return
+        }
+        expect(p[0]).to.equal(params1[i].assetAddress, `failed check on index ${i}`)
+        expect(p[1]).to.equal(params1[i].targetAllocation, `failed check on index ${i}`)
+        expect(p[2]).to.equal(params1[i].decimals, `failed check on index ${i}`)
+        //expect the assetParams map to be consistent with the currentAssetParamsList
+        const mapResult = await liquidityPool.getAssetParams(p[0])
+        expect(mapResult[0]).to.equal(params1[i].assetAddress, `failed check on index ${i}`)
+        expect(mapResult[1]).to.equal(params1[i].targetAllocation, `failed check on index ${i}`)
+        expect(mapResult[2]).to.equal(params1[i].decimals, `failed check on index ${i}`)
+      }))
     });
     it("reverts if total target allocation is above 1", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
