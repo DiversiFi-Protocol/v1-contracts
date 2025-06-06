@@ -147,6 +147,12 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(0n);
   });
 
+  it("getMaxReserves", async function () {
+    const { liquidityPool, maxReserves } = await loadFixture(deployAll)
+    const result = await liquidityPool.getMaxReserves()
+    expect(result).to.equal(maxReserves);
+  })
+
   it("getMaxReservesIncreaseCooldown", async function () {
     const { liquidityPool } = await loadFixture(deployAll);
     // Default value is 1 day in seconds
@@ -159,4 +165,24 @@ describe("LiquidityPool - Getters", function () {
     const result = await liquidityPool.getLastMaxReservesChangeTimestamp();
     expect(result).to.equal(setMaxReservesTimestamp);
   });
+
+  it("getEqualizationVectorScaled", async function () {
+    const { liquidityPool } = await loadFixture(deployAll)
+    const result = await liquidityPool.getEqualizationVectorScaled()
+    expect(result[0]).to.equal(0n)
+    expect(result[1]).to.equal(0n)
+    expect(result[2]).to.equal(0n)
+  })
+
+  it("getTotalReservesDiscrepencyScaled", async function () {
+    const { liquidityPool } = await loadFixture(deployAll)
+    const result = await liquidityPool.getTotalReservesDiscrepencyScaled()
+    expect(result).to.equal(0n)
+  })
+
+  it("getIsEqualized", async function () {
+    const { liquidityPool } = await loadFixture(deployAll)
+    const result = await liquidityPool.getIsEqualized()
+    expect(result).to.equal(true)
+  })
 })
