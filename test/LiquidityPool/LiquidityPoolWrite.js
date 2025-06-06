@@ -7,13 +7,14 @@ const { time } = require("@nomicfoundation/hardhat-network-helpers");
 describe("LiquidityPool - Mint/Burn Functions", function () {
   describe("mint", function () {
     it("mints liquidity tokens and updates reserves as expected", async function () {
-      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+      const { poolMathWrapper, liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(3000n);
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-
+      const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ128())
+      const mintAmountPlusFee = mintAmount + ((mintAmount * compoundingFeeRate) >> 128n)
       await expect(
         liquidityPool.connect(admin).mint(mintAmount, admin.address)
       ).to.emit(liquidityPool, "Mint");
@@ -24,18 +25,39 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const liquidityBal = await indexToken.balanceOf(admin.address);
 
       // Check that liquidity tokens were minted
+      const expectedReductionScaled0 = (utils.scaleAllocation(assetParams0.targetAllocation) * mintAmountPlusFee) >> utils.SHIFT
+      const expectedReductionScaled1 = (utils.scaleAllocation(assetParams1.targetAllocation) * mintAmountPlusFee) >> utils.SHIFT
+      const expectedReductionScaled2 = (utils.scaleAllocation(assetParams2.targetAllocation) * mintAmountPlusFee) >> utils.SHIFT
+
+      const expectedReduction0 = utils.scaleDecimals(expectedReductionScaled0, 18n, assetParams0.decimals) + 1n
+      const expectedReduction1 = utils.scaleDecimals(expectedReductionScaled1, 18n, assetParams1.decimals) + 1n
+      const expectedReduction2 = utils.scaleDecimals(expectedReductionScaled2, 18n, assetParams2.decimals) + 1n
+
+      const actualReduction0 = prevBal0 - balance0
+      const actualReduction1 = prevBal1 - balance1
+      const actualReduction2 = prevBal2 - balance2
+
       expect(liquidityBal - prevLiquidityBal).to.equal(mintAmount);
       // Check that reserves were deducted from admin
-      expect(balance0).to.be.below(prevBal0);
-      expect(balance1).to.be.below(prevBal1);
-      expect(balance2).to.be.below(prevBal2);
+      expect(actualReduction0).to.equal(expectedReduction0)
+      expect(actualReduction1).to.equal(expectedReduction1)
+      expect(actualReduction2).to.equal(expectedReduction2)
       // Check that pool reserves increased
       const scaledReserves0 = await liquidityPool.getSpecificReservesScaled(mintable0.target);
       const scaledReserves1 = await liquidityPool.getSpecificReservesScaled(mintable1.target);
       const scaledReserves2 = await liquidityPool.getSpecificReservesScaled(mintable2.target);
-      expect(scaledReserves0).to.be.above(0);
-      expect(scaledReserves1).to.be.above(0);
-      expect(scaledReserves2).to.be.above(0);
+      expect(scaledReserves0).to.be.closeTo(expectedReductionScaled0, expectedReductionScaled0 / 1_000_000_000n);
+      expect(scaledReserves1).to.be.closeTo(expectedReductionScaled1, expectedReductionScaled1 / 1_000_000_000n);
+      expect(scaledReserves2).to.be.closeTo(expectedReductionScaled2, expectedReductionScaled2 / 1_000_000_000n);
+      
+      //compare balances of contract to scaled reserves
+      const contractBalance0 = await mintable0.balanceOf(liquidityPool.target);
+      const contractBalance1 = await mintable1.balanceOf(liquidityPool.target);
+      const contractBalance2 = await mintable2.balanceOf(liquidityPool.target);
+      expect(contractBalance0).to.equal(utils.scaleDecimals(scaledReserves0, 18n, assetParams0.decimals))
+      expect(contractBalance1).to.be.closeTo(utils.scaleDecimals(scaledReserves1, 18n, assetParams1.decimals), 1n)//rounding diff because this token has 20 decimal places. in reality this will probably not even matter in the insane case that we even have a token with 20 decimals
+      expect(contractBalance2).to.equal(utils.scaleDecimals(scaledReserves2, 18n, assetParams2.decimals))
+
     });
 
     it("reverts if minting is disabled", async function () {
@@ -87,7 +109,6 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       ).not.to.be.revertedWith("max reserves limit");
       // get the new limit
       const nextMaxReserves = await liquidityPool.getMaxReserves();
-      console.log("nextMaxReserves", nextMaxReserves)
       //reload the fixture to its initail state
       const resetVals = await loadFixture(deployAll);
       //set fee to zero so we don't have to do a complex calculation
@@ -168,4 +189,12 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       ).to.be.reverted;
     });
   });
+
+  describe("swapTowardsTarget", function() {
+
+  })
+
+  describe("equalizeToTarget", function() {
+
+  })
 });

@@ -21,6 +21,8 @@ import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
+import "hardhat/console.sol";
+
 contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
@@ -163,7 +165,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       uint256 targetDeposit = PoolMath.fromFixed(
         PoolMath.allocationToFixed(params.targetAllocation) * trueMintAmount
       );
-      uint256 trueDeposit = PoolMath.scaleDecimals(targetDeposit, DECIMAL_SCALE, params.decimals);
+      uint256 trueDeposit = PoolMath.scaleDecimals(targetDeposit, DECIMAL_SCALE, params.decimals) + 1;//round up
       uint256 trueScaledDeposit = PoolMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
       totalReservesIncrease += trueScaledDeposit;
@@ -437,10 +439,15 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function getEqualizationVectorScaled() public view returns (int256[] memory deltasScaled) {
     //calculate the deltas required to equalize the current allocations to the target allocations
     deltasScaled = new int256[](currentAssetParamsList_.length);
+    console.log("totalReserves:", totalReservesScaled_);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
-      int256 targetReserves = int256(PoolMath.allocationToFixed(params.targetAllocation)) * int256(totalReservesScaled_);
-      deltasScaled[i] = targetReserves - int256(specificReservesScaled_[params.assetAddress]);
+      uint256 targetReserves = PoolMath.fromFixed(PoolMath.allocationToFixed(params.targetAllocation) * totalReservesScaled_);
+      deltasScaled[i] = int256(targetReserves) - int256(specificReservesScaled_[params.assetAddress]);
+      console.log("params:", params.assetAddress);
+      console.log("target:", targetAssetParamsList_[i].assetAddress);
+      console.log("targetReserves:", targetReserves);
+      console.log("specificReserves:", specificReservesScaled_[params.assetAddress]);
     }
   }
 
@@ -450,6 +457,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     for(uint i = 0; i < deltasScaled.length; i++) {
       totalReservesDiscrepencyScaled += SignedMath.abs(deltasScaled[i]);
+      // console.log("deltasScaled:", i);
+      // console.log(SignedMath.abs(deltasScaled[i]));
     }
     return totalReservesDiscrepencyScaled;
   }
@@ -461,7 +470,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
     //total discrepency must be less than one billionth of total reserves to be considered equalized
     uint256 discrepencyToleranceScaled = totalReservesScaled_ / 1_000_000_000;
-    return totalReservesDiscrepencyScaled < discrepencyToleranceScaled;
+    return totalReservesDiscrepencyScaled <= discrepencyToleranceScaled;
   }
 
   /*

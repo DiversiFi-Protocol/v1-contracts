@@ -87,7 +87,8 @@ module.exports = async function deployAll() {
     await liquidityPool.setMaxReservesIncreaseRateQ128(maxReservesIncreaseRateQ128);
     await liquidityPool.setMintFeeQ128(utils.decimalToFixed(0.01)); // 1% mint fee
     await liquidityPool.setBurnFeeQ128(utils.decimalToFixed(0.02)); // 2% burn fee
-
+    const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
+    const poolMathWrapper = await poolMathWrapperFactory.deploy()
     return {
       indexToken,
       liquidityPool,
@@ -103,6 +104,7 @@ module.exports = async function deployAll() {
       assetParams0,
       assetParams1,
       assetParams2,
-      setMaxReservesTimestamp
+      setMaxReservesTimestamp,
+      poolMathWrapper
     };
   }
