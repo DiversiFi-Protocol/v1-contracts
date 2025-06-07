@@ -333,7 +333,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         uint256 actualDeposit = PoolMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals);
         IERC20(params.assetAddress).transferFrom(
           msg.sender, 
-          address(this), 
+          address(this),
           actualDeposit
         );
         specificReservesScaled_[params.assetAddress] += uint256(deltasScaled[i]);
@@ -347,6 +347,9 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         specificReservesScaled_[params.assetAddress] -= uint256(deltasScaled[i] * -1);
         actualDeltas[i] = int256(actualWithdrawal) * -1;
       }
+    }
+    for(uint i = 0; i < currentAssetParamsList_.length; i++) {
+      AssetParams memory params = currentAssetParamsList_[i];
       if(params.targetAllocation == 0) {
         //if the target allocation is 0, remove the asset from the currentAssetParamsList
         //and delete it from the assetParams mapping
