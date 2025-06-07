@@ -46,4 +46,16 @@ contract PoolMathWrapper {
     );
   }
 
+  function calcEqualizationBounty(
+    uint256 _totalEqualizationBounty,
+    uint256 _discrepencyBefore,
+    uint256 _discrepencyAfter
+  ) public pure returns (uint256 bounty) {
+    return PoolMath.calcEqualizationBounty(
+      _totalEqualizationBounty,
+      _discrepencyBefore,
+      _discrepencyAfter
+    );
+  }
+
 }

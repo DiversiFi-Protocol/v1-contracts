@@ -238,7 +238,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   ) external nonReentrant {
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
-    equalizationBounty_ -= bounty;
+    uint256 startingDiscrepency = getTotalReservesDiscrepencyScaled();
     console.log("targetAllocation/specReserves", params.targetAllocation, specificReservesScaled_[_asset], totalReservesScaled_);
     int256 maxDelta = PoolMath.calcMaxIndividualDelta(
       params.targetAllocation,
@@ -251,6 +251,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
+      console.log("maxDelta0:", uint256(maxDelta));
+      console.log("targetDepositScaled:", targetDepositScaled);
       require(int256(targetDepositScaled) <= maxDelta, "deposit exceeds target allocation");
       uint256 trueDeposit = PoolMath.scaleDecimals(
         targetDepositScaled,
@@ -263,9 +265,14 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
-      bounty = calcEqualizationBounty(trueDepositScaled);
       specificReservesScaled_[_asset] += trueDepositScaled;
       totalReservesScaled_ += trueDepositScaled;
+      uint256 endingDiscrepency = getTotalReservesDiscrepencyScaled();
+      bounty = PoolMath.calcEqualizationBounty(
+        equalizationBounty_, 
+        startingDiscrepency, 
+        endingDiscrepency
+      );
       indexToken_.mint(
         msg.sender,
         trueDepositScaled + bounty//bounty is awarded as a bonus
@@ -289,12 +296,22 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
-      bounty = calcEqualizationBounty(trueWithdrawalScaled);
       specificReservesScaled_[_asset] -= trueWithdrawalScaled;
       totalReservesScaled_ -= trueWithdrawalScaled;
+      uint256 endingDiscrepency = getTotalReservesDiscrepencyScaled();
+      bounty = PoolMath.calcEqualizationBounty(
+        equalizationBounty_, 
+        startingDiscrepency, 
+        endingDiscrepency
+      );
+      if (bounty >= trueWithdrawalScaled) {
+        //if the bounty is greater than the withdrawal, don't burn anything from the caller
+        //and treat the bounty for this transaction as the amount the caller would have burned
+        bounty = trueWithdrawalScaled;
+      }
       indexToken_.burnFrom(
         msg.sender, 
-        trueWithdrawalScaled - bounty//bounty is awarded as a discount
+        trueWithdrawalScaled - bounty //bounty is awarded as a discount
       );
     }
     equalizationBounty_ -= bounty;
@@ -625,16 +642,5 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     if (!isInCurrentParamsList) {
       currentAssetParamsList_.push(_params);
     }
-  }
-
-  /// @dev calculates the equalization bounty for a given amount contributed towards equalization
-  function calcEqualizationBounty(
-    uint256 _resolvedDiscrepencyScaled
-  ) private view returns (uint256 bounty) {
-    if(equalizationBounty_ == 0) {
-      return 0; //no bounty set
-    }
-    uint256 bountyPerUnit = PoolMath.toFixed(equalizationBounty_) / getTotalReservesDiscrepencyScaled();
-    return PoolMath.fromFixed(_resolvedDiscrepencyScaled * bountyPerUnit);
   }
 }
