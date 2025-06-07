@@ -1040,21 +1040,54 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     })
   })
 
-  describe("equalizeToTarget", function() {
+  describe.only("equalizeToTarget", function() {
     it("equalizes the pool", async function() {
-
+      const { liquidityPool, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
+      await liquidityPool.mint(utils.scale10Pow18(1_000n), admin.address)
+      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+      expect(await liquidityPool.getIsEqualized()).to.equal(false)
+      // const discrepencyBefore = await liquidityPool.getTotalReservesDiscrepencyScaled()
+      // const equalizationVector = await liquidityPool.getEqualizationVectorScaled()
+      // console.log("equalizationVector:", equalizationVector)
+      await liquidityPool.equalizeToTarget()
+      // const discrepencyAfter = await liquidityPool.getTotalReservesDiscrepencyScaled()
+      // console.log("discrepencyBefore:", discrepencyBefore)
+      // console.log("discrepencyAfter :", discrepencyAfter)
+      expect(await liquidityPool.getIsEqualized()).to.equal(true)
     })
 
     it("removes zero allocation assets from assetParams_ map and currentAssetParams_ list", async function() {
-
+      const { liquidityPool, assetParamsNoMintable0, admin, mintable0 } = await loadFixture(deployAll)
+      await liquidityPool.mint(utils.scale10Pow18(1_000n), admin.address)
+      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+      await liquidityPool.equalizeToTarget()
+      const mintable0ParamsEntryAfter = await liquidityPool.getAssetParams(mintable0.target)
+      const currentAssetParamsListAfter = await liquidityPool.getCurrentAssetParamsList()
+      currentAssetParamsListAfter.forEach((params, i) => {
+        expect(params.assetAddress).not.to.equal(mintable0.target, `mintable0 still here at index ${i}`)
+      })
     })
 
     it("applies reserves tracking and token transfers correctly", async function() {
-
+      const { liquidityPool, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
+      await liquidityPool.mint(utils.scale10Pow18(1_000n), admin.address)
+      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+      await liquidityPool.equalizeToTarget()
+      
     })
 
     it("distributes the entire equalization bounty to the caller", async function() {
-      
+      const { liquidityPool, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
+      await liquidityPool.mint(utils.scale10Pow18(1_000n), admin.address)
+      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+      const equalizationBounty = utils.scale10Pow18(100n)
+      await liquidityPool.setEqualizationBounty(equalizationBounty)
+      const callerIndexReservesBefore = await indexToken.balanceOf(admin.address)
+      await liquidityPool.equalizeToTarget()
+      const bountyRemainingAfter = await liquidityPool.getEqualizationBounty()
+      const callerIndexReservesAfter = await indexToken.balanceOf(admin.address)
+      expect(callerIndexReservesAfter - callerIndexReservesBefore).to.equal(equalizationBounty)
+      expect(bountyRemainingAfter).to.equal(0n)
     })
   })
 });

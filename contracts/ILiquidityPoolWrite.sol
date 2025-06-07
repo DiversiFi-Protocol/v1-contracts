@@ -41,8 +41,10 @@ interface ILiquidityPoolWrite {
      * ERC20.approve() must be called for the asset being swapped.
      * @param asset the reserve asset that is being swapped for index tokens
      * @param delta the delta of the reserves of the reserve asset being swapped. (positive means deposit, negative means withdraw)
+     * @return reserveTransfer the amount of reserves  transferred to/from the pool depending on the sign of delta
+     * @return indexTransfer the amount of index tokens minted/burned to/from the caller depending on the sign of delta
      */
-    function swapTowardsTarget(address asset, int256 delta) external;
+    function swapTowardsTarget(address asset, int256 delta) external returns (uint256 reserveTransfer, uint256 indexTransfer);
 
     /** 
      * @dev Applies the equalization vector to the pool via exchange with the caller's account. 
@@ -50,6 +52,7 @@ interface ILiquidityPoolWrite {
      * Successfully calling this function always results in the pool being equalized.
      * Transferres the remaining equalization bounty to the caller if successful.
      * ERC20.approve() must be called for all target reserve assets in the pool.
+     * @return actualDeltas the actual deltas of each token in the tokens native decimal scale, the list is sorted by order in currentAssetParams
      */
-    function equalizeToTarget() external;
+    function equalizeToTarget() external returns (int256[] memory actualDeltas);
 }
