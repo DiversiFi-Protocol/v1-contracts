@@ -52,6 +52,7 @@ module.exports = async function deployAll() {
     await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
     await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
     await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await indexToken.approve(liquidityPool.target, utils.MAX_UINT_256)
 
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
@@ -91,7 +92,27 @@ module.exports = async function deployAll() {
     const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
 
-    const newTargetParams0 = [{
+    const assetParamsNoMintable0 = [{
+      assetAddress: assetParams1.assetAddress,
+      targetAllocation: utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams1.decimals
+    }, {
+      assetAddress: assetParams2.assetAddress,
+      targetAllocation: MAX_ALLOCATION - utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams2.decimals
+    }]
+
+    const assetParamsNoMintable1 = [{
+      assetAddress: assetParams0.assetAddress,
+      targetAllocation: utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams0.decimals
+    }, {
+      assetAddress: assetParams2.assetAddress,
+      targetAllocation: MAX_ALLOCATION - utils.formatAllocationFromDecimal(0.5),
+      decimals: assetParams2.decimals
+    }]
+
+    const assetParamsNoMintable2 = [{
       assetAddress: assetParams0.assetAddress,
       targetAllocation: utils.formatAllocationFromDecimal(0.5),
       decimals: assetParams0.decimals
@@ -118,6 +139,8 @@ module.exports = async function deployAll() {
       assetParams2,
       setMaxReservesTimestamp,
       poolMathWrapper,
-      newTargetParams0
+      assetParamsNoMintable0,
+      assetParamsNoMintable1,
+      assetParamsNoMintable2
     };
   }
