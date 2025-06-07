@@ -151,4 +151,49 @@ describe("PoolMath", function() {
       expect(allocation2).to.be.closeTo(targetAllocation, targetAllocation / 2n ** 64n)
     })
   })
+
+  describe("calcEqualizationBounty", function() {
+    it("should return 0 if the bounty is 0", async function() {
+      const { poolMathWrapper } = await loadFixture(deployAll)
+      const totalBounty = utils.scale10Pow18(0n)
+      const startingDiscrepency = utils.scale10Pow18(1_000_000n)
+      const endingDiscrepency = 0n
+      const bounty = await poolMathWrapper.calcEqualizationBounty(
+        totalBounty, startingDiscrepency, endingDiscrepency
+      )
+      expect(bounty).to.equal(0n)
+    })
+
+    it("should error if the discrepency is increasing", async function() {
+      const { poolMathWrapper } = await loadFixture(deployAll)
+      const totalBounty = utils.scale10Pow18(1_000n)
+      const startingDiscrepency = utils.scale10Pow18(10n)
+      const endingDiscrepency = utils.scale10Pow18(10n) + 1n
+      await expect(
+        poolMathWrapper.calcEqualizationBounty(totalBounty, startingDiscrepency, endingDiscrepency)
+      ).to.be.revertedWithPanic("0x11")
+    })
+
+    it("should return half the bounty for resolving half the discrepency", async function() {
+      const { poolMathWrapper } = await loadFixture(deployAll)
+      const totalBounty = utils.scale10Pow18(1_000n)
+      const startingDiscrepency = utils.scale10Pow18(1_000_000n)
+      const endingDiscrepency = startingDiscrepency / 2n
+      const bounty = await poolMathWrapper.calcEqualizationBounty(
+        totalBounty, startingDiscrepency, endingDiscrepency
+      )
+      expect(bounty).to.equal(totalBounty / 2n)
+    })
+
+    it("should return the entire bounty for resolving the entire discrepency", async function() {
+      const { poolMathWrapper } = await loadFixture(deployAll)
+      const totalBounty = utils.scale10Pow18(1_000n)
+      const startingDiscrepency = utils.scale10Pow18(1_000_000n)
+      const endingDiscrepency = 0n
+      const bounty = await poolMathWrapper.calcEqualizationBounty(
+        totalBounty, startingDiscrepency, endingDiscrepency
+      )
+      expect(bounty).to.equal(totalBounty)
+    })
+  })
 })

@@ -28,7 +28,7 @@ library PoolMath {
       return _value / uint256(10 ** (_currentScale - _targetScale));
     }
   }
-  
+
   function allocationToFixed(uint88 _allocation) internal pure returns (uint256) {
     return uint256(_allocation) << ALLOCATION_SHIFT;
   }
@@ -72,5 +72,20 @@ library PoolMath {
   //fee of a fee of a fee .... to infinity
   function calcCompoundingFeeRate(uint256 _feeRateQ128) internal pure returns (uint256) {
     return (_feeRateQ128 << SHIFT) / (SCALE - _feeRateQ128);
+  }
+
+  /// @dev calculates the equalization bounty for a given amount contributed towards equalization
+  function calcEqualizationBounty(
+    uint256 _totalEqualizationBounty,
+    uint256 _discrepencyBefore,
+    uint256 _discrepencyAfter
+  ) internal pure returns (uint256 bounty) {
+    if(_totalEqualizationBounty == 0) {
+      return 0; //no bounty set
+    }
+    uint256 resolvedDiscrepency = _discrepencyBefore - _discrepencyAfter;
+
+    //resolvedDiscrepency * (bounty/discrepency)
+    return _totalEqualizationBounty * resolvedDiscrepency / _discrepencyBefore;
   }
 }
