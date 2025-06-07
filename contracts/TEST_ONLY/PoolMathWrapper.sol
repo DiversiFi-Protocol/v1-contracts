@@ -34,4 +34,16 @@ contract PoolMathWrapper {
     );
   }
 
+  function calcMaxIndividualDelta(    
+    uint88 _targetAllocation,
+    uint256 _specificReserves,
+    uint256 _totalReserves
+  ) public pure returns (int256) {
+    return PoolMath.calcMaxIndividualDelta(
+      _targetAllocation,
+      _specificReserves,
+      _totalReserves
+    );
+  }
+
 }
