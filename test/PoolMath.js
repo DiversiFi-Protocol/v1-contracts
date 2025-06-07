@@ -88,19 +88,67 @@ describe("PoolMath", function() {
 
   describe("calcMaxIndividualDelta", function() {
     it("should calculate the correct delta for a withdrawal from 0.5 to 0.25", async function() {
-
+      const { poolMathWrapper } = await loadFixture(deployAll);
+      const totalReserves = utils.scale10Pow18(1_000_000n);
+      const specificReserves = utils.scale10Pow18(500_000n);
+      const targetAllocation = utils.formatAllocationFromDecimal(0.25);
+      const delta = await poolMathWrapper.calcMaxIndividualDelta(
+        targetAllocation,
+        specificReserves,
+        totalReserves
+      )
+      const specificReserves2 = specificReserves + delta
+      const totalReserves2 = totalReserves + delta
+      const allocation2 = utils.formatAllocationFromFixed((specificReserves2 << utils.SHIFT) / totalReserves2)
+      expect(allocation2).to.be.closeTo(targetAllocation, targetAllocation / 2n ** 64n)
     })
 
     it("should calculate the correct delta for a withdrawal from 0.5 to 0", async function() {
-
+      const { poolMathWrapper } = await loadFixture(deployAll);
+      const totalReserves = utils.scale10Pow18(1_000_000n);
+      const specificReserves = utils.scale10Pow18(500_000n);
+      const targetAllocation = 0n
+      const delta = await poolMathWrapper.calcMaxIndividualDelta(
+        targetAllocation,
+        specificReserves,
+        totalReserves
+      )
+      const specificReserves2 = specificReserves + delta
+      const totalReserves2 = totalReserves + delta
+      const allocation2 = utils.formatAllocationFromFixed((specificReserves2 << utils.SHIFT) / totalReserves2)
+      expect(allocation2).to.be.closeTo(targetAllocation, targetAllocation / 2n ** 64n)
     })
 
     it("should calculate the correct delta for a deposit from 0.25 to 0.5", async function() {
-
+      const { poolMathWrapper } = await loadFixture(deployAll);
+      const totalReserves = utils.scale10Pow18(1_000_000n);
+      const specificReserves = utils.scale10Pow18(250_000n);
+      const targetAllocation = utils.formatAllocationFromDecimal(0.5);
+      const delta = await poolMathWrapper.calcMaxIndividualDelta(
+        targetAllocation,
+        specificReserves,
+        totalReserves
+      )
+      const specificReserves2 = specificReserves + delta
+      const totalReserves2 = totalReserves + delta
+      const allocation2 = utils.formatAllocationFromFixed((specificReserves2 << utils.SHIFT) / totalReserves2)
+      expect(allocation2).to.be.closeTo(targetAllocation, targetAllocation / 2n ** 64n)
     })
 
     it("should calculate the correct delta for a deposit from 0 to 0.5", async function() {
-      
+      const { poolMathWrapper } = await loadFixture(deployAll);
+      const totalReserves = utils.scale10Pow18(1_000_000n);
+      const specificReserves = 0n
+      const targetAllocation = utils.formatAllocationFromDecimal(0.5);
+      const delta = await poolMathWrapper.calcMaxIndividualDelta(
+        targetAllocation,
+        specificReserves,
+        totalReserves
+      )
+      const specificReserves2 = specificReserves + delta
+      const totalReserves2 = totalReserves + delta
+      const allocation2 = utils.formatAllocationFromFixed((specificReserves2 << utils.SHIFT) / totalReserves2)
+      expect(allocation2).to.be.closeTo(targetAllocation, targetAllocation / 2n ** 64n)
     })
   })
 })
