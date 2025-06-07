@@ -190,7 +190,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
   });
 
-  describe.only("swapTowardsTarget", function() {
+  describe("swapTowardsTarget - Withdraw", function() {
     it("should not allow swapping if the pool is equalized", async function() {
       const { liquidityPool, mintable0 } = await loadFixture(deployAll)
       await expect(
@@ -234,7 +234,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       await expect(
         liquidityPool.swapTowardsTarget(
           mintable2.target,
-          await liquidityPool.getSpecificReserves(mintable2.target) * -1n - 1n
+          (await liquidityPool.getSpecificReserves(mintable2.target)) * -1n - 1n
         )
       ).to.be.revertedWith("withdrawal exceeds target allocation")
     })
@@ -247,18 +247,128 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       await expect(
         liquidityPool.swapTowardsTarget(
           mintable2.target,
-          await liquidityPool.getSpecificReserves(mintable2.target) * -1n
+          (await liquidityPool.getSpecificReserves(mintable2.target)) * -1n
         )
       ).not.to.be.reverted
     })
 
     it("should apply an equalization bounty if one is set", async function() {
-
+      const { liquidityPool, mintable2, newTargetParams0, admin } = await loadFixture(deployAll)
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000n), admin.address)
+      await liquidityPool.setTargetAssetParams(newTargetParams0)
     })
   })
 
+  describe.only("swapTowardsTarget - Deposit", function() {
+    it("should not allow swapping that increases discrepency", async function() {
+      const { 
+        liquidityPool,
+        mintable2, 
+        admin, 
+        newTargetParams0, 
+        assetParams0, 
+        assetParams1, 
+        assetParams2 
+      } = await loadFixture(deployAll)
+      //remove mintable2 from the pool and equalize
+      await liquidityPool.setTargetAssetParams(newTargetParams0)
+      await liquidityPool.equalizeToTarget()
+      //mint tokens and then add mintable2 back to the pool
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000n), admin.address)
+      await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+      //mintable2 is now targetted at 0.33
+      await expect(
+        liquidityPool.swapTowardsTarget(
+          mintable2.target,
+          -1n
+        )
+      ).to.be.revertedWith("withdrawal exceeds target allocation")
+      await expect(
+        liquidityPool.swapTowardsTarget(
+          mintable2.target,
+          1n
+        )
+      ).not.to.be.reverted
+    })
+
+    it.only("should not allow swapping that passes the target allocation", async function() {
+      const { 
+        liquidityPool,
+        mintable2, 
+        admin, 
+        newTargetParams0, 
+        assetParams0, 
+        assetParams1, 
+        assetParams2,
+        poolMathWrapper
+      } = await loadFixture(deployAll)
+      //remove mintable2 from the pool and equalize
+      await liquidityPool.setTargetAssetParams(newTargetParams0)
+      await liquidityPool.equalizeToTarget()
+      //mint tokens and then add mintable2 back to the pool
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000n), admin.address)
+      await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+      //mintable2 is now targetted at 0.33
+      const maxDelta = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+      console.log("maxDelta:", maxDelta)
+      await expect(
+        liquidityPool.swapTowardsTarget(
+          mintable2.target,
+          (await liquidityPool.getSpecificReserves(mintable2.target)) * -1n - 1n
+        )
+      ).to.be.revertedWith("withdrawal exceeds target allocation")
+    })
+
+    it("should swap exactly to the target", async function() {
+      const { 
+        liquidityPool,
+        mintable2, 
+        admin, 
+        newTargetParams0, 
+        assetParams0, 
+        assetParams1, 
+        assetParams2 
+      } = await loadFixture(deployAll)
+      //remove mintable2 from the pool and equalize
+      await liquidityPool.setTargetAssetParams(newTargetParams0)
+      await liquidityPool.equalizeToTarget()
+      //mint tokens and then add mintable2 back to the pool
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000n), admin.address)
+      await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+      //mintable2 is now targetted at 0.33
+    })
+
+    it("should apply an equalization bounty if one is set", async function() {
+      const { 
+        liquidityPool,
+        mintable2, 
+        admin, 
+        newTargetParams0, 
+        assetParams0, 
+        assetParams1, 
+        assetParams2 
+      } = await loadFixture(deployAll)
+      //remove mintable2 from the pool and equalize
+      await liquidityPool.setTargetAssetParams(newTargetParams0)
+      await liquidityPool.equalizeToTarget()
+      //mint tokens and then add mintable2 back to the pool
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000n), admin.address)
+      await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+      //mintable2 is now targetted at 0.33
+    })
+  })
+
+
   describe("equalizeToTarget", function() {
     it("equalizes the pool", async function() {
+
+    })
+
+    it("removes zero allocation assets from assetParams_ map and currentAssetParams_ list", async function() {
+
+    })
+
+    it("applies reserves tracking and token transfers correctly", async function() {
 
     })
 

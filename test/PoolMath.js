@@ -85,4 +85,22 @@ describe("PoolMath", function() {
       expect(res).to.equal(1n)
     })
   })
+
+  describe("calcMaxIndividualDelta", function() {
+    it("should calculate the correct delta for a withdrawal from 0.5 to 0.25", async function() {
+
+    })
+
+    it("should calculate the correct delta for a withdrawal from 0.5 to 0", async function() {
+
+    })
+
+    it("should calculate the correct delta for a deposit from 0.25 to 0.5", async function() {
+
+    })
+
+    it("should calculate the correct delta for a deposit from 0 to 0.5", async function() {
+      
+    })
+  })
 })

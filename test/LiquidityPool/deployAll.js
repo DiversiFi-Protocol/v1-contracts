@@ -100,6 +100,7 @@ module.exports = async function deployAll() {
       targetAllocation: MAX_ALLOCATION - utils.formatAllocationFromDecimal(0.5),
       decimals: assetParams1.decimals
     }]
+
     return {
       indexToken,
       liquidityPool,
