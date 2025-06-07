@@ -188,10 +188,7 @@ describe("LiquidityPool - Admin Functions", function() {
       const initialBalance = await indexToken.balanceOf(feeRecipient);
       await liquidityPool.connect(admin).mint(utils.scale10Pow18(1_000_000n), admin.address);
       const adminBal = await indexToken.balanceOf(admin.address)
-      console.log("adminBal:", adminBal)
       const feesAvailable = await liquidityPool.getFeesCollected();
-      // const discrepency = await liquidityPool.getTotalReservesDiscrepencyScaled()
-      // console.log("discrepency:", discrepency)
       await expect(liquidityPool.connect(admin).withdrawFees(feeRecipient))
         .to.emit(liquidityPool, "FeesCollected");
       const finalBalance = await indexToken.balanceOf(feeRecipient);
