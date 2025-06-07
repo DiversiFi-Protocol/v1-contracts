@@ -583,7 +583,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolAdmin
   function withdrawFees(address _recipient) external onlyAdmin {
-    require(getIsEqualized(), "pool must be equalized to withdraw fees");
     uint256 fees = feesCollected_;
     feesCollected_ = 0;
     indexToken_.mint(
@@ -601,17 +600,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolAdmin
   function setEqualizationBounty(uint256 _equalizationBounty) external onlyAdmin {
-    //uncollected fees may be used for the equalization bounty
-    if(_equalizationBounty > feesCollected_) {
-      //if the bounty is greater than the fees collected, the admin must transfer in additional funds
-      indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty - feesCollected_);
-      emit FeesCollected(feesCollected_);
-      feesCollected_ = 0;
-    } else {
-      //if the bounty is less than the fees collected, the admin can post it purely from fees
-      feesCollected_ -= _equalizationBounty;
-      emit FeesCollected(_equalizationBounty);
-    }
+    indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty);
     equalizationBounty_ = _equalizationBounty;
     emit EqualizationBountySet(_equalizationBounty);
   }
