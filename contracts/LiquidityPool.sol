@@ -21,8 +21,6 @@ import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
-import "hardhat/console.sol";
-
 contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
@@ -239,7 +237,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
     uint256 startingDiscrepency = getTotalReservesDiscrepencyScaled();
-    console.log("targetAllocation/specReserves", params.targetAllocation, specificReservesScaled_[_asset], totalReservesScaled_);
     int256 maxDelta = PoolMath.calcMaxIndividualDelta(
       params.targetAllocation,
       specificReservesScaled_[_asset],
@@ -251,8 +248,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
-      console.log("maxDelta0:", uint256(maxDelta));
-      console.log("targetDepositScaled:", targetDepositScaled);
       require(int256(targetDepositScaled) <= maxDelta, "deposit exceeds target allocation");
       uint256 trueDeposit = PoolMath.scaleDecimals(
         targetDepositScaled,
@@ -267,6 +262,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       );
       specificReservesScaled_[_asset] += trueDepositScaled;
       totalReservesScaled_ += trueDepositScaled;
+      checkMaxTotalReservesLimit();
       uint256 endingDiscrepency = getTotalReservesDiscrepencyScaled();
       bounty = PoolMath.calcEqualizationBounty(
         equalizationBounty_, 
@@ -283,7 +279,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );    
-      console.log("maxDelta1:", uint256(maxDelta * -1));
       require(int256(targetWithdrawalScaled) * -1 >= maxDelta, "withdrawal exceeds target allocation");
       uint256 trueWithdrawal = PoolMath.scaleDecimals(
         targetWithdrawalScaled,
