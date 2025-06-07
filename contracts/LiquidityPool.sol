@@ -233,7 +233,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function swapTowardsTarget(
     address _asset,
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
-  ) external nonReentrant {
+  ) external nonReentrant returns (uint256 reservesTransfer, uint256 indexTransfer) {
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
     uint256 startingDiscrepency = getTotalReservesDiscrepencyScaled();
@@ -254,6 +254,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         DECIMAL_SCALE,
         params.decimals
       );
+      reservesTransfer = trueDeposit;
       IERC20(_asset).transferFrom(msg.sender, address(this), trueDeposit);
       uint256 trueDepositScaled = PoolMath.scaleDecimals(
         trueDeposit,
@@ -269,9 +270,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         startingDiscrepency, 
         endingDiscrepency
       );
+      indexTransfer = trueDepositScaled + bounty;
       indexToken_.mint(
         msg.sender,
-        trueDepositScaled + bounty//bounty is awarded as a bonus
+        indexTransfer//bounty is awarded as a bonus
       );
     } else { // withdraw
       uint256 targetWithdrawalScaled = PoolMath.scaleDecimals(
@@ -285,6 +287,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         DECIMAL_SCALE,
         params.decimals
       );
+      reservesTransfer = trueWithdrawal;
       IERC20(_asset).transfer(msg.sender, trueWithdrawal);
       uint256 trueWithdrawalScaled = PoolMath.scaleDecimals(
         trueWithdrawal,
@@ -304,9 +307,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         //and treat the bounty for this transaction as the amount the caller would have burned
         bounty = trueWithdrawalScaled;
       }
+      indexTransfer = trueWithdrawalScaled - bounty;
       indexToken_.burnFrom(
         msg.sender, 
-        trueWithdrawalScaled - bounty //bounty is awarded as a discount
+        indexTransfer //bounty is awarded as a discount
       );
     }
     equalizationBounty_ -= bounty;
@@ -320,24 +324,28 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
   /// @inheritdoc ILiquidityPoolWrite
-  function equalizeToTarget() external {
+  function equalizeToTarget() external returns (int256[] memory) {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
-
+    int256[] memory actualDeltas = new int256[](deltasScaled.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       if(deltasScaled[i] > 0) {// deposit
+        uint256 actualDeposit = PoolMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals);
         IERC20(params.assetAddress).transferFrom(
           msg.sender, 
           address(this), 
-          PoolMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals)
+          actualDeposit
         );
         specificReservesScaled_[params.assetAddress] += uint256(deltasScaled[i]);
+        actualDeltas[i] = int256(actualDeposit);
       } else {//withdraw
+        uint256 actualWithdrawal = PoolMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
         IERC20(params.assetAddress).transfer(
           msg.sender, 
-          PoolMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals)
+          actualWithdrawal
         );
         specificReservesScaled_[params.assetAddress] -= uint256(deltasScaled[i] * -1);
+        actualDeltas[i] = int256(actualWithdrawal) * -1;
       }
       if(params.targetAllocation == 0) {
         //if the target allocation is 0, remove the asset from the currentAssetParamsList
@@ -353,6 +361,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     //send the rest of the equalizationBounty to the caller
     indexToken_.mint(msg.sender, equalizationBounty_);
     emit Equalization(deltasScaled, equalizationBounty_);
+    return actualDeltas;
   }
 
   /*
@@ -450,6 +459,21 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolGetters
+  function getEqualizationBounty() external view returns (uint256) {
+    return equalizationBounty_;
+  }
+
+  /// @inheritdoc ILiquidityPoolGetters
+  function getIsEqualized() public view returns (bool) {
+    //check if the current allocations match the target allocations
+    uint256 totalReservesDiscrepencyScaled = getTotalReservesDiscrepencyScaled();
+
+    //total discrepency must be less than one billionth of total reserves to be considered equalized
+    uint256 discrepencyToleranceScaled = totalReservesScaled_ / 1_000_000_000;
+    return totalReservesDiscrepencyScaled <= discrepencyToleranceScaled;
+  }
+
+  /// @inheritdoc ILiquidityPoolGetters
   function getEqualizationVectorScaled() public view returns (int256[] memory deltasScaled) {
     //calculate the deltas required to equalize the current allocations to the target allocations
     deltasScaled = new int256[](currentAssetParamsList_.length);
@@ -468,16 +492,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       totalReservesDiscrepencyScaled += SignedMath.abs(deltasScaled[i]);
     }
     return totalReservesDiscrepencyScaled;
-  }
-
-  /// @inheritdoc ILiquidityPoolGetters
-  function getIsEqualized() public view returns (bool) {
-    //check if the current allocations match the target allocations
-    uint256 totalReservesDiscrepencyScaled = getTotalReservesDiscrepencyScaled();
-
-    //total discrepency must be less than one billionth of total reserves to be considered equalized
-    uint256 discrepencyToleranceScaled = totalReservesScaled_ / 1_000_000_000;
-    return totalReservesDiscrepencyScaled <= discrepencyToleranceScaled;
   }
 
   /*

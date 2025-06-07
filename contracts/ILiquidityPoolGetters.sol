@@ -81,6 +81,11 @@ interface ILiquidityPoolGetters {
   /// @return lastMaxReservesChangeTimestamp The last block.timestamp where maxReserves was increased.
   function getLastMaxReservesChangeTimestamp() external view returns (uint256);
   
+  /// @dev A reward in the liquidity token applied as a discount/premium to traders who call arbitrage functions
+  /// that move the pools reserves closer to equalization with the target allocations.
+  /// @return equalizationBounty The total reward for bringing the pool to equalization
+  function getEqualizationBounty() external view returns (uint256);
+
   /// @dev Equalization refers to whether or not the pools current reserves are equal to its target reserves
   /// @return isEqualized Whether or not the pool is equalized
   function getIsEqualized() external view returns (bool);
