@@ -12,7 +12,7 @@ contract MultiMinter {
 
   function mintAll(address _recipient, uint256 _amount) external {
     for (uint i = 0; i < mintableTokens.length; i++) {
-        mintableTokens[i].mint(_recipient, _amount * mintableTokens[i].decimals());
+        mintableTokens[i].mint(_recipient, _amount * 10 ** mintableTokens[i].decimals());
     }
   }
 }
