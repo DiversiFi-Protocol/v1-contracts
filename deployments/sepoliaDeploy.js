@@ -42,12 +42,12 @@ async function main() {
   await token2.waitForDeployment();
   console.log(`Token2 deployed to: ${await token2.getAddress()}`);
   console.log("\n----------------------------------\n");
-
+  await sleep(10000)//sleep long time to make sure the next nonce is correct
   const nonce = await client.getTransactionCount({
-    address: await deployer.getAddress(),
+    address: deployer.address,
   });
   const liquidityPoolAddress = getCreateAddress({
-    from: await deployer.getAddress(),
+    from: deployer.address,
     nonce: nonce + 1,
   });
 
@@ -97,9 +97,7 @@ async function main() {
       }
     ]
   );
-  await sleep(10000);
   await liquidityPool.setIsMintEnabled(true);
-  await sleep(10000);
   console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
   console.log(
     chalk.yellow("Predicted LiquidityPool address:"),
@@ -112,17 +110,14 @@ async function main() {
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token0Decimals)
   );
-  await sleep(10000);
   await token1.mint(
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token1Decimals)
   );
-  await sleep(10000);
   await token2.mint(
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token2Decimals)
   );
-  await sleep(10000);
 
   console.log("Token Balances:");
   console.log(
@@ -149,15 +144,17 @@ async function main() {
   console.log("\n----------------------------------\n");
 
   console.log(chalk.cyan("Minting base assets for Liquidity Pool"));
-  await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
-  await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
-  await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
-  await sleep(20000);
-  await liquidityPool.mint(
+  let tx = await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await tx.wait()
+  tx = await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await tx.wait()
+  tx = await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await tx.wait()
+  tx = await liquidityPool.mint(
     ethers.parseUnits("100000", await indexToken.decimals()),
     await deployer.getAddress()
   );
-  await sleep(10000);
+  await tx.wait()
 
   console.log(chalk.cyan("Final Balances:"));
   console.log(
@@ -205,6 +202,7 @@ main()
     console.error(error);
     process.exit(1);
   });
+
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
