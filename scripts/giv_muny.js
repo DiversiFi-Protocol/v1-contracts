@@ -8,16 +8,9 @@ async function main() {
 	const [sender] = await ethers.getSigners();
 
 	const MultiMinter = await ethers.getContractFactory("MultiMinter");
-	const multiMinter = await MultiMinter.deploy([
-		"0xa814D1722125151c1BcD363E79a60d59BFb8F53e",
-		"0x1537e0CD1eAC6Dc732d0847139d9eACAEc323Db0",
-		"0x8E9c43c72ab3a49Fdd242e5BB44B337e94979dd1",
-	]);
-	await multiMinter.waitForDeployment();
-	console.log("multiminter deployment address:", multiMinter.target);
-	// const multiMinter = MultiMinter.attach(
-	// "0x4337f8997DD393B51E842402eCd8d0c9955b7723"
-	// );
+	const multiMinter = await MultiMinter.attach(
+		"0x1D04C89BF5e1D292f5b931814426ae05665f29E2"
+	);
 	const tx = await multiMinter.mintAll(
 		process.env.RECIPIENT,
 		process.env.TOKEN_AMOUNT
