@@ -6,8 +6,6 @@ const utils = require("../test/testModules/utils.js");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  console.log("deployer address:", deployer.address)
-  console.log("\n----------------------------------\n");
   const client = createPublicClient({
     chain: localhost,
     transport: http("http://127.0.0.1:8545"),
@@ -99,7 +97,9 @@ async function main() {
       }
     ]
   );
+  await sleep(10000);
   await liquidityPool.setIsMintEnabled(true);
+  await sleep(10000);
   console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
   console.log(
     chalk.yellow("Predicted LiquidityPool address:"),
@@ -112,14 +112,17 @@ async function main() {
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token0Decimals)
   );
+  await sleep(10000);
   await token1.mint(
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token1Decimals)
   );
+  await sleep(10000);
   await token2.mint(
     await deployer.getAddress(),
     ethers.parseUnits("1000000", token2Decimals)
   );
+  await sleep(10000);
 
   console.log("Token Balances:");
   console.log(
@@ -149,10 +152,12 @@ async function main() {
   await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+  await sleep(20000);
   await liquidityPool.mint(
     ethers.parseUnits("100000", await indexToken.decimals()),
     await deployer.getAddress()
   );
+  await sleep(10000);
 
   console.log(chalk.cyan("Final Balances:"));
   console.log(
@@ -190,6 +195,7 @@ async function main() {
     token1.getAddress(),
     token2.getAddress(),
   ]);
+  await multiMinter.waitForDeployment()
   console.log("MultiMinter deployed to:", await multiMinter.getAddress());
 }
 
@@ -199,3 +205,7 @@ main()
     console.error(error);
     process.exit(1);
   });
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
