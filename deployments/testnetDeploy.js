@@ -58,7 +58,7 @@ async function main() {
   const IndexToken = await ethers.getContractFactory("IndexToken");
   const indexToken = await IndexToken.deploy(
     "Diversified USD",
-    "USD1",
+    "DFiUSD",
     liquidityPoolAddress,
     deployer.getAddress()
   );

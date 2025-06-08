@@ -1,9 +1,16 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-gas-reporter")
 require("hardhat-contract-sizer");
+require("@nomicfoundation/hardhat-verify");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
+  sourcify: {
+    enabled: true
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY, // or put your key directly (not recommended)
+  },
   solidity: {
     version: "0.8.27",
     settings: {
