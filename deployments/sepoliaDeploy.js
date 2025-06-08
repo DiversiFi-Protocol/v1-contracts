@@ -6,10 +6,6 @@ const utils = require("../test/testModules/utils.js");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
-  const client = createPublicClient({
-    chain: localhost,
-    transport: http("http://127.0.0.1:8545"),
-  });
 
   // Deploy MintableStableCoin Contracts
   console.log(chalk.cyan("Deploying MintableStableCoin tokens..."));
@@ -43,9 +39,8 @@ async function main() {
   console.log(`Token2 deployed to: ${await token2.getAddress()}`);
   console.log("\n----------------------------------\n");
   await sleep(10000)//sleep long time to make sure the next nonce is correct
-  const nonce = await client.getTransactionCount({
-    address: deployer.address,
-  });
+  let nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+
   const liquidityPoolAddress = getCreateAddress({
     from: deployer.address,
     nonce: nonce + 1,
