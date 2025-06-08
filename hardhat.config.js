@@ -21,7 +21,29 @@ module.exports = {
   networks: {
     hardhat: {
       gas: 6_000_000,
-    }
+    },
+    mainnet: {
+      url: "https://eth-mainnet.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
+      chainId: 1,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+        path: "m/420'/69'/0'/0",
+        initialIndex: 0,
+        count: 20,
+        passphrase: "",
+      },
+    },
+    sepolia: {
+      url: "https://eth-sepolia.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
+      chainId: 11155111,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+        path: "m/420'/69'/0'/0",
+        initialIndex: 0,
+        count: 20,
+        passphrase: "",
+      },
+    },
   },
   contractSizer: {
     runOnCompile: true,
