@@ -195,9 +195,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
+    uint256 totalReservesScaled = totalReservesScaled_;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
-      uint256 currentAllocation = PoolMath.toFixed(specificReservesScaled_[params.assetAddress]) / totalReservesScaled_;
+      uint256 currentAllocation = PoolMath.toFixed(specificReservesScaled_[params.assetAddress]) / totalReservesScaled;
 
       /*
         There is a target scaled transfer amount and a true scaled transfer amount because
@@ -211,6 +212,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       IERC20(params.assetAddress).transfer(msg.sender, trueTransferAmount);
       totalReserveReduction += trueScaledTransferAmount;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueScaledTransferAmount;
+      specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
     feesCollected_ += fee;
