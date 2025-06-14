@@ -116,7 +116,7 @@ describe("LiquidityPool - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n },
       ];
       await expect(liquidityPool.connect(admin).setTargetAssetParams(params0))
-        .to.emit(liquidityPool, "AssetParamsChange");
+        .to.emit(liquidityPool, "TargetAssetParamsChange");
       await liquidityPool.connect(admin).setTargetAssetParams(params1)
       const result = await liquidityPool.getTargetAssetParams()
       result.forEach((p, i) => {
