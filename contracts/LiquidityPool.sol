@@ -474,17 +474,22 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
+    {//scope reduction
+    address[] memory assetAddresses = new address[](_params.length);
+    uint88[] memory targetAllocations = new uint88[](_params.length);
+    uint8[] memory decimalsList = new uint8[](_params.length);
     for (uint i = 0; i < _params.length; i++) {
+      assetAddresses[i] = _params[i].assetAddress;
+      targetAllocations[i] = _params[i].targetAllocation;
+      decimalsList[i] = _params[i].decimals;
       assetParams_[_params[i].assetAddress] = _params[i];
       targetAssetParamsList_.push(_params[i]);
       totalTargetAllocation += _params[i].targetAllocation;
       insertOrReplaceCurrentAssetParams(_params[i]);
-      emit TargetAssetParamsChange(
-        _params[i].assetAddress,
-        _params[i].targetAllocation,
-        _params[i].decimals
-      );
     }
+    emit TargetAssetParamsChange(assetAddresses,targetAllocations, decimalsList);
+    }
+
     // if an asset is in the current list, but not in the target list, its allocation is implied to be zero
     for (uint iC = 0; iC < currentAssetParamsList_.length; iC++) {
       bool inTargetList = false;
@@ -498,11 +503,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         currentAssetParamsList_[iC].targetAllocation = 0;
         //update asset params map to reflect the zero allocation
         assetParams_[currentAssetParamsList_[iC].assetAddress].targetAllocation = 0;
-        emit TargetAssetParamsChange(
-          currentAssetParamsList_[iC].assetAddress,
-          0,
-          currentAssetParamsList_[iC].decimals
-        );
       }
     }
     require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
