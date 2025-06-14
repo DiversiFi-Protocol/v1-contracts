@@ -115,10 +115,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint8 decimals
   );
 
-  event AssetRetired(
-    address indexed asset
-  );
-
   event IsMintEnabledChange(
     bool isMintEnabled
   );
@@ -366,7 +362,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
           currentAssetParamsList_[j] = currentAssetParamsList_[j + 1];
         }
         currentAssetParamsList_.pop();
-        emit AssetRetired(params.assetAddress);
       }
     }
     //send the rest of the equalizationBounty to the caller
