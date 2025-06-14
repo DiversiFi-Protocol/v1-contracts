@@ -44,7 +44,7 @@ interface ILiquidityPoolEvents {
     uint256 burnFeeQ128_
   );
 
-  event AssetParamsChange(
+  event TargetAssetParamsChange(
     address indexed asset,
     uint88 targetAllocation,
     uint8 decimals
