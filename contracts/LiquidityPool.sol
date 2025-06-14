@@ -98,7 +98,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   //the entire remaining equalization bounty is paid out upon equalization
   event Equalization(
-    int256[] deltasScaled //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    int256[] deltasScaled //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal (ordered by currentAssetParamsList_)
   );
 
   event MintFeeChange(
