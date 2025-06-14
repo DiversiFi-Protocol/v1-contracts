@@ -17,11 +17,12 @@ import "./DataStructs.sol";
 import "./ILiquidityPoolAdmin.sol";
 import "./ILiquidityPoolGetters.sol";
 import "./ILiquidityPoolWrite.sol";
+import "./ILiquidityPoolEvents.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
-contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite {
+contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite, ILiquidityPoolEvents {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -65,83 +66,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
     feesCollected_ = 0;
   }
-
-  // emitted when a user mints the index token directly in exchange
-  // for depositing every asset in the pool at the same time
-  // the updated scaled reserves of each asset are included in the scaledReserves array
-  // the array is indexed by order of the ***********TARGETAssetParamsList_***********
-  // NOTE THAT THIS ARRAY IS NOT NECESSARILY INDEXED IN THE SAME ORDER AS THE ARRAY EMITTED BY THE BURN() EVENT
-  event Mint(
-    address   indexed recipient,
-    uint256   mintAmount,
-    uint256[] scaledReserves,
-    uint256   feesPaid
-  );
-
-  // emitted when a user burns the index token directly
-  // to redeem every asset in the pool at the same time
-  // the updated scaled reserves of each asset are included in the scaledReserves array
-  // the array is indexed by order of the ***********CURRENTAssetParamsList_***********
-  // NOTE THAT THIS ARRAY IS NOT NECESSARILY INDEXED IN THE SAME ORDER AS THE ARRAY EMITTED BY THE MINT() EVENT
-  event Burn(
-    address   indexed recipient,
-    uint256   burnAmount,
-    uint256[] scaledReserves,
-    uint256   feesPaid
-  );
-
-  event Swap(
-    address indexed asset,
-    int256 deltaScaled, //the scaled change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
-    uint256 bountyPaid
-  );
-
-  //the entire remaining equalization bounty is paid out upon equalization
-  event Equalization(
-    int256[] deltasScaled //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal (ordered by currentAssetParamsList_)
-  );
-
-  event MintFeeChange(
-    uint256 mintFeeQ128_
-  );
-
-  event BurnFeeChange(
-    uint256 burnFeeQ128_
-  );
-
-  event AssetParamsChange(
-    address indexed asset,
-    uint88 targetAllocation,
-    uint8 decimals
-  );
-
-  event IsMintEnabledChange(
-    bool isMintEnabled
-  );
-
-  event MaxReservesChange(
-    uint256 maxReserves
-  );
-
-  event MaxReservesIncreaseCooldownChange(
-    uint256 publicMaxReservesIncreaseCooldown
-  );
-
-  event MaxReservesIncreaseRateChange(
-    uint256 maxReservesIncreaseRateQ128_
-  );
-
-  event FeesCollected(
-    uint256 feesCollected
-  );
-
-  event AdminChange(
-    address admin
-  );
-
-  event EqualizationBountySet(
-    uint256 equalizationBounty
-  );
   
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Core Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
