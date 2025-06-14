@@ -92,7 +92,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   event Swap(
     address indexed asset,
-    int256 delta, //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    int256 deltaScaled, //the scaled change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
     uint256 bountyPaid
   );
 
@@ -272,6 +272,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         startingDiscrepency, 
         endingDiscrepency
       );
+      emit Swap(
+        _asset,
+        int256(trueDepositScaled),
+        bounty
+      );
       indexTransfer = trueDepositScaled + bounty;
       indexToken_.mint(
         msg.sender,
@@ -282,7 +287,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         uint256(_delta * -1),
         params.decimals,
         DECIMAL_SCALE
-      );    
+      );
       require(int256(targetWithdrawalScaled) * -1 >= maxDelta, "withdrawal exceeds target allocation");
       uint256 trueWithdrawal = PoolMath.scaleDecimals(
         targetWithdrawalScaled,
@@ -296,6 +301,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         params.decimals,
         DECIMAL_SCALE
       );
+
       specificReservesScaled_[_asset] -= trueWithdrawalScaled;
       totalReservesScaled_ -= trueWithdrawalScaled;
       uint256 endingDiscrepency = getTotalReservesDiscrepencyScaled();
@@ -309,6 +315,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         //and treat the bounty for this transaction as the amount the caller would have burned
         bounty = trueWithdrawalScaled;
       }
+      emit Swap(
+        _asset,
+        int256(trueWithdrawalScaled) * -1,
+        bounty
+      );
       indexTransfer = trueWithdrawalScaled - bounty;
       indexToken_.burnFrom(
         msg.sender, 
@@ -316,11 +327,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       );
     }
     equalizationBounty_ -= bounty;
-    emit Swap(
-      _asset,
-      _delta,
-      bounty
-    );
   }
 
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
