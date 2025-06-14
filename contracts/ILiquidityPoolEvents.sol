@@ -45,7 +45,7 @@ interface ILiquidityPoolEvents {
   );
 
   event TargetAssetParamsChange(
-    address indexed asset,
+    address indexed assetAddress,
     uint88 targetAllocation,
     uint8 decimals
   );
