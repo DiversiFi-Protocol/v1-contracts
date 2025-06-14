@@ -479,7 +479,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       targetAssetParamsList_.push(_params[i]);
       totalTargetAllocation += _params[i].targetAllocation;
       insertOrReplaceCurrentAssetParams(_params[i]);
-      emit AssetParamsChange(
+      emit TargetAssetParamsChange(
         _params[i].assetAddress,
         _params[i].targetAllocation,
         _params[i].decimals
@@ -498,7 +498,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         currentAssetParamsList_[iC].targetAllocation = 0;
         //update asset params map to reflect the zero allocation
         assetParams_[currentAssetParamsList_[iC].assetAddress].targetAllocation = 0;
-        emit AssetParamsChange(
+        emit TargetAssetParamsChange(
           currentAssetParamsList_[iC].assetAddress,
           0,
           currentAssetParamsList_[iC].decimals
