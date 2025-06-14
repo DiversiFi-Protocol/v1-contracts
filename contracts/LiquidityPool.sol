@@ -96,9 +96,9 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 bountyPaid
   );
 
+  //the entire remaining equalization bounty is paid out upon equalization
   event Equalization(
-    int256[] deltasScaled, //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
-    uint256 bountyPaid
+    int256[] deltasScaled //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
   );
 
   event MintFeeChange(
@@ -366,7 +366,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
     //send the rest of the equalizationBounty to the caller
     indexToken_.mint(msg.sender, equalizationBounty_);
-    emit Equalization(deltasScaled, equalizationBounty_);
+    emit Equalization(deltasScaled);
     return actualDeltas;
   }
 
