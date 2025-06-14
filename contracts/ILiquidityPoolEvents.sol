@@ -45,9 +45,9 @@ interface ILiquidityPoolEvents {
   );
 
   event TargetAssetParamsChange(
-    address indexed assetAddress,
-    uint88 targetAllocation,
-    uint8 decimals
+    address[] assetAddresses,
+    uint88[] targetAllocations,
+    uint8[] decimals
   );
 
   event IsMintEnabledChange(
