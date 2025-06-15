@@ -528,7 +528,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolAdmin
   function setEqualizationBounty(uint256 _equalizationBounty) external onlyAdmin {
     indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty);
-    equalizationBounty_ = _equalizationBounty;
+    equalizationBounty_ += _equalizationBounty;
     emit EqualizationBountySet(_equalizationBounty);
   }
 
