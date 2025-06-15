@@ -55,7 +55,8 @@ interface ILiquidityPoolEvents {
   );
 
   event MaxReservesChange(
-    uint256 maxReserves
+    uint256 maxReserves,
+    uint256 blockTime
   );
 
   event MaxReservesIncreaseCooldownChange(
