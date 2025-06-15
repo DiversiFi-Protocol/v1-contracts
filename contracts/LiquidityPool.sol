@@ -455,7 +455,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function setMaxReserves(uint256 _maxReserves) external onlyAdmin {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
-    emit MaxReservesChange(_maxReserves);
+    emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
@@ -549,7 +549,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       maxReserves_ += PoolMath.fromFixed(maxReserves_ * maxReservesIncreaseRateQ128_);
       require(maxReserves_ >= totalReservesScaled_, "max reserves limit");
       emit MaxReservesChange(
-        maxReserves_
+        maxReserves_,
+        block.timestamp
       );
     }
   }
