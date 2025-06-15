@@ -60,7 +60,7 @@ interface ILiquidityPoolEvents {
   );
 
   event MaxReservesIncreaseCooldownChange(
-    uint256 publicMaxReservesIncreaseCooldown
+    uint256 maxReservesIncreaseCooldown
   );
 
   event MaxReservesIncreaseRateChange(
