@@ -151,7 +151,7 @@ async function main() {
   await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
   await liquidityPool.mint(
     ethers.parseUnits("100000", await indexToken.decimals()),
-    await deployer.getAddress()
+    "0x"
   );
 
   console.log(chalk.cyan("Final Balances:"));
