@@ -88,10 +88,11 @@ describe("LiquidityPool - Admin Functions", function() {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       const newMax = 123456789n;
       const tx = await liquidityPool.connect(admin).setMaxReserves(newMax);
-      await expect(tx).to.emit(liquidityPool, "MaxReservesChange").withArgs(newMax);
+      const block0 = await hre.ethers.provider.getBlock(tx.blockNumber);
+      await expect(tx).to.emit(liquidityPool, "MaxReservesChange").withArgs(newMax, block0.timestamp);
       expect(await liquidityPool.getMaxReserves()).to.equal(newMax);
-      const block = await hre.ethers.provider.getBlock(tx.blockNumber);
-      expect(await liquidityPool.getLastMaxReservesChangeTimestamp()).to.equal(block.timestamp);
+      const block1 = await hre.ethers.provider.getBlock(tx.blockNumber);
+      expect(await liquidityPool.getLastMaxReservesChangeTimestamp()).to.equal(block1.timestamp);
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
@@ -186,7 +187,7 @@ describe("LiquidityPool - Admin Functions", function() {
       const { liquidityPool, indexToken, admin, unpriviledged } = await loadFixture(deployAll);
       const feeRecipient = unpriviledged.address;
       const initialBalance = await indexToken.balanceOf(feeRecipient);
-      await liquidityPool.connect(admin).mint(utils.scale10Pow18(1_000_000n), admin.address);
+      await liquidityPool.connect(admin).mint(utils.scale10Pow18(1_000_000n), "0x");
       const adminBal = await indexToken.balanceOf(admin.address)
       const feesAvailable = await liquidityPool.getFeesCollected();
       await expect(liquidityPool.connect(admin).withdrawFees(feeRecipient))
