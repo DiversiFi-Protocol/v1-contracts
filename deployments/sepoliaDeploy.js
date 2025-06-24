@@ -147,7 +147,7 @@ async function main() {
   await tx.wait()
   tx = await liquidityPool.mint(
     ethers.parseUnits("100000", await indexToken.decimals()),
-    await deployer.getAddress()
+    "0x"
   );
   await tx.wait()
 
