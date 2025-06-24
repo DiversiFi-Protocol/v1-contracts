@@ -18,6 +18,7 @@ import "./ILiquidityPoolAdmin.sol";
 import "./ILiquidityPoolGetters.sol";
 import "./ILiquidityPoolWrite.sol";
 import "./ILiquidityPoolEvents.sol";
+import "./ILiquidityPoolCallback.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
@@ -72,8 +73,16 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, address _recipient) external nonReentrant {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant {
     require(isMintEnabled_, "minting disabled");
+    indexToken_.mint(
+      msg.sender,
+      _mintAmount
+    );
+
+    //forward data to callback for a flash mint
+    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).mintCallback(_forwardData); }
+
     uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
@@ -92,16 +101,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
     totalReservesScaled_ += totalReservesIncrease;
     checkMaxTotalReservesLimit();
-
-    indexToken_.mint(
-      _recipient,
-      _mintAmount
-    );
-
     feesCollected_ += fee;
 
     emit Mint(
-      _recipient,
+      msg.sender,
       _mintAmount,
       scaledReservesList,
       fee
@@ -109,8 +112,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolWrite
-  function burn(uint256 _burnAmount) external nonReentrant {
-    indexToken_.burnFrom(msg.sender, _burnAmount);
+  function burn(uint256 _burnAmount, bytes calldata _forwardData) external nonReentrant {
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -137,6 +139,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     totalReservesScaled_ -= totalReserveReduction;
     feesCollected_ += fee;
 
+    //forward data back to the caller for a flash burn
+    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).burnCallback(_forwardData); }
+
+    indexToken_.burnFrom(msg.sender, _burnAmount);
     emit Burn(
       msg.sender,
       _burnAmount,
