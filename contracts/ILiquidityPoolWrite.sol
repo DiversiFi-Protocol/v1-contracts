@@ -21,17 +21,22 @@ interface ILiquidityPoolWrite {
      * newly minted index tokens. The caller must call ERC20.approve() for this contract for all underlying
      * tokens that will be transferred. Transfers according to the TARGET allocation of each asset
      * @param mintAmount the amount of tokens to be minted - in atomic units
-     * @param recipient the address that the index tokens will be minted to
+     * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
+     * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
+     * This parameter can be ignored by passing in an empty value
      */
-    function mint(uint256 mintAmount, address recipient) external;
+    function mint(uint256 mintAmount, bytes calldata forwardData) external;
 
     /** 
      * @dev burns index tokens from the callers account and transferres underlying tokens from the pool to
      * the caller. No approvals are needed to call this function.
      *  Transfers according to the Current allocation of each asset
      * @param burnAmount the amount of tokens to be burned - in atomic units
+     * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
+     * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
+     * This parameter can be ignored by passing in an empty value
      */
-    function burn(uint256 burnAmount) external;
+    function burn(uint256 burnAmount, bytes calldata forwardData) external;
 
     // ~~~~~~~~~~~~~~~~~~~~ Public Special Functions ~~~~~~~~~~~~~~~~~~~
     /** 
