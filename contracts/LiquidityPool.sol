@@ -81,7 +81,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     );
 
     //forward data to callback for a flash mint
-    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).mintCallback(_forwardData); }
+    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashMintCallback(_forwardData); }
 
     uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
     uint256 trueMintAmount = _mintAmount + fee;
@@ -140,7 +140,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     feesCollected_ += fee;
 
     //forward data back to the caller for a flash burn
-    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).burnCallback(_forwardData); }
+    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
 
     indexToken_.burnFrom(msg.sender, _burnAmount);
     emit Burn(
