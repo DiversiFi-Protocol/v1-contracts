@@ -24,6 +24,7 @@ interface ILiquidityPoolWrite {
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
      * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
      * This parameter can be ignored by passing in an empty value
+     * @return inputAmounts an array of assets and amounts required to mint the desired amount of tokens
      */
     function mint(uint256 mintAmount, bytes calldata forwardData) external returns (AssetAmount[] memory inputAmounts);
 
@@ -35,6 +36,7 @@ interface ILiquidityPoolWrite {
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
      * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
      * This parameter can be ignored by passing in an empty value
+     * @return outputAmounts an array of assets and amounts returned for burning the desired amount of tokens
      */
     function burn(uint256 burnAmount, bytes calldata forwardData) external returns (AssetAmount[] memory outputAmounts);
 
