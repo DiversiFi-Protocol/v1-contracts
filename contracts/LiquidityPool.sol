@@ -73,7 +73,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
       msg.sender,
@@ -87,6 +87,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
     uint256 totalReservesIncrease = 0;
+    inputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     for (uint i = 0; i < targetAssetParamsList_.length; i++) {
       AssetParams memory params = targetAssetParamsList_[i];
       uint256 targetDeposit = PoolMath.fromFixed(
@@ -95,6 +96,12 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       uint256 trueDeposit = PoolMath.scaleDecimals(targetDeposit, DECIMAL_SCALE, params.decimals) + 1;//round up
       uint256 trueScaledDeposit = PoolMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
+
+      AssetAmount memory assetAmount;
+      assetAmount.assetAddress = params.assetAddress;
+      assetAmount.amount = trueDeposit;
+      inputAmounts[i] = assetAmount;
+
       totalReservesIncrease += trueScaledDeposit;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueScaledDeposit;
       specificReservesScaled_[targetAssetParamsList_[i].assetAddress] = scaledReservesList[i];
@@ -112,11 +119,12 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolWrite
-  function burn(uint256 _burnAmount, bytes calldata _forwardData) external nonReentrant {
+  function burn(uint256 _burnAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory outputAmounts) {
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
+    outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
@@ -127,13 +135,19 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         we may not be able to send the exact target transfer amount because of precision loss
         when scaling the transfer amount to the asset's decimals.
       */
-      uint256 targetScaledTransferAmount = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
-      uint256 trueTransferAmount = PoolMath.scaleDecimals(targetScaledTransferAmount, DECIMAL_SCALE, params.decimals);
-      uint256 trueScaledTransferAmount = PoolMath.scaleDecimals(trueTransferAmount, params.decimals, DECIMAL_SCALE);
+      uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
+      uint256 trueWithdrawal = PoolMath.scaleDecimals(targetScaledWithdrawal, DECIMAL_SCALE, params.decimals);
+      uint256 trueScaledWithdrawal = PoolMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
 
-      IERC20(params.assetAddress).transfer(msg.sender, trueTransferAmount);
-      totalReserveReduction += trueScaledTransferAmount;
-      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueScaledTransferAmount;
+      IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
+
+      AssetAmount memory assetAmount;
+      assetAmount.assetAddress = params.assetAddress;
+      assetAmount.amount = trueWithdrawal;
+      outputAmounts[i] = assetAmount;
+
+      totalReserveReduction += trueScaledWithdrawal;
+      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueScaledWithdrawal;
       specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
