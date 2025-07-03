@@ -7,3 +7,8 @@ struct AssetParams {
   uint88 targetAllocation; // 0.88 fixed point
   uint8 decimals;
 }
+
+struct AssetAmount {
+  address assetAddress;
+  uint256 amount;
+}

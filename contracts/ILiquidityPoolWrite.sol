@@ -25,7 +25,7 @@ interface ILiquidityPoolWrite {
      * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
      * This parameter can be ignored by passing in an empty value
      */
-    function mint(uint256 mintAmount, bytes calldata forwardData) external;
+    function mint(uint256 mintAmount, bytes calldata forwardData) external returns (AssetAmount[] memory inputAmounts);
 
     /** 
      * @dev burns index tokens from the callers account and transferres underlying tokens from the pool to
@@ -36,7 +36,7 @@ interface ILiquidityPoolWrite {
      * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
      * This parameter can be ignored by passing in an empty value
      */
-    function burn(uint256 burnAmount, bytes calldata forwardData) external;
+    function burn(uint256 burnAmount, bytes calldata forwardData) external returns (AssetAmount[] memory outputAmounts);
 
     // ~~~~~~~~~~~~~~~~~~~~ Public Special Functions ~~~~~~~~~~~~~~~~~~~
     /** 
