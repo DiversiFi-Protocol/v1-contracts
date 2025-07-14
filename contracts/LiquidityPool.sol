@@ -35,6 +35,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   //related contracts
   IndexToken private indexToken_;
+  IERC20
 
   //configuration
   address private admin_;
@@ -550,6 +551,16 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty);
     equalizationBounty_ += _equalizationBounty;
     emit EqualizationBountySet(_equalizationBounty);
+  }
+
+  /// @inheritdoc ILiquidityPoolAdmin
+  function startMigration(
+    address _nextLiquidityPool,
+    address _migrationCreditToken,
+    uint64 balanceMultiplierChangeDelay,
+    uint96 balanceMultiplierChangePerSecondQ96
+  ) external {
+
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
