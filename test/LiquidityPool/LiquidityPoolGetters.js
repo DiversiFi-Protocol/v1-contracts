@@ -31,34 +31,34 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(maxReserves);
   })
 
-  it("getMaxReservesIncreaseRateQ128", async function () {
-    const { liquidityPool, maxReservesIncreaseRateQ128 } = await loadFixture(deployAll);
+  it("getMaxReservesIncreaseRateQ96", async function () {
+    const { liquidityPool, maxReservesIncreaseRateQ96 } = await loadFixture(deployAll);
 
-    // Call the getMaxReservesIncreaseRateQ128 function
-    const result = await liquidityPool.getMaxReservesIncreaseRateQ128();
+    // Call the getMaxReservesIncreaseRateQ96 function
+    const result = await liquidityPool.getMaxReservesIncreaseRateQ96();
     // Assert that the result matches the expected value
-    expect(result).to.equal(maxReservesIncreaseRateQ128);
+    expect(result).to.equal(maxReservesIncreaseRateQ96);
   })
 
-  it("getMintFeeQ128", async function() {
+  it("getMintFeeQ96", async function() {
     const { liquidityPool } = await loadFixture(deployAll);
     // Set the mint fee to a random value
     const randomMintFee = utils.decimalToFixed(0.01); // Example: 1% mint fee
-    await liquidityPool.setMintFeeQ128(randomMintFee);
+    await liquidityPool.setMintFeeQ96(randomMintFee);
 
     // Assert that the mint fee was set correctly
-    const setMintFee = await liquidityPool.getMintFeeQ128();
+    const setMintFee = await liquidityPool.getMintFeeQ96();
     expect(setMintFee).to.equal(randomMintFee);
   })
 
-  it("getBurnFeeQ128", async function() {
+  it("getBurnFeeQ96", async function() {
     const { liquidityPool } = await loadFixture(deployAll);
     // Set the burn fee to a random value
     const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
-    await liquidityPool.setBurnFeeQ128(randomBurnFee);
+    await liquidityPool.setBurnFeeQ96(randomBurnFee);
 
     // Assert that the burn fee was set correctly
-    const setBurnFee = await liquidityPool.getBurnFeeQ128();
+    const setBurnFee = await liquidityPool.getBurnFeeQ96();
     expect(setBurnFee).to.equal(randomBurnFee);
   })
 

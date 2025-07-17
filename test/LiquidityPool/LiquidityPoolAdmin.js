@@ -19,34 +19,34 @@ describe("LiquidityPool - Admin Functions", function() {
     });
   });
 
-  describe("setMintFeeQ128", function() {
+  describe("setMintFeeQ96", function() {
     it("sets new mint fee and emits event when called by admin", async function() {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.02);
-      await expect(liquidityPool.connect(admin).setMintFeeQ128(newFee))
+      await expect(liquidityPool.connect(admin).setMintFeeQ96(newFee))
         .to.emit(liquidityPool, "MintFeeChange").withArgs(newFee);
-      expect(await liquidityPool.getMintFeeQ128()).to.equal(newFee);
+      expect(await liquidityPool.getMintFeeQ96()).to.equal(newFee);
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.02);
-      await expect(liquidityPool.connect(unpriviledged).setMintFeeQ128(newFee))
+      await expect(liquidityPool.connect(unpriviledged).setMintFeeQ96(newFee))
         .to.be.revertedWith("only_admin");
     });
   });
 
-  describe("setBurnFeeQ128", function() {
+  describe("setBurnFeeQ96", function() {
     it("sets new burn fee and emits event when called by admin", async function() {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.03);
-      await expect(liquidityPool.connect(admin).setBurnFeeQ128(newFee))
+      await expect(liquidityPool.connect(admin).setBurnFeeQ96(newFee))
         .to.emit(liquidityPool, "BurnFeeChange").withArgs(newFee);
-      expect(await liquidityPool.getBurnFeeQ128()).to.equal(newFee);
+      expect(await liquidityPool.getBurnFeeQ96()).to.equal(newFee);
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.03);
-      await expect(liquidityPool.connect(unpriviledged).setBurnFeeQ128(newFee))
+      await expect(liquidityPool.connect(unpriviledged).setBurnFeeQ96(newFee))
         .to.be.revertedWith("only_admin");
     });
   });
@@ -67,18 +67,18 @@ describe("LiquidityPool - Admin Functions", function() {
     });
   });
 
-  describe("setMaxReservesIncreaseRateQ128", function() {
+  describe("setMaxReservesIncreaseRateQ96", function() {
     it("sets new rate and emits event when called by admin", async function() {
       const { liquidityPool, admin } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
-      await expect(liquidityPool.connect(admin).setMaxReservesIncreaseRateQ128(newRate))
+      await expect(liquidityPool.connect(admin).setMaxReservesIncreaseRateQ96(newRate))
         .to.emit(liquidityPool, "MaxReservesIncreaseRateChange").withArgs(newRate);
-      expect(await liquidityPool.getMaxReservesIncreaseRateQ128()).to.equal(newRate);
+      expect(await liquidityPool.getMaxReservesIncreaseRateQ96()).to.equal(newRate);
     });
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
-      await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseRateQ128(newRate))
+      await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseRateQ96(newRate))
         .to.be.revertedWith("only_admin");
     });
   });

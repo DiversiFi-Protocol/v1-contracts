@@ -13,8 +13,8 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-      const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ128())
-      const mintAmountPlusFee = mintAmount + ((mintAmount * compoundingFeeRate) >> 128n)
+      const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ96())
+      const mintAmountPlusFee = mintAmount + ((mintAmount * compoundingFeeRate) >> 96n)
       await expect(
         liquidityPool.connect(admin).mint(mintAmount, "0x")
       ).to.emit(liquidityPool, "Mint");
@@ -74,7 +74,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
       await expect(
         liquidityPool.connect(admin).mint(lowLimit - utils.scale10Pow18(1n), "0x")
@@ -87,7 +87,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
       await expect(
         liquidityPool.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), "0x")
@@ -100,7 +100,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // Mint above the limit
@@ -112,7 +112,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       //reload the fixture to its initail state
       const resetVals = await loadFixture(deployAll);
       //set fee to zero so we don't have to do a complex calculation
-      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ128(0n);
+      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
       await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day
@@ -128,7 +128,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const lowLimit = utils.scale10Pow18(1000000n);
       await liquidityPool.connect(admin).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ128(0n);
+      await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // Mint above the limit
@@ -140,7 +140,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       //reload the fixture to its initail state
       const resetVals = await loadFixture(deployAll);
       //set fee to zero so we don't have to do a complex calculation
-      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ128(0n);
+      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
       await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day

@@ -17,10 +17,10 @@ import "./DataStructs.sol";
 /// Anyone wishing to understand them will have to interpret the code.
 interface ILiquidityPoolAdmin {
   function setAdmin(address admin) external;
-  function setMintFeeQ128(uint256 mintFeeQ128) external;
-  function setBurnFeeQ128(uint256 burnFeeQ128) external;
+  function setMintFeeQ96(uint256 mintFeeQ96) external;
+  function setBurnFeeQ96(uint256 burnFeeQ96) external;
   function setMaxReserves(uint256 maxReserves) external;
-  function setMaxReservesIncreaseRateQ128(uint256 maxReservesIncreaseRateQ128) external;
+  function setMaxReservesIncreaseRateQ96(uint256 maxReservesIncreaseRateQ96) external;
   function setMaxReservesIncreaseCooldown(uint256 maxReservesIncreaseCooldown) external;
   function setTargetAssetParams(AssetParams[] calldata params) external;
   function withdrawFees(address recipient) external;

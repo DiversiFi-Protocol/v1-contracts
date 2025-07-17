@@ -111,18 +111,18 @@ contract IndexToken is ERC20Permit {
     _migrationSlot0.lastBalanceMultiplierQ96 = uint96((totalReservesScaled << FIXED_BITS) / _baseTotalSupply);
   }
 
-  function mint(address recipient, uint256 amount) external onlyLiquidityPool migrationCheck(false) {
+  function mint(address recipient, uint256 amount) external {
+    if (isMigrating()) {
+      require(msg.sender == _migrationSlot0.nextLiquidityPool, "only next liquidity pool can mint during migration");
+    } else {
+      require(msg.sender == _liquidityPool, "only liquidity pool can mint");
+    }
     _mint(recipient, amount);
   }
 
   function burnFrom(address burnAddress, uint256 amount) external onlyLiquidityPool {
     _burn(burnAddress, amount);
   }
-
-  /***********************************************************************************
-  *-----------------------------Overriden Functionality-------------------------------
-  ***********************************************************************************/
-
 
   function balanceMultiplierQ96() public view returns (uint256) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
@@ -141,6 +141,13 @@ contract IndexToken is ERC20Permit {
     }
   }
 
+  /***********************************************************************************
+  *-----------------------------Overriden Functionality-------------------------------
+  ***********************************************************************************/
+
+
+
+
   function powQ96(uint256 base, uint256 exp) internal pure returns (uint256 result) {
     result = 1 << FIXED_BITS;
     while (exp > 0) {
@@ -152,11 +159,11 @@ contract IndexToken is ERC20Permit {
     }
   }
 
-  function scaleFromBase(uint256 baseAmount) private view returns (uint256 tokenAmount) {
+  function scaleFromBase(uint256 baseAmount) internal view returns (uint256 tokenAmount) {
     return (baseAmount * balanceMultiplierQ96()) >> FIXED_BITS;
   }
 
-  function scaleToBase(uint256 tokenAmount) private view returns (uint256 baseAmount) {
+  function scaleToBase(uint256 tokenAmount) internal view returns (uint256 baseAmount) {
     return (tokenAmount << FIXED_BITS) / balanceMultiplierQ96();
   }
 
