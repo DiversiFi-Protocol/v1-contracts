@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.27;
 
-import "./LiquidityPool.sol";
+import "../LiquidityPool.sol";
 
 //returns the code required to deploy a specific contract (LiquidityPool)
 contract CodeProviderV1 {

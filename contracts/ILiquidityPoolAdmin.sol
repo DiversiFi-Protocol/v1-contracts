@@ -26,7 +26,6 @@ interface ILiquidityPoolAdmin {
   function withdrawFees(address recipient) external;
   function setIsMintEnabled(bool isMintEnabled) external;
   function setEqualizationBounty(uint256 equalizationBounty) external;
-  function setNextLiquidityPoolCodeProvider(address nextLiquidityPoolCodeProvider) external;
   function startMigration(
     address nextLiquidityPool,
     address migrationCreditToken,

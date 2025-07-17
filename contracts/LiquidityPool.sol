@@ -18,14 +18,13 @@ import "./ILiquidityPoolGetters.sol";
 import "./ILiquidityPoolWrite.sol";
 import "./ILiquidityPoolEvents.sol";
 import "./ILiquidityPoolCallback.sol";
-import "./ILiquidityPoolMigration.sol";
 import "./IIndexToken.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
 contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
-ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
+  ILiquidityPoolWrite, ILiquidityPoolEvents {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -34,8 +33,12 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   uint256 private feesCollected_ = 0;
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
-  uint256 migrationStartTimestamp_;
-  uint256 migrationStartBalanceMultiplierQ96_;
+  struct MigrationSlot {
+    uint64 migrationStartTimestamp;
+    uint96 migrationStartBalanceMultiplierQ96;
+    bool isMigrating;
+  }
+  MigrationSlot private migrationSlot_;
 
   //related contracts
   IIndexToken private indexToken_;
@@ -75,11 +78,10 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
     ) {
     indexToken_ = IIndexToken(_indexToken);
     admin_ = _admin;
-    DECIMAL_SCALE = IIndexToken(_indexToken).decimals();
-    uint256 migrationStartBalanceMultiplier_ = _indexToken.getLastBalanceMultiplierQ96();
+    DECIMAL_SCALE = indexToken_.decimals();
+    migrationSlot_.migrationStartBalanceMultiplierQ96 = indexToken_.getLastBalanceMultiplierQ96();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
-    feesCollected_ = 0;
   }
   
   /*
@@ -465,14 +467,14 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
 
   /// @inheritdoc ILiquidityPoolGetters
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
-    if (isMigrating()) { return PoolMath.toFixed(1) }
-    uint256 currentBalanceMultiplierQ96 = uint256(indexToken_.balanceMultiplierQ96);
-    return (migrationStartBalanceMultiplierQ96_ << 96) / currentBalanceMultiplierQ96;
+    if (isMigrating()) { return PoolMath.toFixed(1); }
+    uint256 currentBalanceMultiplierQ96 = uint256(indexToken_.balanceMultiplierQ96());
+    return (migrationSlot_.migrationStartBalanceMultiplierQ96 << 96) / currentBalanceMultiplierQ96;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
   function isMigrating() public view returns (bool) {
-    return consumingMigrationCredit_ != address(0);
+    return migrationSlot_.isMigrating;
   }
 
   /*
