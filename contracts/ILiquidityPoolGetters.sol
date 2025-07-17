@@ -98,4 +98,14 @@ interface ILiquidityPoolGetters {
   /// strictly, it is the sum of the absolute values of the elements of the equalization vector.
   /// @return totalReservesDiscrepencyScaled The total scaled discrepancy of all reserve assets between their current and target reserves.
   function getTotalReservesDiscrepencyScaled() external view returns (uint256);
+
+  /// @dev conversion rate is stored as a fixed point number with 128 fractional bits, multiplying this number
+  /// by the amount of tokens being burned during a migration gives the amount of reserves that would be received.
+  /// if there is no migration, this number is always 1.
+  /// @return conversionRateQ128 the migration conversion rate of index tokens to totalReserves
+  function getMigrationBurnConversionRateQ128() external view returns (uint256);
+
+  /// @dev migrating in this context refers to a soft migration where reserves are moving to a new pool
+  /// @return isMigrating true if the pool is migrating, false if not
+  function isMigrating() external view returns (bool);
 }

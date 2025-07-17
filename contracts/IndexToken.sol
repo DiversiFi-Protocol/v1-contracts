@@ -13,7 +13,6 @@ pragma solidity ^0.8.27;
 
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-address constant zeroAddress = 0x0000000000000000000000000000000000000000;
 uint256 constant FIXED_BITS = 96; //fixed point numbers have 96 fractional bits
 
 contract IndexToken is ERC20Permit {
@@ -69,7 +68,7 @@ contract IndexToken is ERC20Permit {
   }
 
   function isMigrating() public view returns (bool) {
-    return _migrationSlot0.nextLiquidityPool != zeroAddress;
+    return _migrationSlot0.nextLiquidityPool != address(0);
   }
 
   function getNextLiquidityPool() view external returns (address) {
@@ -107,7 +106,7 @@ contract IndexToken is ERC20Permit {
 
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     _liquidityPool = _migrationSlot0.nextLiquidityPool;
-    _migrationSlot0.nextLiquidityPool = zeroAddress;
+    _migrationSlot0.nextLiquidityPool = address(0);
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
     _migrationSlot0.lastBalanceMultiplierQ96 = uint96((totalReservesScaled << FIXED_BITS) / _baseTotalSupply);
   }
@@ -127,7 +126,7 @@ contract IndexToken is ERC20Permit {
 
   function balanceMultiplierQ96() public view returns (uint256) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
-    if (migrationSlot0.nextLiquidityPool == zeroAddress) {
+    if (migrationSlot0.nextLiquidityPool == address(0)) {
       return migrationSlot0.lastBalanceMultiplierQ96;
     } else { //we are migrating - the balance multiplier is changing
       MigrationSlot1 memory migrationSlot1 = _migrationSlot1;

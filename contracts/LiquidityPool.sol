@@ -11,7 +11,6 @@
 
 pragma solidity ^0.8.27;
 
-import "./IndexToken.sol";
 import "./PoolMath.sol";
 import "./DataStructs.sol";
 import "./ILiquidityPoolAdmin.sol";
@@ -19,11 +18,15 @@ import "./ILiquidityPoolGetters.sol";
 import "./ILiquidityPoolWrite.sol";
 import "./ILiquidityPoolEvents.sol";
 import "./ILiquidityPoolCallback.sol";
+import "./ILiquidityPoolMigration.sol";
+import "./IIndexToken.sol";
+import "./IERC20MintAndBurn.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 
-contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, ILiquidityPoolWrite, ILiquidityPoolEvents {
+contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
+ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -32,10 +35,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private feesCollected_ = 0;
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
+  uint256 migrationStartTimestamp_;
+  uint256 migrationStartBalanceMultiplier_;
 
   //related contracts
-  IndexToken private indexToken_;
-  IERC20
+  IIndexToken private indexToken_;
+  IERC20MintAndBurn private consumingMigrationCredit_;
+  IERC20MintAndBurn private producingMigrationCredit_;
 
   //configuration
   address private admin_;
@@ -57,13 +63,23 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
+  modifier migrationCheck(bool checkTrue) {
+    if (checkTrue) {
+      require(isMigrating(), "liquidityPool not migrating");
+    } else {
+      require(!isMigrating(), "liquidityPool is migrating");
+    }
+    _;
+  }
+
   constructor(
     address _admin,
     address _indexToken
     ) {
-    indexToken_ = IndexToken(_indexToken);
+    indexToken_ = IIndexToken(_indexToken);
     admin_ = _admin;
-    DECIMAL_SCALE = IndexToken(_indexToken).decimals();
+    DECIMAL_SCALE = IIndexToken(_indexToken).decimals();
+    uint256 migrationStartBalanceMultiplier_ = _indexToken.getLastBalanceMultiplierQ96();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
     feesCollected_ = 0;
@@ -74,7 +90,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant migrationCheck(false) returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
       msg.sender,
@@ -124,6 +140,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
     uint256 trueBurnAmount = _burnAmount - fee;
+    //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
+    //in this case, we must scale up the "true" burn amount proportionally.
+    if (isMigrating()) { 
+      trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ128()) >> 96;
+    }
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
     outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
@@ -445,6 +466,18 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     return totalReservesDiscrepencyScaled;
   }
 
+  /// @inheritdoc ILiquidityPoolGetters
+  function getMigrationBurnConversionRateQ128() public view returns (uint256) {
+    if (isMigrating()) { return PoolMath.toFixed(1) }
+    uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplierQ96);
+    return (migrationStartBalanceMultiplier_ << 96) / currentBalanceMultiplier;
+  }
+
+  /// @inheritdoc ILiquidityPoolGetters
+  function isMigrating() public view returns (bool) {
+    return consumingMigrationCredit_ != address(0);
+  }
+
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Admin Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
@@ -559,7 +592,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     address _migrationCreditToken,
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96
-  ) external {
+  ) external onlyAdmin {
 
   }
 
