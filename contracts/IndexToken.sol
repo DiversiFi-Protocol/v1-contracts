@@ -124,7 +124,7 @@ contract IndexToken is ERC20Permit {
     _burn(burnAddress, amount);
   }
 
-  function balanceMultiplierQ96() public view returns (uint256) {
+  function balanceMultiplierQ96() public view returns (uint96) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
     if (migrationSlot0.nextLiquidityPool == address(0)) {
       return migrationSlot0.lastBalanceMultiplierQ96;
@@ -137,7 +137,9 @@ contract IndexToken is ERC20Permit {
         timeDiff -= migrationSlot1.balanceMultiplierChangeDelay;
       }
       uint256 compoundedChange = powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
-      return (migrationSlot0.lastBalanceMultiplierQ96 * compoundedChange) >> FIXED_BITS;
+      return uint96(
+        (migrationSlot0.lastBalanceMultiplierQ96 * compoundedChange) >> FIXED_BITS
+      );
     }
   }
 
