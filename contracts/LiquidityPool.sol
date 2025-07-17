@@ -20,7 +20,6 @@ import "./ILiquidityPoolEvents.sol";
 import "./ILiquidityPoolCallback.sol";
 import "./ILiquidityPoolMigration.sol";
 import "./IIndexToken.sol";
-import "./IERC20MintAndBurn.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
@@ -36,22 +35,20 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
   uint256 migrationStartTimestamp_;
-  uint256 migrationStartBalanceMultiplier_;
+  uint256 migrationStartBalanceMultiplierQ96_;
 
   //related contracts
   IIndexToken private indexToken_;
-  IERC20MintAndBurn private consumingMigrationCredit_;
-  IERC20MintAndBurn private producingMigrationCredit_;
 
   //configuration
   address private admin_;
   AssetParams[] private targetAssetParamsList_;//the asset params of all underlying assets that have nonzero target allocations
   AssetParams[] private currentAssetParamsList_;//the asset params of all underlying assets that have nonzero current allocations
   mapping(address => AssetParams) private assetParams_;
-  uint256 private mintFeeQ128_ = 0;
-  uint256 private burnFeeQ128_ = 0;
+  uint256 private mintFeeQ96_ = 0;
+  uint256 private burnFeeQ96_ = 0;
   uint256 private equalizationBounty_ = 0;//a bounty paid to callers of swapTowardsTarget or EqualizeToTarget in the form of a discount applied to the swap
-  uint256 private maxReservesIncreaseRateQ128_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
+  uint256 private maxReservesIncreaseRateQ96_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
 
   /*~~~~~~~~~~~~~~~~~~~~~loss prevention measures~~~~~~~~~~~~~~~~~~~~*/
   //admin switches
@@ -81,7 +78,7 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
     DECIMAL_SCALE = IIndexToken(_indexToken).decimals();
     uint256 migrationStartBalanceMultiplier_ = _indexToken.getLastBalanceMultiplierQ96();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
-    maxReservesIncreaseRateQ128_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
+    maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
     feesCollected_ = 0;
   }
   
@@ -100,7 +97,7 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
     //forward data to callback for a flash mint
     if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashMintCallback(_forwardData); }
 
-    uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ128_));
+    uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ96_));
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
     uint256 totalReservesIncrease = 0;
@@ -138,12 +135,12 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   /// @inheritdoc ILiquidityPoolWrite
   function burn(uint256 _burnAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory outputAmounts) {
     uint256 totalReserveReduction = 0;
-    uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ128_);
+    uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ96_);
     uint256 trueBurnAmount = _burnAmount - fee;
     //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
     //in this case, we must scale up the "true" burn amount proportionally.
     if (isMigrating()) { 
-      trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ128()) >> 96;
+      trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     }
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
     outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
@@ -341,13 +338,13 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   */
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getMintFeeQ128() external view returns (uint256) {
-    return mintFeeQ128_;
+  function getMintFeeQ96() external view returns (uint256) {
+    return mintFeeQ96_;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getBurnFeeQ128() external view returns (uint256) {
-    return burnFeeQ128_;
+  function getBurnFeeQ96() external view returns (uint256) {
+    return burnFeeQ96_;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -416,8 +413,8 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getMaxReservesIncreaseRateQ128() external view returns (uint256) {
-    return maxReservesIncreaseRateQ128_;
+  function getMaxReservesIncreaseRateQ96() external view returns (uint256) {
+    return maxReservesIncreaseRateQ96_;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -467,10 +464,10 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getMigrationBurnConversionRateQ128() public view returns (uint256) {
+  function getMigrationBurnConversionRateQ96() public view returns (uint256) {
     if (isMigrating()) { return PoolMath.toFixed(1) }
-    uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplierQ96);
-    return (migrationStartBalanceMultiplier_ << 96) / currentBalanceMultiplier;
+    uint256 currentBalanceMultiplierQ96 = uint256(indexToken_.balanceMultiplierQ96);
+    return (migrationStartBalanceMultiplierQ96_ << 96) / currentBalanceMultiplierQ96;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -494,15 +491,15 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMintFeeQ128(uint256 _mintFeeQ128) external onlyAdmin {
-    mintFeeQ128_ = _mintFeeQ128;
-    emit MintFeeChange(_mintFeeQ128);
+  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin {
+    mintFeeQ96_ = _mintFeeQ96;
+    emit MintFeeChange(_mintFeeQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setBurnFeeQ128(uint256 _burnFeeQ128) external onlyAdmin {
-    burnFeeQ128_ = _burnFeeQ128;
-    emit BurnFeeChange(_burnFeeQ128);
+  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin {
+    burnFeeQ96_ = _burnFeeQ96;
+    emit BurnFeeChange(_burnFeeQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
@@ -513,9 +510,9 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReservesIncreaseRateQ128(uint256 _maxReservesIncreaseRateQ128) external onlyAdmin {
-    maxReservesIncreaseRateQ128_ = _maxReservesIncreaseRateQ128;
-    emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ128);
+  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyAdmin {
+    maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
+    emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
@@ -610,7 +607,7 @@ ILiquidityPoolWrite, ILiquidityPoolEvents, ILiquidityPoolMigration {
       require(lastMaxReservesChangeTimestamp_ + maxReservesIncreaseCooldown_ <= block.timestamp, "max reserves limit");
       //update the max reserves if it isn't on cooldown
       lastMaxReservesChangeTimestamp_ = block.timestamp;
-      maxReserves_ += PoolMath.fromFixed(maxReserves_ * maxReservesIncreaseRateQ128_);
+      maxReserves_ += PoolMath.fromFixed(maxReserves_ * maxReservesIncreaseRateQ96_);
       require(maxReserves_ >= totalReservesScaled_, "max reserves limit");
       emit MaxReservesChange(
         maxReserves_,

@@ -14,13 +14,13 @@ pragma solidity ^0.8.27;
 import "./DataStructs.sol";
 
 interface ILiquidityPoolGetters {
-  /// @dev The returned value is a 128.128 fixed point number
-  /// @return mintFeeQ128 The mint fee rate
-  function getMintFeeQ128() external view returns (uint256);
+  /// @dev The returned value is a 96.96 fixed point number
+  /// @return mintFeeQ96 The mint fee rate
+  function getMintFeeQ96() external view returns (uint256);
   
-  /// @dev The returned value is a 128.128 fixed point number
-  /// @return burnFeeQ128 The burn fee rate
-  function getBurnFeeQ128() external view returns (uint256);
+  /// @dev The returned value is a 96.96 fixed point number
+  /// @return burnFeeQ96 The burn fee rate
+  function getBurnFeeQ96() external view returns (uint256);
 
   /// @return isMintEnabled True if minting is enabled, false if minting is disabled
   function getIsMintEnabled() external view returns (bool);
@@ -67,10 +67,10 @@ interface ILiquidityPoolGetters {
   /// @return maxReserves The current limit on the max value of totalReservesScaled
   function getMaxReserves() external view returns (uint256);
 
-  /// @dev Increase rate is a 128.128 fixed point number that is multiplied by maxReserves
-  /// to get the next value of maxReserves. i.e. maxReserves += maxReserves * maxReservesIncreaseRateQ128
-  /// @return maxReservesIncreaseRateQ128 The amount maxReserves can be increased in one cooldown cycle. Relative to maxReserves
-  function getMaxReservesIncreaseRateQ128() external view returns (uint256);
+  /// @dev Increase rate is a 96.96 fixed point number that is multiplied by maxReserves
+  /// to get the next value of maxReserves. i.e. maxReserves += maxReserves * maxReservesIncreaseRateQ96
+  /// @return maxReservesIncreaseRateQ96 The amount maxReserves can be increased in one cooldown cycle. Relative to maxReserves
+  function getMaxReservesIncreaseRateQ96() external view returns (uint256);
 
   /// @dev IncreaseCooldown is denominated in seconds. If this amount of seconds have not passed since the last
   /// time maxReserves were increased, maxReserves will not be able to increase
@@ -99,11 +99,11 @@ interface ILiquidityPoolGetters {
   /// @return totalReservesDiscrepencyScaled The total scaled discrepancy of all reserve assets between their current and target reserves.
   function getTotalReservesDiscrepencyScaled() external view returns (uint256);
 
-  /// @dev conversion rate is stored as a fixed point number with 128 fractional bits, multiplying this number
+  /// @dev conversion rate is stored as a fixed point number with 96 fractional bits, multiplying this number
   /// by the amount of tokens being burned during a migration gives the amount of reserves that would be received.
   /// if there is no migration, this number is always 1.
-  /// @return conversionRateQ128 the migration conversion rate of index tokens to totalReserves
-  function getMigrationBurnConversionRateQ128() external view returns (uint256);
+  /// @return conversionRateQ96 the migration conversion rate of index tokens to totalReserves
+  function getMigrationBurnConversionRateQ96() external view returns (uint256);
 
   /// @dev migrating in this context refers to a soft migration where reserves are moving to a new pool
   /// @return isMigrating true if the pool is migrating, false if not

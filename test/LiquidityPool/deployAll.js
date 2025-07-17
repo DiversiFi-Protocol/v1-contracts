@@ -82,13 +82,13 @@ module.exports = async function deployAll() {
       assetParams2,
     ]);
     const maxReserves = utils.MAX_UINT_256 / 2n
-    const maxReservesIncreaseRateQ128 = utils.decimalToFixed(0.1);
+    const maxReservesIncreaseRateQ96 = utils.decimalToFixed(0.1);
     await liquidityPool.setMaxReserves(maxReserves);
     const setMaxReservesBlock = await hre.ethers.provider.getBlock('latest');
     const setMaxReservesTimestamp = setMaxReservesBlock.timestamp;
-    await liquidityPool.setMaxReservesIncreaseRateQ128(maxReservesIncreaseRateQ128);
-    await liquidityPool.setMintFeeQ128(utils.decimalToFixed(0.01)); // 1% mint fee
-    await liquidityPool.setBurnFeeQ128(utils.decimalToFixed(0.02)); // 2% burn fee
+    await liquidityPool.setMaxReservesIncreaseRateQ96(maxReservesIncreaseRateQ96);
+    await liquidityPool.setMintFeeQ96(utils.decimalToFixed(0.01)); // 1% mint fee
+    await liquidityPool.setBurnFeeQ96(utils.decimalToFixed(0.02)); // 2% burn fee
     const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
 
@@ -133,7 +133,7 @@ module.exports = async function deployAll() {
       mintable1,
       mintable2,
       maxReserves,
-      maxReservesIncreaseRateQ128,
+      maxReservesIncreaseRateQ96,
       assetParams0,
       assetParams1,
       assetParams2,
