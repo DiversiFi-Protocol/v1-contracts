@@ -42,6 +42,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   //related contracts
   IIndexToken private indexToken_;
+  address nextLiquidityPool_;
 
   //configuration
   address private admin_;
@@ -588,11 +589,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolAdmin
   function startMigration(
     address _nextLiquidityPool,
-    address _migrationCreditToken,
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96
   ) external onlyAdmin {
-
+    nextLiquidityPool_ = _nextLiquidityPool;
+    indexToken_.migrate(_nextLiquidityPool, balanceMultiplierChangeDelay, balanceMultiplierChangePerSecondQ96);
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
