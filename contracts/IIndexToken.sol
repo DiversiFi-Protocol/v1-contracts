@@ -19,5 +19,5 @@ interface IIndexToken is IERC20MintAndBurn {
   function finishMigration(uint256 totalReservesScaled) external;
   function mint(address recipient, uint256 amount) external;
   function burnFrom(address burnAddress, uint256 amount) external;
-  function balanceMultiplierQ96() external view returns (uint256);
+  function balanceMultiplierQ96() external view returns (uint96);
 }
