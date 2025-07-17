@@ -28,7 +28,6 @@ interface ILiquidityPoolAdmin {
   function setEqualizationBounty(uint256 equalizationBounty) external;
   function startMigration(
     address nextLiquidityPool,
-    address migrationCreditToken,
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96
   ) external;
