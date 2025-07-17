@@ -21,8 +21,8 @@ contract PoolMathWrapper {
     return PoolMath.fromFixed(_num);
   }
 
-  function calcCompoundingFeeRate(uint256 _feeRateQ128) public pure returns (uint256) {
-    return PoolMath.calcCompoundingFeeRate(_feeRateQ128);
+  function calcCompoundingFeeRate(uint256 _feeRateQ96) public pure returns (uint256) {
+    return PoolMath.calcCompoundingFeeRate(_feeRateQ96);
   }
 
   //scale a token with specified decimals to be the same scale as _targetDecimals

@@ -1,6 +1,6 @@
-const SHIFT = 128n; //shift a normal integer to get 128.128 fixed point
+const SHIFT = 96n; //shift a normal integer to get 96.96 fixed point
 
-const ALLOCATION_SHIFT = SHIFT - 88n; //shift 0.88 fixed point to get 128.128 fixed point
+const ALLOCATION_SHIFT = SHIFT - 88n; //shift 0.88 fixed point to get 96.96 fixed point
 const SCALE = 2n ** SHIFT; //1 shifted by shift
 const MAX_UINT_256 = (2n ** 256n) - 1n;
 
