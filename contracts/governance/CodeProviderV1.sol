@@ -6,23 +6,24 @@ import "../LiquidityPool.sol";
 
 //returns the code required to deploy a specific contract (LiquidityPool)
 contract CodeProviderV1 {
-  address public arg0;
-  address public arg1;
+  address public constructorArg0;
+  address public constructorArg1;
 
-  constructor(address _arg0, address _arg1) {
-    arg0 = _arg0;
-    arg1 = _arg1;
+  constructor(address _constructorArg0, address _constructorArg1) {
+    constructorArg0 = _constructorArg0;
+    constructorArg1 = _constructorArg1;
   }
 
-  function getCreationBytecode() external pure returns (bytes memory) {
+  function getCreationBytecode() public view returns (bytes memory) {
     return abi.encodePacked(
       type(LiquidityPool).creationCode,
-      abi.encode(arg0, arg1)
+      abi.encode(constructorArg0, constructorArg1)
     );
   }
 
   function deploy() external returns (address) {
-    bytes memory bytecode = getBytecode();
+    bytes memory bytecode = getCreationBytecode();
+    address deployed;
 
     assembly {
       deployed := create(0, add(bytecode, 0x20), mload(bytecode))
