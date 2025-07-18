@@ -37,6 +37,24 @@ async function main() {
   );
   await token2.waitForDeployment();
   console.log(`Token2 deployed to: ${await token2.getAddress()}`);
+
+  const token3Decimals = 18n  
+  const token3 = await MintableStableCoin.deploy(
+    "Token3",
+    "TK3",
+    token3Decimals
+  );
+  await token3.waitForDeployment();
+  console.log(`Token3 deployed to: ${await token3.getAddress()}`);
+
+  const token4Decimals = 18n  
+  const token4 = await MintableStableCoin.deploy(
+    "Token4",
+    "TK4",
+    token4Decimals
+  );
+  await token4.waitForDeployment();
+  console.log(`Token4 deployed to: ${await token4.getAddress()}`);
   console.log("\n----------------------------------\n");
   await sleep(10000)//sleep long time to make sure the next nonce is correct
   let nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
