@@ -1,4 +1,4 @@
-const utils = require("../test/testModules/utils")
+const utils = require("../../test/testModules/utils")
 
 const token0Address = "0xa814D1722125151c1BcD363E79a60d59BFb8F53e"
 const token0Decimals = 18n

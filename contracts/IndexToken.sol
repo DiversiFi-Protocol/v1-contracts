@@ -147,9 +147,6 @@ contract IndexToken is ERC20Permit {
   *-----------------------------Overriden Functionality-------------------------------
   ***********************************************************************************/
 
-
-
-
   function powQ96(uint256 base, uint256 exp) internal pure returns (uint256 result) {
     result = 1 << FIXED_BITS;
     while (exp > 0) {
