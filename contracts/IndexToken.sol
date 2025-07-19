@@ -34,7 +34,7 @@ contract IndexToken is ERC20Permit {
   MigrationSlot1 private _migrationSlot1;
 
   mapping(address => uint256) private _baseBalances;
-  mapping(address => mapping(address => uint256)) private _baseAllowances;
+  // mapping(address => mapping(address => uint256)) private _baseAllowances;
   uint256 private _baseTotalSupply;
 
   /***********************************************************************************
@@ -97,7 +97,8 @@ contract IndexToken is ERC20Permit {
     uint96 balanceMultiplierChangePerSecondQ96
   ) external onlyLiquidityPool migrationCheck(false) {
     require(balanceMultiplierChangeDelay > _minBalanceMultiplierChangeDelay, "balance multiplier change delay too short");
-    require(balanceMultiplierChangePerSecondQ96 < _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
+    require(balanceMultiplierChangePerSecondQ96 < 1 << FIXED_BITS, "balance multiplier change rate must less than 1");
+    require(balanceMultiplierChangePerSecondQ96 > _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
     _migrationSlot0.nextLiquidityPool = nextLiquidityPool;
     _migrationSlot1.migrationStartTimestamp = uint64(block.timestamp);
     _migrationSlot1.balanceMultiplierChangeDelay = balanceMultiplierChangeDelay;
@@ -159,11 +160,11 @@ contract IndexToken is ERC20Permit {
   }
 
   function scaleFromBase(uint256 baseAmount) internal view returns (uint256 tokenAmount) {
-    return (baseAmount * balanceMultiplierQ96()) >> FIXED_BITS;
+    return baseAmount / balanceMultiplierQ96();
   }
 
   function scaleToBase(uint256 tokenAmount) internal view returns (uint256 baseAmount) {
-    return (tokenAmount << FIXED_BITS) / balanceMultiplierQ96();
+    return tokenAmount * balanceMultiplierQ96();
   }
 
   //interface starts here
@@ -175,13 +176,9 @@ contract IndexToken is ERC20Permit {
     return scaleFromBase(_baseBalances[account]);
   }
 
-  function allowance(address owner, address spender) public view override returns (uint256) {
-    return scaleFromBase(_baseAllowances[owner][spender]);
-  }
-
   function _transfer(
-    address from, 
-    address to, 
+    address from,
+    address to,
     uint256 amount
   ) internal override {
     uint256 baseAmount = scaleToBase(amount);
@@ -192,32 +189,6 @@ contract IndexToken is ERC20Permit {
     _baseBalances[to] += baseAmount;
 
     emit Transfer(from, to, amount);
-  }
-
-  function _approve(
-    address owner,
-    address spender,
-    uint256 amount
-  ) internal override {
-    uint256 baseAmount = scaleToBase(amount);
-    _baseAllowances[owner][spender] = baseAmount;
-    emit Approval(owner, spender, amount);
-  }
-
-  function _spendAllowance(
-    address owner,
-    address spender,
-    uint256 amount
-  ) internal override {
-    uint256 baseAmount = scaleToBase(amount);
-    uint256 baseAllowance = _baseAllowances[owner][spender];
-    if (baseAllowance != type(uint256).max) {
-      require(baseAllowance >= baseAmount, "ERC20: insufficient allowance");
-      unchecked { 
-        _baseAllowances[owner][spender] = baseAllowance - baseAmount; 
-      }
-      emit Approval(owner, spender, scaleFromBase(baseAllowance - baseAmount));
-    }
   }
 
   function _mint(

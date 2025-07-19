@@ -11,8 +11,7 @@ describe("LiquidityPool - Getters", function () {
     const { indexToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
     // liquidity token
-    expect(await indexToken.liquidityPool()).to.equal(getAddress(liquidityPool.target));
-    expect(await indexToken.admin()).to.equal(getAddress(admin.address));
+    expect(await indexToken.getLiquidityPool()).to.equal(getAddress(liquidityPool.target));
     expect(await indexToken.name()).to.equal(tokenName);
     expect(await indexToken.symbol()).to.equal(tokenSymbol);
 

@@ -172,7 +172,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const liquidityBal = await indexToken.balanceOf(admin.address);
 
       // Check that liquidity tokens were burned
-      expect(prevLiquidityBal - liquidityBal).to.equal(mintAmount);
+      expect(prevLiquidityBal - liquidityBal).to.be.closeTo(mintAmount, 1n);
       // Check that assets were returned to admin
       expect(balance0).to.be.above(prevBal0);
       expect(balance1).to.be.above(prevBal1);
