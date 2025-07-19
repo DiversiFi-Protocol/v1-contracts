@@ -1,13 +1,12 @@
 const utils = require("../../test/testModules/utils")
+const tokens = require("../../test/testModules/tokens")
 
-const token0Address = "0xa814D1722125151c1BcD363E79a60d59BFb8F53e"
-const token0Decimals = 18n
-const token1Address = "0x1537e0CD1eAC6Dc732d0847139d9eACAEc323Db0"
-const token1Decimals = 20n
-const token2Address = "0x8E9c43c72ab3a49Fdd242e5BB44B337e94979dd1"
-const token2Decimals = 6n
-const targetAllocation0 = utils.formatAllocationFromDecimal(0.69);
-const targetAllocation1 = utils.formatAllocationFromDecimal(0.042);
+const ALLOCATION_0 = Number(process.env.ALLOCATION_0)
+const ALLOCATION_1 = Number(process.env.ALLOCATION_1)
+//allocation2 is the remainder
+
+const targetAllocation0 = utils.formatAllocationFromDecimal(ALLOCATION_0);
+const targetAllocation1 = utils.formatAllocationFromDecimal(ALLOCATION_1);
 const targetAllocation2 = utils.allocationRemainder([
   targetAllocation0,
   targetAllocation1,
@@ -21,19 +20,19 @@ async function main() {
   const receipt = await liquidityPool.setTargetAssetParams(
     [
       {
-        assetAddress: token0Address,
+        assetAddress: tokens.token0.address,
         targetAllocation: targetAllocation0,
-        decimals: token0Decimals
+        decimals: tokens.token0.decimals
       },
       {
-        assetAddress: token1Address,
+        assetAddress: tokens.token1.address,
         targetAllocation: targetAllocation1,
-        decimals: token1Decimals
+        decimals: tokens.token1.decimals
       },
       {
-        assetAddress: token2Address,
+        assetAddress: tokens.token2.address,
         targetAllocation: targetAllocation2,
-        decimals: token2Decimals
+        decimals: tokens.token2.decimals
       }
     ]
   );
