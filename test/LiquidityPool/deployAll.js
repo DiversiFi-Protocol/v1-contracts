@@ -17,12 +17,13 @@ module.exports = async function deployAll() {
       from: admin.address,
       nonce: 1n,
     });
-
+    const minBalanceMultiplierChangeDelay = 100n
     const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
       liquidityPoolAddress,
-      admin.address,
+      minBalanceMultiplierChangeDelay,
+      maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(0.999)
     ]);
 
     const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
