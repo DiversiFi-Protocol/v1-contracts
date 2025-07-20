@@ -91,7 +91,7 @@ contract IndexToken is ERC20Permit {
     return _liquidityPool;
   }
 
-  function migrate(
+  function startMigration(
     address nextLiquidityPool, 
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96

@@ -44,7 +44,7 @@ async function main() {
       }
     ]
   );
-  console.log("tx sent, hash:", receipt)
+  console.log("tx sent, hash:", receipt.hash)
   await receipt.wait()
 }
 
