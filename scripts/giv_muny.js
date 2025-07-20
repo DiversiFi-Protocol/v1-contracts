@@ -6,6 +6,7 @@ const utils = require("../test/testModules/utils.js");
 
 async function main() {
 	const [sender] = await ethers.getSigners();
+	console.log("sender address:", sender.address)
 
 	if (typeof process.env.TOKEN_AMOUNT != "undefined") {
 		const MultiMinter = await ethers.getContractFactory("MultiMinter");

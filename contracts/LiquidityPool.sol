@@ -595,7 +595,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     migrationSlot_.migrationStartBalanceMultiplierQ96 = indexToken_.balanceMultiplierQ96();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
 
-    indexToken_.migrate(
+    indexToken_.startMigration(
       _nextLiquidityPool, 
       balanceMultiplierChangeDelay, 
       balanceMultiplierChangePerSecondQ96
