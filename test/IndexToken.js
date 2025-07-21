@@ -260,6 +260,59 @@ describe("IndexToken", function() {
   })
 
   describe("ERC20 Functionality", function() {
+    describe("name", function () {
+      it("should return the name", async function () {
+        const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        expect(await indexToken.name()).to.equal("Diversified USD");
+      });
+    });
+
+    describe("symbol", function () {
+      it("should return the symbol", async function () {
+        const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        expect(await indexToken.symbol()).to.equal("USD1");
+      });
+    });
+
+    describe("increaseAllowance", function () {
+      it("should increase the allowance", async function () {
+        const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        const approveAmount = 100n
+        await indexToken.approve(unprivileged0.address, approveAmount);
+        
+        const increaseAmount = 50n
+        await indexToken.increaseAllowance(unprivileged0, 50n);
+        
+        const allowance = await indexToken.allowance(liquidityPool, unprivileged0);
+        expect(allowance).to.equal(approveAmount + increaseAmount);
+      });
+    });
+
+    describe("decreaseAllowance", function () {
+      it("should decrease the allowance", async function () {
+        const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        const approveAmount = 100n
+        await indexToken.approve(unprivileged0.address, approveAmount);
+        
+        const decreaseAmount = 70n
+        await indexToken.decreaseAllowance(unprivileged0, 70n);
+        
+        const allowance = await indexToken.allowance(liquidityPool, unprivileged0);
+        expect(allowance).to.equal(approveAmount - decreaseAmount);
+      });
+
+      it("should revert if trying to decrease allowance below zero", async function () {
+        const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        const approveAmount = 100n
+        await indexToken.approve(unprivileged0.address, approveAmount);
+        
+        const decreaseAmount = 101n
+        await expect(
+          indexToken.decreaseAllowance(unprivileged0, decreaseAmount)
+        ).to.be.revertedWith("ERC20: decreased allowance below zero")
+      });
+    });
+
     describe("totalSupply", function() {
       it("should return the correct value", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
