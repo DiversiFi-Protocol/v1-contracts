@@ -400,50 +400,118 @@ describe("IndexToken", function() {
     describe("approve", function() {
       it("should set the allowance with the correct values", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        const approveAmount = 1000n
+        await indexToken.approve(unprivileged0, approveAmount)
+        expect(await indexToken.allowance(liquidityPool, unprivileged0)).to.equal(approveAmount)
       })
     })
 
     describe("transferFrom", function() {
       it("should transfer the correct amount", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        const approveAmount = 1000n
+        await indexToken.approve(unprivileged0, approveAmount)
+        await indexToken.startMigration(
+          nextLiquidityPool,
+          minBalanceMultiplierChangeDelay,
+          maxBalanceMultiplierChangePerSecondQ96
+        )
+        await indexToken.finishMigration(startingTotalSupply / 2n)
+        const transferAmount = 420n
+        const senderBalancePreTransfer = await indexToken.balanceOf(liquidityPool)
+        const receiverBalancePreTransfer = await indexToken.balanceOf(unprivileged0)
+        await indexToken.connect(unprivileged0).transferFrom(liquidityPool, unprivileged0, transferAmount)
+        const senderBalancePostTransfer = await indexToken.balanceOf(liquidityPool)
+        const receiverBalancePostTransfer = await indexToken.balanceOf(unprivileged0)
+        expect(senderBalancePostTransfer).to.equal(senderBalancePreTransfer - transferAmount)
+        expect(receiverBalancePostTransfer).to.equal(receiverBalancePreTransfer + transferAmount)
       })
 
       it("should deduct the allowance by the correct amount", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        const approveAmount = 1000n
+        await indexToken.approve(unprivileged0, approveAmount)
+        await indexToken.startMigration(
+          nextLiquidityPool,
+          minBalanceMultiplierChangeDelay,
+          maxBalanceMultiplierChangePerSecondQ96
+        )
+        await indexToken.finishMigration(startingTotalSupply / 2n)
+        const transferAmount = 420n
+        await indexToken.connect(unprivileged0).transferFrom(liquidityPool, unprivileged0, transferAmount)
+        const allowancePostTransfer = await indexToken.allowance(liquidityPool, unprivileged0)
+        expect(allowancePostTransfer).to.equal(approveAmount - transferAmount)
       })
     })
 
     describe("decimals", function() {
       it("should return the correct decimals", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        expect(await indexToken.decimals()).to.equal(18n)
       })
     })
 
     describe("mint", function() {
-      it("should mint the correct amount", async function() {
+      it("should mint the correct amount and adjust total supply appropriately", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        const totalSupplyBefore = await indexToken.totalSupply()
+        const mintAmount = 42069n
+        const receiverBalanceBefore = await indexToken.balanceOf(unprivileged0)
+        await indexToken.mint(unprivileged0, mintAmount)
+        const totalSupplyAfter = await indexToken.totalSupply()
+        const receiverBalanceAfter = await indexToken.balanceOf(unprivileged0)
+        expect(totalSupplyAfter).to.equal(totalSupplyBefore + mintAmount)
+        expect(receiverBalanceAfter).to.equal(receiverBalanceBefore + mintAmount)
       })
 
       it("should still work after a balance multiplier change", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        await indexToken.startMigration(
+          nextLiquidityPool,
+          minBalanceMultiplierChangeDelay,
+          maxBalanceMultiplierChangePerSecondQ96
+        )
+        await indexToken.finishMigration(startingTotalSupply / 2n)
+        const totalSupplyBefore = await indexToken.totalSupply()
+        const mintAmount = 42069n
+        const receiverBalanceBefore = await indexToken.balanceOf(unprivileged0)
+        await indexToken.connect(nextLiquidityPool).mint(unprivileged0, mintAmount)
+        const totalSupplyAfter = await indexToken.totalSupply()
+        const receiverBalanceAfter = await indexToken.balanceOf(unprivileged0)
+        expect(totalSupplyAfter).to.equal(totalSupplyBefore + mintAmount)
+        expect(receiverBalanceAfter).to.equal(receiverBalanceBefore + mintAmount)
       })
     })
 
     describe("burnFrom", function() {
       it("should burn the correct amount", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        const totalSupplyBefore = await indexToken.totalSupply()
+        const burnAmount = 42069n
+        const receiverBalanceBefore = await indexToken.balanceOf(liquidityPool)
+        await indexToken.burnFrom(liquidityPool, burnAmount)
+        const totalSupplyAfter = await indexToken.totalSupply()
+        const receiverBalanceAfter = await indexToken.balanceOf(liquidityPool)
+        expect(totalSupplyAfter).to.equal(totalSupplyBefore - burnAmount)
+        expect(receiverBalanceAfter).to.equal(receiverBalanceBefore - burnAmount)
       })
 
       it("should still work after a balance multiplier change", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-
+        await indexToken.startMigration(
+          nextLiquidityPool,
+          minBalanceMultiplierChangeDelay,
+          maxBalanceMultiplierChangePerSecondQ96
+        )
+        await indexToken.finishMigration(startingTotalSupply / 2n)
+        const totalSupplyBefore = await indexToken.totalSupply()
+        const burnAmount = 42069n
+        const receiverBalanceBefore = await indexToken.balanceOf(liquidityPool)
+        await indexToken.connect(nextLiquidityPool).burnFrom(liquidityPool, burnAmount)
+        const totalSupplyAfter = await indexToken.totalSupply()
+        const receiverBalanceAfter = await indexToken.balanceOf(liquidityPool)
+        expect(totalSupplyAfter).to.equal(totalSupplyBefore - burnAmount)
+        expect(receiverBalanceAfter).to.equal(receiverBalanceBefore - burnAmount)
       })
     })
   })
