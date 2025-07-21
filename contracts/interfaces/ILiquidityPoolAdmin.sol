@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-import "./DataStructs.sol";
+import "../DataStructs.sol";
 
 /// @notice These are administrative functions not for regular users and as such are not documented.
 /// Anyone wishing to understand them will have to interpret the code.

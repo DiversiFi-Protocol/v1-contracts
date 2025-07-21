@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-import "./DataStructs.sol";
+import "../DataStructs.sol";
 
 interface ILiquidityPoolGetters {
   /// @dev The returned value is a 96.96 fixed point number

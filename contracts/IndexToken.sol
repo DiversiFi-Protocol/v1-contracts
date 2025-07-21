@@ -13,7 +13,7 @@ pragma solidity ^0.8.27;
 
 import "hardhat/console.sol";
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "./ILiquidityPoolGetters.sol";
+import "./interfaces/ILiquidityPoolGetters.sol";
 
 contract IndexToken is ERC20Permit {
   uint64 private immutable _minBalanceMultiplierChangeDelay;
