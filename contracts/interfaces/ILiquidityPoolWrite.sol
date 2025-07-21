@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-import "./DataStructs.sol";
+import "../DataStructs.sol";
 
 interface ILiquidityPoolWrite {
     // ~~~~~~~~~~~~~~~~~~~~~ Public Core Functions ~~~~~~~~~~~~~~~~~~~~~
