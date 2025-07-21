@@ -140,7 +140,6 @@ contract IndexToken is ERC20Permit {
 
   function balanceMultiplier() public view returns (uint96) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
-    console.log("blocktime", block.timestamp);
     if (migrationSlot0.nextLiquidityPool == address(0)) {
       return migrationSlot0.lastBalanceMultiplier;
     } else { //we are migrating - the balance multiplier is changing
@@ -152,7 +151,6 @@ contract IndexToken is ERC20Permit {
         timeDiff -= migrationSlot1.balanceMultiplierChangeDelay;
       }
       uint256 compoundedChangeQ96 = powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
-      console.log("timeDiff", timeDiff);
       return uint96(
         (migrationSlot0.lastBalanceMultiplier * compoundedChangeQ96) >> 96
       );
