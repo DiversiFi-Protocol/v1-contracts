@@ -15,7 +15,7 @@ module.exports = async function deployAll() {
     const [admin, unpriviledged] = await hre.ethers.getSigners();
     const liquidityPoolAddress = getCreateAddress({
       from: admin.address,
-      nonce: 1n,
+      nonce: BigInt(await hre.ethers.provider.getTransactionCount(admin.address)) + 1n,
     });
     const minBalanceMultiplierChangeDelay = 100n
     const indexToken = await hre.ethers.deployContract("IndexToken", [
@@ -23,7 +23,7 @@ module.exports = async function deployAll() {
       tokenSymbol,
       liquidityPoolAddress,
       minBalanceMultiplierChangeDelay,
-      maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(0.999)
+      maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(1.001)
     ]);
 
     const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
