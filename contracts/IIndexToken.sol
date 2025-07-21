@@ -9,6 +9,7 @@ interface IIndexToken is IERC20MintAndBurn {
   function getNextLiquidityPool() view external returns (address);
   function getLastBalanceMultiplierQ96() view external returns (uint96);
   function getMigrationStartTimestamp() view external returns (uint64);
+  function getBalanceMultiplierChangeDelay() view external returns (uint64);
   function getBalanceMultiplierChangePerSecondQ96() view external returns (uint96);
   function getLiquidityPool() view external returns (address);
   function startMigration(
