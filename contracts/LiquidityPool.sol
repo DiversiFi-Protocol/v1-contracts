@@ -35,7 +35,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
   struct MigrationSlot {
     uint64 migrationStartTimestamp;
-    uint96 migrationStartBalanceMultiplierQ96;
+    uint96 migrationStartBalanceMultiplier;
     bool isMigrating;
   }
   MigrationSlot private migrationSlot_;
@@ -79,7 +79,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     indexToken_ = IIndexToken(_indexToken);
     admin_ = _admin;
     DECIMAL_SCALE = indexToken_.decimals();
-    migrationSlot_.migrationStartBalanceMultiplierQ96 = indexToken_.getLastBalanceMultiplierQ96();
+    migrationSlot_.migrationStartBalanceMultiplier = indexToken_.getLastBalanceMultiplier();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
   }
@@ -468,8 +468,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolGetters
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
     if (isMigrating()) { return PoolMath.toFixed(1); }
-    uint256 currentBalanceMultiplierQ96 = uint256(indexToken_.balanceMultiplierQ96());
-    return (migrationSlot_.migrationStartBalanceMultiplierQ96 << 96) / currentBalanceMultiplierQ96;
+    uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplier());
+    return (migrationSlot_.migrationStartBalanceMultiplier << 96) / currentBalanceMultiplier;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -592,7 +592,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint96 balanceMultiplierChangePerSecondQ96
   ) external onlyAdmin {
     migrationSlot_.isMigrating = true;
-    migrationSlot_.migrationStartBalanceMultiplierQ96 = indexToken_.balanceMultiplierQ96();
+    migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
 
     indexToken_.startMigration(
