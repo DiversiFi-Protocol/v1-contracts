@@ -13,12 +13,12 @@ pragma solidity ^0.8.27;
 
 import "./PoolMath.sol";
 import "./DataStructs.sol";
-import "./ILiquidityPoolAdmin.sol";
-import "./ILiquidityPoolGetters.sol";
-import "./ILiquidityPoolWrite.sol";
-import "./ILiquidityPoolEvents.sol";
-import "./ILiquidityPoolCallback.sol";
-import "./IIndexToken.sol";
+import "./interfaces/ILiquidityPoolAdmin.sol";
+import "./interfaces/ILiquidityPoolGetters.sol";
+import "./interfaces/ILiquidityPoolWrite.sol";
+import "./interfaces/ILiquidityPoolEvents.sol";
+import "./interfaces/ILiquidityPoolCallback.sol";
+import "./interfaces/IIndexToken.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
