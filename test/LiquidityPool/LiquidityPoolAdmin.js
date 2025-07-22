@@ -1,7 +1,7 @@
 const { loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const hre = require("hardhat");
 const utils = require("../testModules/utils.js")
-const deployAll = require("./deployAll.js");
+const deployAll = require("../deployAll.js");
 const expect = require("chai").expect;
 
 describe("LiquidityPool - Admin Functions", function() {
@@ -211,7 +211,7 @@ describe("LiquidityPool - Admin Functions", function() {
         .to.emit(liquidityPool, "IsMintEnabledChange").withArgs(false);
       expect(await liquidityPool.getIsMintEnabled()).to.equal(false);
     });
-    
+
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       await expect(liquidityPool.connect(unpriviledged).setIsMintEnabled(true))
@@ -219,7 +219,11 @@ describe("LiquidityPool - Admin Functions", function() {
     });
   });
 
-  describe("setEqualizationBounty", function() {
-    
+  describe("increaseEqualizationBounty", function() {
+    it("should fail if the pool doesn't have enough fees collected", async function() {
+
+    })
+
+    it("")
   })
 });
