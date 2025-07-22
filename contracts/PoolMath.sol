@@ -51,14 +51,6 @@ library PoolMath {
     return _num >> SHIFT;
   }
 
-  /*
-    NOTES: slight rounding errors are present in this function, it should
-    not be expected to return the delta required to move an allocation firmly into
-    the next tick, although we are effectively only off by at most 2e^-18.
-    We should simply behave as if we are in the next tick after depositing this amount.
-    Because these amounts are so small it has been determined that correcting them would
-    be a waste of gas.
-  */
   function calcMaxIndividualDelta(
     uint88 _targetAllocation,
     uint256 _specificReserves,
