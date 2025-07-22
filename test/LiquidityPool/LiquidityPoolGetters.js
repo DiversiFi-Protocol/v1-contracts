@@ -3,7 +3,7 @@ const {
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { getAddress } = require("ethers");
 const utils = require("../testModules/utils.js");
-const deployAll = require("./deployAll.js");
+const deployAll = require("../deployAll.js");
 const { expect } = require("chai")
 
 describe("LiquidityPool - Getters", function () {

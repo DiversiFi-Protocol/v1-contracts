@@ -1,4 +1,4 @@
-const utils = require("../testModules/utils");
+const utils = require("./testModules/utils");
 const { getAddress, getCreateAddress } = require("ethers");
 
 const MAX_ALLOCATION = 2n ** 88n - 1n

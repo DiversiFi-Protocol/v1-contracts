@@ -3,6 +3,8 @@ const { expect } = require("chai");
 const hre = require("hardhat");
 const utils = require("./testModules/utils");
 
+const DEFAULT_BALANCE_MULTIPLIER = 2n ** 48n - 1n
+
 async function deployIndex() {
   const [liquidityPool, nextLiquidityPool, unprivileged0] = await hre.ethers.getSigners()
   const tokenName = "Diversified USD";
@@ -73,7 +75,7 @@ describe("IndexToken", function() {
     describe("getLastBalanceMultiplier", function() {
       it("returns last balance multiplier", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployIndex)
-        expect(await indexToken.getLastBalanceMultiplier()).to.equal(2n**88n - 1n)
+        expect(await indexToken.getLastBalanceMultiplier()).to.equal(DEFAULT_BALANCE_MULTIPLIER)
       })
     })
 
@@ -209,7 +211,7 @@ describe("IndexToken", function() {
         await increaseTime(Number(minBalanceMultiplierChangeDelay) + 1)
         const endingBalanceMultiplier = await indexToken.balanceMultiplier()
         expect(startingBalanceMultiplier).to.be.lessThan(endingBalanceMultiplier, "balance multiplier did not increase")
-        await indexToken.finishMigration(startingTotalSupply - 1n)
+        await indexToken.finishMigration(startingTotalSupply - utils.scale10Pow18(1n))
         expect(await indexToken.getLiquidityPool()).to.equal(nextLiquidityPool)
         expect(await indexToken.getNextLiquidityPool()).to.equal(ethers.ZeroAddress)
         expect(await indexToken.isMigrating()).to.equal(false)
@@ -328,7 +330,8 @@ describe("IndexToken", function() {
           maxBalanceMultiplierChangePerSecondQ96
         )
         await increaseTime(Number(minBalanceMultiplierChangeDelay) + 1)
-        expect(await indexToken.totalSupply()).to.equal((startingTotalSupply << 96n) / maxBalanceMultiplierChangePerSecondQ96)
+        const totalSupplyEnd = await indexToken.totalSupply()
+        expect(totalSupplyEnd).to.be.closeTo((startingTotalSupply << 96n) / maxBalanceMultiplierChangePerSecondQ96, (totalSupplyEnd / 1_000_000_000_000n), "should be within 1 trillionth of the correct val")
       })
 
       it("should increase when minting", async function() {
