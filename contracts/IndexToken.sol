@@ -112,22 +112,19 @@ contract IndexToken is ERC20Permit {
 
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
-    if (totalReservesScaled == 0) {
-      _migrationSlot0.lastBalanceMultiplier = type(uint48).max;
-    } else if (totalReservesScaled > _baseTotalSupply) {
-      //no idea how we would end up in this situation to begin with, but
-      //if we are here, the least catastrophic option is to just make the multiplier one
-      //this way at least the assets in the pool won't be lost, some poeple will
-      //be able to redeem them, but there won't be enough to back all the tokens.
-      _migrationSlot0.lastBalanceMultiplier = 1;
-    } else {
-      _migrationSlot0.lastBalanceMultiplier = uint96((_baseTotalSupply) / totalReservesScaled);
+    (uint96 finalBalanceMultiplier, int256 surplus) = PoolMath.computeFinalBalanceMultiplierAndSurplus(
+      totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceMultiplier
+    );
+    _migrationSlot0.lastBalanceMultiplier = finalBalanceMultiplier;
+    if (surplus > 0) {
+      //send the surplus to the next liquidity pool
+      mint(_migrationSlot0.nextLiquidityPool, uint256(surplus));
     }
     _liquidityPool = _migrationSlot0.nextLiquidityPool;
     _migrationSlot0.nextLiquidityPool = address(0);
   }
 
-  function mint(address recipient, uint256 amount) external {
+  function mint(address recipient, uint256 amount) public {
     if (isMigrating()) {
       require(msg.sender == _migrationSlot0.nextLiquidityPool, "only next liquidity pool can mint during migration");
     } else {
