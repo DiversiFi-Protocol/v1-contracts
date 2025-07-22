@@ -105,7 +105,7 @@ interface ILiquidityPoolGetters {
   /// @return conversionRateQ96 the migration conversion rate of index tokens to totalReserves
   function getMigrationBurnConversionRateQ96() external view returns (uint256);
 
-  /// @dev migrating in this context refers to a soft migration where reserves are moving to a new pool
-  /// @return isMigrating true if the pool is migrating, false if not
-  function isMigrating() external view returns (bool);
+  /// @dev Emigrating in this context refers to a soft migration where reserves are moving to a new pool
+  /// @return isEmigrating true if the reserves are Emigrating, false if not
+  function isEmigrating() external view returns (bool);
 }

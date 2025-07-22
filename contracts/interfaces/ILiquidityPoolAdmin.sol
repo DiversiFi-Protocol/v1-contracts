@@ -25,10 +25,11 @@ interface ILiquidityPoolAdmin {
   function setTargetAssetParams(AssetParams[] calldata params) external;
   function withdrawFees(address recipient) external;
   function setIsMintEnabled(bool isMintEnabled) external;
-  function setEqualizationBounty(uint256 equalizationBounty) external;
-  function startMigration(
+  function increaseEqualizationBounty(uint256 bountyIncrease) external;
+  function startEmigration(
     address nextLiquidityPool,
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96
   ) external;
+  function finishEmigration() external;
 }
