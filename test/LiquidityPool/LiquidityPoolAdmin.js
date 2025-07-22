@@ -211,10 +211,15 @@ describe("LiquidityPool - Admin Functions", function() {
         .to.emit(liquidityPool, "IsMintEnabledChange").withArgs(false);
       expect(await liquidityPool.getIsMintEnabled()).to.equal(false);
     });
+    
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       await expect(liquidityPool.connect(unpriviledged).setIsMintEnabled(true))
         .to.be.revertedWith("only_admin");
     });
   });
+
+  describe("setEqualizationBounty", function() {
+    
+  })
 });

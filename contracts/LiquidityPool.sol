@@ -30,18 +30,17 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint8 public immutable DECIMAL_SCALE;
 
   //pool state
-  uint256 private feesCollected_ = 0;
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
   struct MigrationSlot {
     uint64 migrationStartTimestamp;
     uint96 migrationStartBalanceMultiplier;
-    bool isMigrating;
   }
   MigrationSlot private migrationSlot_;
 
   //related contracts
   IIndexToken private indexToken_;
+  address private nextLiquidityPool_;
 
   //configuration
   address private admin_;
@@ -63,15 +62,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
-  modifier migrationCheck(bool checkTrue) {
-    if (checkTrue) {
-      require(isMigrating(), "liquidityPool not migrating");
-    } else {
-      require(!isMigrating(), "liquidityPool is migrating");
-    }
-    _;
-  }
-
   constructor(
     address _admin,
     address _indexToken
@@ -89,8 +79,9 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant migrationCheck(false) returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
+    require(!isEmigrating(), "cannot mint while emigrating");
     indexToken_.mint(
       msg.sender,
       _mintAmount
@@ -124,7 +115,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
     totalReservesScaled_ += totalReservesIncrease;
     checkMaxTotalReservesLimit();
-    feesCollected_ += fee;
+    indexToken_.mint(address(this), fee);
 
     emit Mint(
       msg.sender,
@@ -141,9 +132,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 trueBurnAmount = _burnAmount - fee;
     //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
     //in this case, we must scale up the "true" burn amount proportionally.
-    if (isMigrating()) { 
-      trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
-    }
+    trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
     outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
@@ -172,7 +161,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
-    feesCollected_ += fee;
+    indexToken_.mint(address(this), fee);
 
     //forward data back to the caller for a flash burn
     if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
@@ -355,8 +344,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getFeesCollected() external view returns (uint256) {
-    return feesCollected_;
+  function getFeesCollected() public view returns (uint256) {
+    return indexToken_.balanceOf(address(this)) - equalizationBounty_;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -467,14 +456,14 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolGetters
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
-    if (isMigrating()) { return PoolMath.toFixed(1); }
+    if (!isEmigrating()) { return PoolMath.toFixed(1); }
     uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplier());
     return (migrationSlot_.migrationStartBalanceMultiplier << 96) / currentBalanceMultiplier;
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function isMigrating() public view returns (bool) {
-    return migrationSlot_.isMigrating;
+  function isEmigrating() public view returns (bool) {
+    return nextLiquidityPool_ != address(0);
   }
 
   /*
@@ -563,9 +552,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolAdmin
   function withdrawFees(address _recipient) external onlyAdmin {
-    uint256 fees = feesCollected_;
-    feesCollected_ = 0;
-    indexToken_.mint(
+    uint256 fees = indexToken_.balanceOf(address(this)) - equalizationBounty_;
+    indexToken_.transfer(
       _recipient,
       fees
     );
@@ -579,19 +567,19 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setEqualizationBounty(uint256 _equalizationBounty) external onlyAdmin {
-    indexToken_.transferFrom(msg.sender, address(this), _equalizationBounty);
-    equalizationBounty_ += _equalizationBounty;
-    emit EqualizationBountySet(_equalizationBounty);
+  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin {
+    require(getFeesCollected() > _bountyIncrease, "not enough tokens to cover bounty");
+    equalizationBounty_ += _bountyIncrease;
+    emit EqualizationBountySet(equalizationBounty_);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function startMigration(
+  function startEmigration(
     address _nextLiquidityPool,
     uint64 balanceMultiplierChangeDelay,
     uint96 balanceMultiplierChangePerSecondQ96
   ) external onlyAdmin {
-    migrationSlot_.isMigrating = true;
+    nextLiquidityPool_ = _nextLiquidityPool;
     migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
 
@@ -600,6 +588,20 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       balanceMultiplierChangeDelay, 
       balanceMultiplierChangePerSecondQ96
     );
+  }
+
+  function finishEmigration() external {
+    require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
+    //burn all fees collected by this pool.
+    //if there is a deficit, the burned tokens will go towards covering it.
+    //if there is a surplus, appropriate tokens will be minted to the next
+    //liquidity pool's fees collected upon the migration finishing such that
+    //each token is backed 1:1. In this case, the burned tokens will be re-minted immediately
+    //we do this instead of transferring them because this contract doesn't have access
+    //to the required data to calculate the surplus/deficit.
+    indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
+    indexToken_.finishMigration(ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled());
+    delete migrationSlot_;
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/

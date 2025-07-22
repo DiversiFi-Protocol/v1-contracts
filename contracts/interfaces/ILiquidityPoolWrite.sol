@@ -46,6 +46,7 @@ interface ILiquidityPoolWrite {
      * its target allocation. Swaps are only allowed if they result in the relavant asset's current allocation being closer
      * to its target allocation. Also applies an equalization bounty to as a discount/premium to the swap if one is set.
      * ERC20.approve() must be called for the asset being swapped.
+     * Fails if the output asset is the index token and the pool is migrating.
      * @param asset the reserve asset that is being swapped for index tokens
      * @param delta the delta of the reserves of the reserve asset being swapped. (positive means deposit, negative means withdraw)
      * @return reserveTransfer the amount of reserves  transferred to/from the pool depending on the sign of delta

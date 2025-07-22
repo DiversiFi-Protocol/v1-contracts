@@ -14,6 +14,7 @@ pragma solidity ^0.8.27;
 import "hardhat/console.sol";
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "./interfaces/ILiquidityPoolGetters.sol";
+import "./PoolMath.sol";
 
 contract IndexToken is ERC20Permit {
   uint64 private immutable _minBalanceMultiplierChangeDelay;
@@ -62,7 +63,7 @@ contract IndexToken is ERC20Permit {
     uint104 maxBalanceMultiplierChangePerSecondQ96
   ) ERC20(name, symbol) ERC20Permit(name) {
     _liquidityPool = liquidityPool;
-    _migrationSlot0.lastBalanceMultiplier = type(uint88).max;
+    _migrationSlot0.lastBalanceMultiplier = PoolMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceMultiplierChangeDelay = minBalanceMultiplierChangeDelay;
     _maxBalanceMultiplierChangePerSecondQ96 = maxBalanceMultiplierChangePerSecondQ96;
   }
@@ -100,6 +101,7 @@ contract IndexToken is ERC20Permit {
     uint64 balanceMultiplierChangeDelay,
     uint104 balanceMultiplierChangePerSecondQ96
   ) external onlyLiquidityPool migrationCheck(false) {
+    require(_migrationSlot0.lastBalanceMultiplier <= PoolMath.MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
     require(balanceMultiplierChangeDelay >= _minBalanceMultiplierChangeDelay, "balance multiplier change delay too short");
     require(balanceMultiplierChangePerSecondQ96 >= _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
     _migrationSlot0.nextLiquidityPool = nextLiquidityPool;
@@ -111,7 +113,7 @@ contract IndexToken is ERC20Permit {
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
     if (totalReservesScaled == 0) {
-      _migrationSlot0.lastBalanceMultiplier = type(uint88).max;
+      _migrationSlot0.lastBalanceMultiplier = type(uint48).max;
     } else if (totalReservesScaled > _baseTotalSupply) {
       //no idea how we would end up in this situation to begin with, but
       //if we are here, the least catastrophic option is to just make the multiplier one
