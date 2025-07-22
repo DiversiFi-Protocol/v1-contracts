@@ -17,6 +17,12 @@ library PoolMath {
   uint256 constant ALLOCATION_FRAC_BITS = 88;
   uint256 constant ALLOCATION_SHIFT = SHIFT - ALLOCATION_FRAC_BITS; //shift 0.88 fixed point to get 96.96 fixed point
   uint256 constant SCALE = 2 ** SHIFT; //1 shifted by shift
+  uint96 constant DEFAULT_BALANCE_MULTIPLIER = type(uint48).max;
+
+  //a balance multiplier below this level gives sufficient space
+  //for any reasonable migration, if the balance multiplier is above this number,
+  //further soft migrations are not allowed.
+  uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** 92;
 
   //scale a token with specified decimals to be the same scale as _targetDecimals
   function scaleDecimals(uint256 _value, uint8 _currentScale, uint8 _targetScale) internal pure returns (uint256) {
@@ -87,5 +93,44 @@ library PoolMath {
 
     //resolvedDiscrepency * (bounty/discrepency)
     return _totalEqualizationBounty * resolvedDiscrepency / _discrepencyBefore;
+  }
+
+  /// @dev computes the balance multiplier required such that the total visible supply
+  /// is backed 1:1 by the total reserves, if there is a surplus of reserves from the last balance multiplier.
+  /// i.e. (the resulting balance multiplier is less than the last balance multiplier)
+  /// the resulting balance multiplier will equal the last balance multiplier and the surplus is returned.
+  /// if there is a deficit, the deficit is returned
+  function computeFinalBalanceMultiplierAndSurplus(
+    uint256 totalReserves,
+    uint256 baseTotalSupply,
+    uint96 lastBalanceMultiplier
+  ) internal pure returns (uint96 balanceMultiplier, int256 surplus /*(or deficit)*/) {
+    /**
+     * SANITY CHECKS:
+     * it is practically impossible to end up in these situations to begin with, but
+     * if we are here, the least catastrophic option is to just make the multiplier the max value.
+     * (thereby lowering the balances of all token holders to practically zero.)
+     * And setting the surplus to the max possible value, this will result in governance 
+     * having effectively total control over the reserves, they can then oversee the proper
+     * distribution of the reserves. 
+     */
+    if (totalReserves > baseTotalSupply || lastBalanceMultiplier == 0) {
+      return (type(uint96).max, int256(uint256(type(uint160).max)));
+    }
+    //END SANITY CHECKS
+
+    surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceMultiplier));
+    if (surplus >= 0) {
+      return (lastBalanceMultiplier, surplus);
+    } else {
+      if (totalReserves == 0) {
+        //if there are no reserves, then the total supply should be zero
+        //since we get total supply by dividing baseTotalSupply by the balance multiplier,
+        //we would need to set the balance multiplier to infinity to achieve this.
+        //since there is no infinity, we just use the max possible value instead
+        return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceMultiplier)));
+      }
+      return (uint96(baseTotalSupply / totalReserves), surplus);
+    }
   }
 }
