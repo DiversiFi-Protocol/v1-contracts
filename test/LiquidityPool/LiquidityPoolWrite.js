@@ -13,8 +13,11 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
+      const prevPoolLiquidityBal = await indexToken.balanceOf(liquidityPool);
+      const prevFeeBalance = await liquidityPool.getFeesCollected();
       const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ96())
-      const mintAmountPlusFee = mintAmount + ((mintAmount * compoundingFeeRate) >> 96n)
+      const fee = (mintAmount * compoundingFeeRate) >> 96n
+      const mintAmountPlusFee = mintAmount + fee
       await expect(
         liquidityPool.connect(admin).mint(mintAmount, "0x")
       ).to.emit(liquidityPool, "Mint");
@@ -23,6 +26,12 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
+      const poolLiquidityBal = await indexToken.balanceOf(liquidityPool);
+      const feeBalance = await liquidityPool.getFeesCollected();
+
+      // check that the mint fee accrues as index token balance in the pool
+      expect(poolLiquidityBal).to.equal(prevPoolLiquidityBal + fee)
+      expect(feeBalance).to.equal(prevFeeBalance + fee)
 
       // Check that liquidity tokens were minted
       const expectedReductionScaled0 = (utils.scaleAllocation(assetParams0.targetAllocation) * mintAmountPlusFee) >> utils.SHIFT
@@ -153,30 +162,78 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
   describe("burn", function () {
     it("burns liquidity tokens and returns assets as expected", async function () {
-      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(1000n);
       await liquidityPool.connect(admin).mint(mintAmount, "0x");
+      const burnAmount = mintAmount
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
+      const prevPoolLiquidityBal = await indexToken.balanceOf(liquidityPool);
+      const prevFeeBalance = await liquidityPool.getFeesCollected();
+      const fee = (burnAmount * (await liquidityPool.getBurnFeeQ96())) >> 96n
+      const trueBurnAmount = burnAmount - fee;
+      const totalReservesScaled = await liquidityPool.getTotalReservesScaled()
+      const previousSpecificReservesScaled0 = await liquidityPool.getSpecificReservesScaled(assetParams0.assetAddress)
+      const previousSpecificReservesScaled1 = await liquidityPool.getSpecificReservesScaled(assetParams1.assetAddress)
+      const previousSpecificReservesScaled2 = await liquidityPool.getSpecificReservesScaled(assetParams2.assetAddress)
+      const currentAllocation0 = (previousSpecificReservesScaled0 << 96n) / totalReservesScaled
+      const currentAllocation1 = (previousSpecificReservesScaled1 << 96n) / totalReservesScaled
+      const currentAllocation2 = (previousSpecificReservesScaled2 << 96n) / totalReservesScaled
 
-      await indexToken.connect(admin).approve(liquidityPool.target, mintAmount);
+      await indexToken.connect(admin).approve(liquidityPool.target, burnAmount);
       await expect(
-        liquidityPool.connect(admin).burn(mintAmount, "0x")
+        liquidityPool.connect(admin).burn(burnAmount, "0x")
       ).to.emit(liquidityPool, "Burn");
 
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
+      const poolLiquidityBal = await indexToken.balanceOf(liquidityPool);
+      const feeBalance = await liquidityPool.getFeesCollected();
+
+      //check that the burn fee accrues as index token balance to the liquidity pool
+      expect(poolLiquidityBal).to.equal(prevPoolLiquidityBal + fee)
+      expect(feeBalance).to.equal(prevFeeBalance + fee)
+
+      // Check that liquidity tokens were minted
+      const targetIncreaseScaled0 = (currentAllocation0 * trueBurnAmount) >> utils.SHIFT
+      const targetIncreaseScaled1 = (currentAllocation1 * trueBurnAmount) >> utils.SHIFT
+      const targetIncreaseScaled2 = (currentAllocation2 * trueBurnAmount) >> utils.SHIFT
+
+      const expectedIncrease0 = utils.scaleDecimals(targetIncreaseScaled0, 18n, assetParams0.decimals)
+      const expectedIncrease1 = utils.scaleDecimals(targetIncreaseScaled1, 18n, assetParams1.decimals)
+      const expectedIncrease2 = utils.scaleDecimals(targetIncreaseScaled2, 18n, assetParams2.decimals)
+
+      const expectedIncreaseScaled0 = utils.scaleDecimals(expectedIncrease0, assetParams0.decimals, 18n)
+      const expectedIncreaseScaled1 = utils.scaleDecimals(expectedIncrease1, assetParams1.decimals, 18n)
+      const expectedIncreaseScaled2 = utils.scaleDecimals(expectedIncrease2, assetParams2.decimals, 18n)
+
+      const actualIncrease0 = balance0 - prevBal0
+      const actualIncrease1 = balance1 - prevBal1
+      const actualIncrease2 = balance2 - prevBal2
+
+      const specificReservesScaled0 = await liquidityPool.getSpecificReservesScaled(assetParams0.assetAddress)
+      const specificReservesScaled1 = await liquidityPool.getSpecificReservesScaled(assetParams1.assetAddress)
+      const specificReservesScaled2 = await liquidityPool.getSpecificReservesScaled(assetParams2.assetAddress)
+
+      const actualIncreaseScaled0 = previousSpecificReservesScaled0 - specificReservesScaled0
+      const actualIncreaseScaled1 = previousSpecificReservesScaled1 - specificReservesScaled1
+      const actualIncreaseScaled2 = previousSpecificReservesScaled2 - specificReservesScaled2
+
+      //expect internal scaled reserves to reflect the expected change
+      expect(actualIncreaseScaled0).to.equal(expectedIncreaseScaled0)
+      expect(actualIncreaseScaled1).to.equal(expectedIncreaseScaled1)
+      expect(actualIncreaseScaled2).to.equal(expectedIncreaseScaled2)
 
       // Check that liquidity tokens were burned
-      expect(prevLiquidityBal - liquidityBal).to.be.closeTo(mintAmount, 1n);
-      // Check that assets were returned to admin
-      expect(balance0).to.be.above(prevBal0);
-      expect(balance1).to.be.above(prevBal1);
-      expect(balance2).to.be.above(prevBal2);
+      expect(prevLiquidityBal - liquidityBal).to.equal(burnAmount);
+      // Check that assets were returned to the burner
+      expect(actualIncrease0).to.equal(expectedIncrease0);
+      expect(actualIncrease1).to.equal(expectedIncrease1);
+      expect(actualIncrease2).to.equal(expectedIncrease2);
     });
 
     it("reverts if user tries to burn more than their balance", async function () {
