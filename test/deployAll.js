@@ -82,6 +82,7 @@ module.exports = async function deployAll() {
       assetParams1,
       assetParams2,
     ]);
+    
     const maxReserves = utils.MAX_UINT_256 / 2n
     const maxReservesIncreaseRateQ96 = utils.decimalToFixed(0.1);
     await liquidityPool.setMaxReserves(maxReserves);
