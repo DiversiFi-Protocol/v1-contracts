@@ -18,15 +18,41 @@ module.exports = async function deployAll() {
       nonce: BigInt(await hre.ethers.provider.getTransactionCount(admin.address)) + 1n,
     });
     const minBalanceMultiplierChangeDelay = 100n
+    const maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(1.001)
     const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
       liquidityPoolAddress,
       minBalanceMultiplierChangeDelay,
-      maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(1.001)
+      maxBalanceMultiplierChangePerSecondQ96
     ]);
 
     const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
+      await admin.getAddress(),
+      await indexToken.getAddress(),
+    ]);
+
+    const liquidityPool0 = await hre.ethers.deployContract("LiquidityPool", [
+      await admin.getAddress(),
+      await indexToken.getAddress(),
+    ]);
+
+    const liquidityPool1 = await hre.ethers.deployContract("LiquidityPool", [
+      await admin.getAddress(),
+      await indexToken.getAddress(),
+    ]);
+
+    const liquidityPool2 = await hre.ethers.deployContract("LiquidityPool", [
+      await admin.getAddress(),
+      await indexToken.getAddress(),
+    ]);
+
+    const liquidityPool3 = await hre.ethers.deployContract("LiquidityPool", [
+      await admin.getAddress(),
+      await indexToken.getAddress(),
+    ]);
+
+    const liquidityPool4 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
@@ -127,6 +153,11 @@ module.exports = async function deployAll() {
     return {
       indexToken,
       liquidityPool,
+      liquidityPool0,
+      liquidityPool1,
+      liquidityPool2,
+      liquidityPool3,
+      liquidityPool4,
       admin,
       unpriviledged,
       tokenName,
@@ -143,6 +174,8 @@ module.exports = async function deployAll() {
       poolMathWrapper,
       assetParamsNoMintable0,
       assetParamsNoMintable1,
-      assetParamsNoMintable2
+      assetParamsNoMintable2,
+      minBalanceMultiplierChangeDelay,
+      maxBalanceMultiplierChangePerSecondQ96,
     };
   }
