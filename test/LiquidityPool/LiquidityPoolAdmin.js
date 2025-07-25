@@ -4,6 +4,13 @@ const utils = require("../testModules/utils.js")
 const deployAll = require("../deployAll.js");
 const expect = require("chai").expect;
 
+async function increaseTime(seconds) {
+  await ethers.provider.send("evm_increaseTime", [seconds]);
+
+  // Mine a new block so the increased time takes effect
+  await ethers.provider.send("evm_mine", []);
+}
+
 describe("LiquidityPool - Admin Functions", function() {
   describe("setAdmin", function() {
     it("sets new admin and emits event when called by admin", async function() {
@@ -221,19 +228,109 @@ describe("LiquidityPool - Admin Functions", function() {
 
   describe("increaseEqualizationBounty", function() {
     it("should fail if the pool doesn't have enough fees collected", async function() {
+      const { liquidityPool, indexToken, admin, unpriviledged } = await loadFixture(deployAll);
+      const feesCollected = await liquidityPool.getFeesCollected()
+      await expect(
+        liquidityPool.increaseEqualizationBounty(feesCollected + 1n)
+      ).to.be.revertedWith("not enough tokens to cover bounty");
+    })
 
+    it("should fail in the case that the balance is greater than the bounty increase, but fees collected are not", async function () {
+      const { liquidityPool, indexToken, admin, unpriviledged } = await loadFixture(deployAll);
+      await liquidityPool.setMintFeeQ96(0n)
+      await liquidityPool.mint(1000000n, "0x")
+      await indexToken.transfer(liquidityPool, 42069n)
+      await liquidityPool.increaseEqualizationBounty(69n)
+      const bountyIncrease = 42001n
+      const poolBalance = await indexToken.balanceOf(liquidityPool)
+      expect(bountyIncrease).to.be.lessThan(poolBalance)
+      await expect(
+        liquidityPool.increaseEqualizationBounty(bountyIncrease)
+      ).to.be.revertedWith("not enough tokens to cover bounty")
     })
 
     it("should add the equalization bounty to the previous equalization bounty", async function () {
-
+      const { liquidityPool, indexToken, admin, unpriviledged } = await loadFixture(deployAll);
+      await liquidityPool.setMintFeeQ96(0n)
+      await liquidityPool.mint(1000000n, "0x")
+      const totalFees = 42069n
+      await indexToken.transfer(liquidityPool, totalFees)
+      const initialBounty = 69n
+      await liquidityPool.increaseEqualizationBounty(initialBounty)
+      const secondBounty = 42000n
+      await liquidityPool.increaseEqualizationBounty(secondBounty)
+      expect(await liquidityPool.getEqualizationBounty()).to.equal(initialBounty + secondBounty)
     })
   })
 
   describe("startEmigration", function() {
+    it("should fail if the pool is already migrating", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+      await expect(
+        liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+        )
+      ).to.be.revertedWith("liquidityPool is migrating")
+    })
 
+    it("should set all of the relevant variables", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+      const block0 = await hre.ethers.provider.getBlock("latest")
+      expect(await indexToken.isMigrating()).to.equal(true)
+      expect(await liquidityPool.isEmigrating()).to.equal(true)
+      expect(await indexToken.getNextLiquidityPool()).to.equal(liquidityPool0)
+      expect(await indexToken.getMigrationStartTimestamp()).to.equal(block0.timestamp)
+      expect(await indexToken.getBalanceMultiplierChangeDelay()).to.equal(minBalanceMultiplierChangeDelay)
+      expect(await indexToken.getBalanceMultiplierChangePerSecondQ96()).to.equal(maxBalanceMultiplierChangePerSecondQ96)
+    })
   })
 
   describe("finishEmigration", function() {
-    
+    it("should fail if the pool is not currently migrating", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      await expect(liquidityPool.finishEmigration()).to.be.revertedWith("liquidity pool not migrating")
+    })
+
+    it("should fail if there are still reserves in the pool", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      await liquidityPool.mint(1000n, "0x")
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+
+      await expect(liquidityPool.finishEmigration()).to.be.revertedWith("cannot finish emigration until all reserves have been moved")
+    })
+
+    it("should set all of the relevant variables", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+
+      await increaseTime(Number(minBalanceMultiplierChangeDelay * 2n))
+      await liquidityPool.finishEmigration()
+
+      expect(await indexToken.balanceOf(liquidityPool)).to.equal(0n, "old liquidity pool should have burnt all its reserves")
+      expect(await liquidityPool.isEmigrating()).to.equal(false)
+      expect(await indexToken.isMigrating()).to.equal(false)
+      expect(await indexToken.getNextLiquidityPool()).to.equal(hre.ethers.ZeroAddress)
+    })
   })
 });
