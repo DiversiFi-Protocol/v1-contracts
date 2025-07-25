@@ -1,3 +1,4 @@
+
 const SHIFT = 96n; //shift a normal integer to get 96.96 fixed point
 
 const ALLOCATION_SHIFT = SHIFT - 88n; //shift 0.88 fixed point to get 96.96 fixed point
@@ -12,6 +13,8 @@ const compareFunctions = (func0, func1, args, args1=[]) => {
   const diff = (result1 - result0) / result0
   return diff
 }
+
+
 
 const decimalToFixed = (num) => {
   return BigInt(Math.floor(num * Number(SCALE)))

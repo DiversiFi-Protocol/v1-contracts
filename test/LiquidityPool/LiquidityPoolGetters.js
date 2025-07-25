@@ -6,6 +6,13 @@ const utils = require("../testModules/utils.js");
 const deployAll = require("../deployAll.js");
 const { expect } = require("chai")
 
+async function increaseTime(seconds) {
+  await ethers.provider.send("evm_increaseTime", [seconds]);
+
+  // Mine a new block so the increased time takes effect
+  await ethers.provider.send("evm_mine", []);
+}
+
 describe("LiquidityPool - Getters", function () {
   it("Deployments", async () => {
     const { indexToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
@@ -67,10 +74,28 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(true);
   })
 
-  it("getFeesCollected", async function () {
-    const { liquidityPool } = await loadFixture(deployAll);
-    const result = await liquidityPool.getFeesCollected();
-    expect(result).to.equal(0n);
+  describe("getFeesCollected", function () {
+    it("should return the token balance as fees", async function() {
+      const { liquidityPool, indexToken } = await loadFixture(deployAll);
+      await liquidityPool.mint(1000000n, "0x")
+      const feesBefore = await liquidityPool.getFeesCollected()
+      const transferAmount = 42069n
+      await indexToken.transfer(liquidityPool, transferAmount)
+      const feesAfter = await liquidityPool.getFeesCollected();
+      expect(feesAfter - feesBefore).to.equal(transferAmount);
+    })
+
+    it("should deduct the equalization bounty from the fees collected", async function() {
+      const { liquidityPool, indexToken } = await loadFixture(deployAll);
+      await liquidityPool.mint(1000000n, "0x")
+      const feesBefore = await liquidityPool.getFeesCollected()
+      const transferAmount = 42069n
+      const equalizationBounty = 69n
+      await indexToken.transfer(liquidityPool, transferAmount)
+      await liquidityPool.increaseEqualizationBounty(equalizationBounty)
+      const feesAfter = await liquidityPool.getFeesCollected()
+      expect(feesAfter - feesBefore).to.equal(transferAmount - equalizationBounty)
+    })
   })
 
   it("getIndexToken", async function () {
@@ -183,5 +208,51 @@ describe("LiquidityPool - Getters", function () {
     const { liquidityPool } = await loadFixture(deployAll)
     const result = await liquidityPool.getIsEqualized()
     expect(result).to.equal(true)
+  })
+
+  it("getEqualizationBounty", async function () {
+    const { liquidityPool } = await loadFixture(deployAll)
+    await liquidityPool.mint(1000n, "0x")
+    const equalizationBounty = 1n
+    await liquidityPool.increaseEqualizationBounty(equalizationBounty)
+    expect(await liquidityPool.getEqualizationBounty()).to.equal(equalizationBounty)
+  })
+
+  describe("getMigrationBurnConversionRateQ96", function () {
+    it("should return 1 if there is no migration", async function () {
+      const { liquidityPool } = await loadFixture(deployAll)
+      const oneQ96 = 1n << utils.SHIFT
+      expect(await liquidityPool.getMigrationBurnConversionRateQ96()).to.equal(oneQ96)
+    })
+
+    it("should return an increasing number if migrating", async function () {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      const oneQ96 = 1n << utils.SHIFT
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+      await increaseTime(Number(minBalanceMultiplierChangeDelay) + 100)
+      const conversionRate = await liquidityPool.getMigrationBurnConversionRateQ96()
+      expect(conversionRate).to.be.greaterThan(oneQ96)
+    })
+  })
+
+  describe("isEmigrating", function () {
+    it("should return false if not emigrating", async function () {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      expect(await liquidityPool.isEmigrating()).to.equal(false)
+    })
+
+    it("should return true if emigrating", async function () {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+      expect(await liquidityPool.isEmigrating()).to.equal(true)
+    })
   })
 })
