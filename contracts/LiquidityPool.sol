@@ -231,6 +231,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         msg.sender,
         indexTransfer//bounty is awarded as a bonus
       );
+      indexToken_.burnFrom(
+        address(this),
+        bounty
+      );
     } else { // withdraw
       uint256 targetWithdrawalScaled = PoolMath.scaleDecimals(
         uint256(_delta * -1),
@@ -273,6 +277,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       indexToken_.burnFrom(
         msg.sender, 
         indexTransfer //bounty is awarded as a discount
+      );
+      indexToken_.burnFrom(
+        address(this),
+        bounty
       );
     }
     equalizationBounty_ -= bounty;
@@ -318,7 +326,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       }
     }
     //send the rest of the equalizationBounty to the caller
-    indexToken_.mint(msg.sender, equalizationBounty_);
+    indexToken_.transfer(msg.sender, equalizationBounty_);
     emit Equalization(deltasScaled);
     return actualDeltas;
   }
@@ -567,7 +575,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolAdmin
   function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin {
-    require(getFeesCollected() > _bountyIncrease, "not enough tokens to cover bounty");
+    require(getFeesCollected() >= _bountyIncrease, "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
   }
@@ -580,7 +588,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   ) external onlyAdmin {
     nextLiquidityPool_ = _nextLiquidityPool;
     migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
-    console.log("startBalanceMultiplier (startEmigration)", migrationSlot_.migrationStartBalanceMultiplier);
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
 
     indexToken_.startMigration(
@@ -591,6 +598,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   function finishEmigration() external {
+    require(nextLiquidityPool_ != address(0), "liquidity pool not migrating");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
     //burn all fees collected by this pool.
     //if there is a deficit, the burned tokens will go towards covering it.
@@ -600,8 +608,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     //we do this instead of transferring them because this contract doesn't have access
     //to the required data to calculate the surplus/deficit.
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
-    indexToken_.finishMigration(ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled());
+    uint256 finalTotalReservesScaled = ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled();
+    indexToken_.finishMigration(finalTotalReservesScaled);
     delete migrationSlot_;
+    nextLiquidityPool_ = address(0);
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
