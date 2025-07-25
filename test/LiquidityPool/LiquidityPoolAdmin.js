@@ -224,6 +224,16 @@ describe("LiquidityPool - Admin Functions", function() {
 
     })
 
-    it("")
+    it("should add the equalization bounty to the previous equalization bounty", async function () {
+
+    })
+  })
+
+  describe("startEmigration", function() {
+
+  })
+
+  describe("finishEmigration", function() {
+    
   })
 });

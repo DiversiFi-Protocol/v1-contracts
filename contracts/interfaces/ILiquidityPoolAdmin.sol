@@ -29,7 +29,7 @@ interface ILiquidityPoolAdmin {
   function startEmigration(
     address nextLiquidityPool,
     uint64 balanceMultiplierChangeDelay,
-    uint96 balanceMultiplierChangePerSecondQ96
+    uint104 balanceMultiplierChangePerSecondQ96
   ) external;
   function finishEmigration() external;
 }

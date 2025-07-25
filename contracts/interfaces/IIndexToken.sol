@@ -15,7 +15,7 @@ interface IIndexToken is IERC20MintAndBurn {
   function startMigration(
     address nextLiquidityPool, 
     uint64 balanceMultiplierChangeDelay, 
-    uint96 balanceMultiplierChangePerSecondQ96
+    uint104 balanceMultiplierChangePerSecondQ96
   ) external;
   function finishMigration(uint256 totalReservesScaled) external;
   function balanceMultiplier() external view returns (uint96);

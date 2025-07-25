@@ -11,9 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-import "hardhat/console.sol";
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "./interfaces/ILiquidityPoolGetters.sol";
 import "./PoolMath.sol";
 
 contract IndexToken is ERC20Permit {
@@ -42,7 +40,7 @@ contract IndexToken is ERC20Permit {
   *------------------------------Unique Functionality---------------------------------
   ***********************************************************************************/
   modifier onlyLiquidityPool {
-    require(_msgSender() == _liquidityPool, "only liquidity pool");
+    require(msg.sender == _liquidityPool, "only liquidity pool");
     _;
   }
 
@@ -67,6 +65,7 @@ contract IndexToken is ERC20Permit {
     _minBalanceMultiplierChangeDelay = minBalanceMultiplierChangeDelay;
     _maxBalanceMultiplierChangePerSecondQ96 = maxBalanceMultiplierChangePerSecondQ96;
   }
+
 
   function isMigrating() public view returns (bool) {
     return _migrationSlot0.nextLiquidityPool != address(0);

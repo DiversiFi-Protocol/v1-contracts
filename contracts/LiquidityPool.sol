@@ -10,6 +10,7 @@
  */
 
 pragma solidity ^0.8.27;
+import "hardhat/console.sol";
 
 import "./PoolMath.sol";
 import "./DataStructs.sol";
@@ -69,7 +70,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     indexToken_ = IIndexToken(_indexToken);
     admin_ = _admin;
     DECIMAL_SCALE = indexToken_.decimals();
-    migrationSlot_.migrationStartBalanceMultiplier = indexToken_.getLastBalanceMultiplier();
     maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
     maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
   }
@@ -457,7 +457,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
     if (!isEmigrating()) { return PoolMath.toFixed(1); }
     uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplier());
-    return (migrationSlot_.migrationStartBalanceMultiplier << 96) / currentBalanceMultiplier;
+    return (currentBalanceMultiplier << 96) / (migrationSlot_.migrationStartBalanceMultiplier);
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -576,10 +576,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function startEmigration(
     address _nextLiquidityPool,
     uint64 balanceMultiplierChangeDelay,
-    uint96 balanceMultiplierChangePerSecondQ96
+    uint104 balanceMultiplierChangePerSecondQ96
   ) external onlyAdmin {
     nextLiquidityPool_ = _nextLiquidityPool;
     migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
+    console.log("startBalanceMultiplier (startEmigration)", migrationSlot_.migrationStartBalanceMultiplier);
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
 
     indexToken_.startMigration(
