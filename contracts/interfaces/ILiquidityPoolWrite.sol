@@ -63,4 +63,12 @@ interface ILiquidityPoolWrite {
      * @return actualDeltas the actual deltas of each token in the tokens native decimal scale, the list is sorted by order in currentAssetParams
      */
     function equalizeToTarget() external returns (int256[] memory actualDeltas);
+
+    /**
+     * @dev Withdraws everything from the pool and burns equivalent index tokens from the caller.
+     * Useful for removing dust accumulated from rounding errors when finishing a pool migration.
+     * Because there can be no reserves in the pool when the migration finishes.
+     * @return outputAmounts the token amounts that are withdrawn
+     */
+    function withdrawAll() external returns (AssetAmount[] memory outputAmounts);
 }
