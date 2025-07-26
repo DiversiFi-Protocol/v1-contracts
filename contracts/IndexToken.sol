@@ -16,6 +16,11 @@ import "hardhat/console.sol";
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "./PoolMath.sol";
 
+//a balance multiplier below this level gives sufficient space
+//for any reasonable migration, if the balance multiplier is above this number,
+//further soft migrations are not allowed.
+uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** 92;
+
 contract IndexToken is ERC20Permit {
   uint64 private immutable _minBalanceMultiplierChangeDelay;
   uint104 private immutable _maxBalanceMultiplierChangePerSecondQ96;
@@ -102,7 +107,7 @@ contract IndexToken is ERC20Permit {
     uint64 balanceMultiplierChangeDelay,
     uint104 balanceMultiplierChangePerSecondQ96
   ) external onlyLiquidityPool migrationCheck(false) {
-    require(_migrationSlot0.lastBalanceMultiplier <= PoolMath.MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
+    require(_migrationSlot0.lastBalanceMultiplier <= MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
     require(balanceMultiplierChangeDelay >= _minBalanceMultiplierChangeDelay, "balance multiplier change delay too short");
     require(balanceMultiplierChangePerSecondQ96 >= _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
     _migrationSlot0.nextLiquidityPool = nextLiquidityPool;
@@ -150,7 +155,7 @@ contract IndexToken is ERC20Permit {
       } else {
         timeDiff -= migrationSlot1.balanceMultiplierChangeDelay;
       }
-      uint256 compoundedChangeQ96 = powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
+      uint256 compoundedChangeQ96 = PoolMath.powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
       return uint96(
         (migrationSlot0.lastBalanceMultiplier * compoundedChangeQ96) >> 96
       );
@@ -160,25 +165,6 @@ contract IndexToken is ERC20Permit {
   /***********************************************************************************
   *-----------------------------Overriden Functionality-------------------------------
   ***********************************************************************************/
-
-  function powQ96(uint256 base, uint256 exp) internal pure returns (uint256 result) {
-    result = 1 << 96;
-    while (exp > 0) {
-      if (exp % 2 == 1) {
-        result = (result * base) >> 96;
-      }
-      base = (base * base) >> 96;
-      exp /= 2;
-    }
-  }
-
-  function scaleFromBase(uint256 baseAmount) internal view returns (uint256 tokenAmount) {
-    return baseAmount / balanceMultiplier();
-  }
-
-  function scaleToBase(uint256 tokenAmount) internal view returns (uint256 baseAmount) {
-    return tokenAmount * balanceMultiplier();
-  }
 
   //interface starts here
   function totalSupply() public view override returns (uint256) {
@@ -228,5 +214,17 @@ contract IndexToken is ERC20Permit {
     _baseTotalSupply -= baseAmount;
 
     emit Transfer(account, address(0), amount);
+  }
+
+  /***********************************************************************************
+  *--------------------------------------Helpers--------------------------------------
+  ***********************************************************************************/
+
+  function scaleFromBase(uint256 baseAmount) private view returns (uint256 tokenAmount) {
+    return baseAmount / uint256(balanceMultiplier());
+  }
+
+  function scaleToBase(uint256 tokenAmount) private view returns (uint256 baseAmount) {
+    return tokenAmount * uint256(balanceMultiplier());
   }
 }

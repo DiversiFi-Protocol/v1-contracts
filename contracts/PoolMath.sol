@@ -19,11 +19,6 @@ library PoolMath {
   uint256 constant SCALE = 2 ** SHIFT; //1 shifted by shift
   uint96 constant DEFAULT_BALANCE_MULTIPLIER = type(uint48).max;
 
-  //a balance multiplier below this level gives sufficient space
-  //for any reasonable migration, if the balance multiplier is above this number,
-  //further soft migrations are not allowed.
-  uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** 92;
-
   //scale a token with specified decimals to be the same scale as _targetDecimals
   function scaleDecimals(uint256 _value, uint8 _currentScale, uint8 _targetScale) internal pure returns (uint256) {
     if (_currentScale == _targetScale) {
@@ -123,6 +118,21 @@ library PoolMath {
         return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceMultiplier)));
       }
       return (uint96(baseTotalSupply / totalReserves), surplus);
+    }
+  }
+
+  /// @dev computes the value of a Q96 number raised to the power of a normal integer number
+  /// @param base a Q96 number
+  /// @param exp a normal integer
+  /// @return result the result of exponentiating base^exp
+  function powQ96(uint256 base, uint256 exp) internal pure returns (uint256 result) {
+    result = 1 << 96;
+    while (exp > 0) {
+      if (exp % 2 == 1) {
+        result = (result * base) >> 96;
+      }
+      base = (base * base) >> 96;
+      exp /= 2;
     }
   }
 }
