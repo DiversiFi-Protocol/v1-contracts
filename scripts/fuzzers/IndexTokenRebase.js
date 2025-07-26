@@ -38,14 +38,16 @@ async function main() {
     const endingBalanceReceiver = await indexToken.balanceOf(unprivileged0)
     if (endingBalanceSender != startingBalanceSender - transferAmount) {
       console.log("BIG OOPSIE")
+      console.log(totalSupply, startingBalanceSender, startingBalanceReceiver, transferAmount, endingBalanceSender, endingBalanceReceiver)
       process.exit()
     }
     if (endingBalanceReceiver != startingBalanceReceiver + transferAmount) {
       console.log("BIG OOPSIE")
+      console.log(totalSupply, startingBalanceSender, startingBalanceReceiver, transferAmount, endingBalanceSender, endingBalanceReceiver)
       process.exit()
     }
     if (i % 1000 == 0) {
-      console.log("inputs checked: ",)
+      console.log("inputs checked: ", i)
     }
   }
 }
