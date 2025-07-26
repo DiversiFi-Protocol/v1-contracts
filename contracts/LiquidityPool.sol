@@ -63,6 +63,21 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
+  modifier onlyAdmin {
+    require(msg.sender == admin_, "only_admin");
+    _;
+  }
+
+  modifier mustNotEmigrating {
+    require(!isEmigrating(), "pool is emigrating");
+    _;
+  }
+
+  modifier mustIsEmigrating {
+    require(isEmigrating(), "pool is not emigrating");
+    _;
+  }
+
   constructor(
     address _admin,
     address _indexToken
@@ -79,9 +94,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
-    require(!isEmigrating(), "cannot mint while emigrating");
     indexToken_.mint(
       msg.sender,
       _mintAmount
@@ -160,12 +174,12 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
-    indexToken_.mint(address(this), fee);
+    indexToken_.transferFrom(msg.sender, address(this), fee);
 
     //forward data back to the caller for a flash burn
     if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
 
-    indexToken_.burnFrom(msg.sender, _burnAmount);
+    indexToken_.burnFrom(msg.sender, trueBurnAmount);
     emit Burn(
       msg.sender,
       _burnAmount,
@@ -331,6 +345,29 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     return actualDeltas;
   }
 
+  /// @inheritdoc ILiquidityPoolWrite
+  function withdrawAll() public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
+    indexToken_.burnFrom(msg.sender, totalReservesScaled_);
+    totalReservesScaled_ = 0;
+    outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
+    uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
+
+    for (uint i = 0; i < currentAssetParamsList_.length; i++) {
+      AssetParams memory params = currentAssetParamsList_[i];
+      uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
+      IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount);
+      AssetAmount memory assetAmount;
+      assetAmount.assetAddress = params.assetAddress;
+      assetAmount.amount = withdrawalAmount;
+      outputAmounts[i] = assetAmount;
+      specificReservesScaled_[params.assetAddress] = 0;
+      scaledReservesList[i] = 0;
+    }
+
+    emit Burn(msg.sender, totalReservesScaled_, scaledReservesList, 0);
+    return outputAmounts;
+  }
+
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Getters~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
@@ -477,50 +514,45 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Admin Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
-  modifier onlyAdmin {
-    require(msg.sender == admin_, "only_admin");
-    _;
-  }
-
   /// @inheritdoc ILiquidityPoolAdmin
-  function setAdmin(address _newAdmin) external onlyAdmin {
+  function setAdmin(address _newAdmin) external onlyAdmin mustNotEmigrating {
     admin_ = _newAdmin;
     emit AdminChange(_newAdmin);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin {
+  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
     emit MintFeeChange(_mintFeeQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin {
+  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin mustNotEmigrating {
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReserves(uint256 _maxReserves) external onlyAdmin {
+  function setMaxReserves(uint256 _maxReserves) external onlyAdmin mustNotEmigrating {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyAdmin {
+  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyAdmin mustNotEmigrating {
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyAdmin {
+  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyAdmin mustNotEmigrating {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin {
+  function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin mustNotEmigrating {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
     {//scope reduction
@@ -558,7 +590,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function withdrawFees(address _recipient) external onlyAdmin {
+  function withdrawFees(address _recipient) external onlyAdmin mustNotEmigrating {
     uint256 fees = indexToken_.balanceOf(address(this)) - equalizationBounty_;
     indexToken_.transfer(
       _recipient,
@@ -568,13 +600,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin {
+  function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin {
+  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin mustNotEmigrating {
     require(getFeesCollected() >= _bountyIncrease, "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
@@ -585,10 +617,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     address _nextLiquidityPool,
     uint64 balanceMultiplierChangeDelay,
     uint104 balanceMultiplierChangePerSecondQ96
-  ) external onlyAdmin {
+  ) external onlyAdmin mustNotEmigrating {
     nextLiquidityPool_ = _nextLiquidityPool;
     migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
+    burnFeeQ96_ = 0;
 
     indexToken_.startMigration(
       _nextLiquidityPool, 
@@ -597,7 +630,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     );
   }
 
-  function finishEmigration() external {
+  function finishEmigration() external mustIsEmigrating {
     require(nextLiquidityPool_ != address(0), "liquidity pool not migrating");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
     //burn all fees collected by this pool.

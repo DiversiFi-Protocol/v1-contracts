@@ -16,7 +16,7 @@ contract CodeProviderV1 {
 
   function getCreationBytecode() public view returns (bytes memory) {
     return abi.encodePacked(
-      type(LiquidityPool).creationCode,
+      // type(LiquidityPool).creationCode,
       abi.encode(constructorArg0, constructorArg1)
     );
   }

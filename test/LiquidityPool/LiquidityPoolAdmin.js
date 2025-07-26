@@ -277,7 +277,7 @@ describe("LiquidityPool - Admin Functions", function() {
         minBalanceMultiplierChangeDelay,
         maxBalanceMultiplierChangePerSecondQ96,
         )
-      ).to.be.revertedWith("liquidityPool is migrating")
+      ).to.be.revertedWith("pool is emigrating")
     })
 
     it("should set all of the relevant variables", async function() {
@@ -295,20 +295,35 @@ describe("LiquidityPool - Admin Functions", function() {
       expect(await indexToken.getMigrationStartTimestamp()).to.equal(block0.timestamp)
       expect(await indexToken.getBalanceMultiplierChangeDelay()).to.equal(minBalanceMultiplierChangeDelay)
       expect(await indexToken.getBalanceMultiplierChangePerSecondQ96()).to.equal(maxBalanceMultiplierChangePerSecondQ96)
+      expect(await liquidityPool.getBurnFeeQ96()).to.equal(0n, "burn fee should be zero if emigrating")
+    })
+
+    it("admin functions should be disallowed while emigrating", async function() {
+      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      
+      await liquidityPool.startEmigration(
+        liquidityPool0, 
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96,
+      )
+
+      await expect(
+
+      ).to.be.revertedWith
     })
   })
 
   describe("finishEmigration", function() {
     it("should fail if the pool is not currently migrating", async function() {
       const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
-      await expect(liquidityPool.finishEmigration()).to.be.revertedWith("liquidity pool not migrating")
+      await expect(liquidityPool.finishEmigration()).to.be.revertedWith("pool is not emigrating")
     })
 
     it("should fail if there are still reserves in the pool", async function() {
       const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
       await liquidityPool.mint(1000n, "0x")
       await liquidityPool.startEmigration(
-        liquidityPool0, 
+        liquidityPool0,
         minBalanceMultiplierChangeDelay,
         maxBalanceMultiplierChangePerSecondQ96,
       )

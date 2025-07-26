@@ -57,15 +57,31 @@ describe("LiquidityPool - Getters", function () {
     expect(setMintFee).to.equal(randomMintFee);
   })
 
-  it("getBurnFeeQ96", async function() {
-    const { liquidityPool } = await loadFixture(deployAll);
-    // Set the burn fee to a random value
-    const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
-    await liquidityPool.setBurnFeeQ96(randomBurnFee);
+  describe("getBurnFeeQ96", function() {
+    it("should return the burn fee", async function() {
+      const { liquidityPool } = await loadFixture(deployAll);
+      // Set the burn fee to a random value
+      const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
+      await liquidityPool.setBurnFeeQ96(randomBurnFee);
 
-    // Assert that the burn fee was set correctly
-    const setBurnFee = await liquidityPool.getBurnFeeQ96();
-    expect(setBurnFee).to.equal(randomBurnFee);
+      // Assert that the burn fee was set correctly
+      const setBurnFee = await liquidityPool.getBurnFeeQ96();
+      expect(setBurnFee).to.equal(randomBurnFee);
+    })
+
+    it("should return zero if the pool is migrating", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      // Set the burn fee to a random value
+      const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
+      await liquidityPool.setBurnFeeQ96(randomBurnFee);
+      await liquidityPool.startEmigration(
+        liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96
+      )
+
+      // Assert that the burn fee was set correctly
+      const setBurnFee = await liquidityPool.getBurnFeeQ96();
+      expect(setBurnFee).to.equal(0n);
+    })
   })
 
   it("getIsMintEnabled", async function () {
