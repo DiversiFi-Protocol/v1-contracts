@@ -141,17 +141,17 @@ describe("LiquidityPool - Admin Functions", function() {
 
   describe("setTargetAssetParams", function() {
     it("sets new asset params and emits event(s) when called by admin", async function() {
-      const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+      const { liquidityPool, admin, mintable0, mintable1, mintable2, mintable3, mintable0Decimals, mintable1Decimals, mintable2Decimals, mintable3Decimals, mintable4Decimals } = await loadFixture(deployAll);
       const params0 = [
-        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: 18n },
-        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.2), decimals: 20n },
-        { assetAddress: mintable2.target, targetAllocation: utils.formatAllocationFromDecimal(0.1), decimals: 6n },
-        { assetAddress: "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97", targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.2) - utils.formatAllocationFromDecimal(0.1), decimals: 6n }
+        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: mintable0Decimals },
+        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.2), decimals: mintable1Decimals },
+        { assetAddress: mintable2.target, targetAllocation: utils.formatAllocationFromDecimal(0.1), decimals: mintable2Decimals },
+        { assetAddress: mintable3.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.2) - utils.formatAllocationFromDecimal(0.1), decimals: mintable3Decimals }
       ];
       const params1 = [
-        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: 18n },
-        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: 20n },
-        { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n },
+        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: mintable0Decimals },
+        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.3), decimals: mintable1Decimals },
+        { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: mintable2Decimals },
       ];
       await expect(liquidityPool.connect(admin).setTargetAssetParams(params0))
         .to.emit(liquidityPool, "TargetAssetParamsChange");
@@ -185,6 +185,33 @@ describe("LiquidityPool - Admin Functions", function() {
         expect(mapResult[2]).to.equal(params1[i].decimals, `failed check on index ${i}`)
       }))
     });
+
+    it("reverts if an underling asset is the index token", async function() {
+      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, mintable3, mintable0Decimals, mintable1Decimals, mintable2Decimals, mintable3Decimals, mintable4Decimals } = await loadFixture(deployAll);
+      const params0 = [
+        { assetAddress: indexToken.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: mintable0Decimals },
+        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.2), decimals: mintable1Decimals },
+        { assetAddress: mintable2.target, targetAllocation: utils.formatAllocationFromDecimal(0.1), decimals: mintable2Decimals },
+        { assetAddress: mintable3.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.2) - utils.formatAllocationFromDecimal(0.1), decimals: mintable3Decimals }
+      ];
+      await expect(
+        liquidityPool.setTargetAssetParams(params0)
+      ).to.be.revertedWith("index not allowed");
+    })
+
+    it("reverts if an underlying asset specifies incorrect decimals", async function() {
+      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, mintable3, mintable0Decimals, mintable1Decimals, mintable2Decimals, mintable3Decimals, mintable4Decimals } = await loadFixture(deployAll);
+      const params0 = [
+        { assetAddress: mintable0.target, targetAllocation: utils.formatAllocationFromDecimal(0.5), decimals: 69n },
+        { assetAddress: mintable1.target, targetAllocation: utils.formatAllocationFromDecimal(0.2), decimals: mintable1Decimals },
+        { assetAddress: mintable2.target, targetAllocation: utils.formatAllocationFromDecimal(0.1), decimals: mintable2Decimals },
+        { assetAddress: mintable3.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.2) - utils.formatAllocationFromDecimal(0.1), decimals: mintable3Decimals }
+      ];
+      await expect(
+        liquidityPool.setTargetAssetParams(params0)
+      ).to.be.revertedWith("decimal mismatch");
+    })
+
     it("reverts if total target allocation is above 1", async function() {
       const { liquidityPool, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
       const params = [
