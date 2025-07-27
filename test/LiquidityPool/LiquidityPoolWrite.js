@@ -208,8 +208,6 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const currentAllocation0 = (previousSpecificReservesScaled0 << 96n) / totalReservesScaled
       const currentAllocation1 = (previousSpecificReservesScaled1 << 96n) / totalReservesScaled
       const currentAllocation2 = (previousSpecificReservesScaled2 << 96n) / totalReservesScaled
-      console.log("balance:", await indexToken.balanceOf(admin))
-      console.log("burnamt:", burnAmount)
       await expect(
         liquidityPool.connect(admin).burn(burnAmount, "0x")
       ).to.emit(liquidityPool, "Burn");
