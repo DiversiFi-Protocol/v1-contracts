@@ -123,14 +123,14 @@ contract IndexToken is ERC20Permit {
     );
     _migrationSlot0.lastBalanceMultiplier = finalBalanceMultiplier;
     if (surplus > 0) {
-      //send the surplus to the next liquidity pool
-      mint(_migrationSlot0.nextLiquidityPool, uint256(surplus));
+      //send the surplus to the next liquidity pool (ignores normal mint permission check)
+      _mint(_migrationSlot0.nextLiquidityPool, uint256(surplus));
     }
     _liquidityPool = _migrationSlot0.nextLiquidityPool;
     _migrationSlot0.nextLiquidityPool = address(0);
   }
 
-  function mint(address recipient, uint256 amount) public {
+  function mint(address recipient, uint256 amount) external {
     if (isMigrating()) {
       require(msg.sender == _migrationSlot0.nextLiquidityPool, "only next liquidity pool can mint during migration");
     } else {
