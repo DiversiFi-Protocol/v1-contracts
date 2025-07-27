@@ -32,30 +32,60 @@ module.exports = async function deployAll() {
       await indexToken.getAddress(),
     ]);
 
+    const liquidityPoolHelper = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool.getAddress(),
+      await indexToken.getAddress()
+    ])
+
     const liquidityPool0 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+
+    const liquidityPoolHelper0 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool0.getAddress(),
+      await indexToken.getAddress()
+    ])
 
     const liquidityPool1 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
 
+    const liquidityPoolHelper1 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool1.getAddress(),
+      await indexToken.getAddress()
+    ])
+
     const liquidityPool2 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+
+    const liquidityPoolHelper2 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool2.getAddress(),
+      await indexToken.getAddress()
+    ])
 
     const liquidityPool3 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
 
+    const liquidityPoolHelper3 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool3.getAddress(),
+      await indexToken.getAddress()
+    ])
+
     const liquidityPool4 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+
+    const liquidityPoolHelper4 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+      await liquidityPool4.getAddress(),
+      await indexToken.getAddress()
+    ])
 
     const mintable0 = await hre.ethers.deployContract("MintableERC20", [
       "Mintable0",
@@ -87,6 +117,8 @@ module.exports = async function deployAll() {
     await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
     await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
     await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    await indexToken.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+
 
     assetParams0 = {
       decimals: mintable0Decimals,
@@ -177,5 +209,11 @@ module.exports = async function deployAll() {
       assetParamsNoMintable2,
       minBalanceMultiplierChangeDelay,
       maxBalanceMultiplierChangePerSecondQ96,
+      liquidityPoolHelper,
+      liquidityPoolHelper0,
+      liquidityPoolHelper1,
+      liquidityPoolHelper2,
+      liquidityPoolHelper3,
+      liquidityPoolHelper4
     };
   }

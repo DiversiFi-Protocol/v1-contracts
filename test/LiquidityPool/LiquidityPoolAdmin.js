@@ -24,6 +24,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setAdmin(admin.address))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setAdmin(unpriviledged)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setMintFeeQ96", function() {
@@ -40,6 +45,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setMintFeeQ96(newFee))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setMintFeeQ96(0n)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setBurnFeeQ96", function() {
@@ -56,6 +66,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setBurnFeeQ96(newFee))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setBurnFeeQ96(0n)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setMaxReservesIncreaseCooldown", function() {
@@ -72,6 +87,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseCooldown(newCooldown))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setMaxReservesIncreaseRateQ96", function() {
@@ -88,6 +108,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseRateQ96(newRate))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setMaxReserves", function() {
@@ -107,6 +132,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setMaxReserves(newMax))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setMaxReserves(0n)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setTargetAssetParams", function() {
@@ -187,6 +217,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setTargetAssetParams(params))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setTargetAssetParams([])).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("withdrawFees", function() {
@@ -209,6 +244,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).withdrawFees(unpriviledged.address))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.withdrawFees(unpriviledged.address)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("setIsMintEnabled", function() {
@@ -224,6 +264,11 @@ describe("LiquidityPool - Admin Functions", function() {
       await expect(liquidityPool.connect(unpriviledged).setIsMintEnabled(true))
         .to.be.revertedWith("only_admin");
     });
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.setIsMintEnabled(true)).to.be.revertedWith("pool is emigrating")
+    })
   });
 
   describe("increaseEqualizationBounty", function() {
@@ -260,6 +305,11 @@ describe("LiquidityPool - Admin Functions", function() {
       const secondBounty = 42000n
       await liquidityPool.increaseEqualizationBounty(secondBounty)
       expect(await liquidityPool.getEqualizationBounty()).to.equal(initialBounty + secondBounty)
+    })
+    it("reverts when called during migration", async function() {
+      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      await liquidityPool.startEmigration(liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96)
+      await expect(liquidityPool.increaseEqualizationBounty(69n)).to.be.revertedWith("pool is emigrating")
     })
   })
 

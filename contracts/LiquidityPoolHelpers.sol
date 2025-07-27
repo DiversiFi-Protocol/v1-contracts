@@ -26,8 +26,6 @@ contract LiquidityPoolHelpers {
     indexToken = IIndexToken(liquidityPool.getIndexToken());
   }
 
-
-
   /// @dev burns the caller's entire balance, useful if the pool is migrating
   /// and the caller's balance is constantly decreasing, making it difficult to
   /// predict the balance at the moment of execution.
@@ -36,11 +34,16 @@ contract LiquidityPoolHelpers {
     AssetParams[] memory currentAssetParams = liquidityPool.getCurrentAssetParams();
     //approve all assets
     for(uint i = 0; i < currentAssetParams.length; i++) {
-      if(IERC20(currentAssetParams[i].assetAddress).allowance(address(this), address(liquidityPool)) < type(uint256).max / 2) {
-        IERC20(currentAssetParams[i].assetAddress).approve(address(liquidityPool), type(uint256).max);
+      IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
+      if(asset.allowance(address(this), address(liquidityPool)) < type(uint256).max / 2) {
+        asset.approve(address(liquidityPool), type(uint256).max);
       }
     }
-    
+    ILiquidityPoolWrite(address(liquidityPool)).burn(burnAmount, "");
+    for(uint i = 0; i < currentAssetParams.length; i++) {
+      IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
+      asset.transfer(msg.sender, asset.balanceOf(address(this)));
+    }
   }
 
   function quoteMint(uint256 mintAmount) external returns (AssetAmount[] memory inputAmounts) {
