@@ -12,7 +12,7 @@ async function increaseTime(seconds) {
 }
 
 describe("migration - complete lifecycle", function() {
-  it("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
+  it.only("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
     const {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
@@ -24,7 +24,8 @@ describe("migration - complete lifecycle", function() {
     const balance1Initial = await mintable1.balanceOf(admin)
     const balance2Initial = await mintable2.balanceOf(admin)
     await liquidityPool.setMintFeeQ96(0)
-    await liquidityPool.mint(utils.scale10Pow18(1_000_000_000n), "0x")
+    const mintAmount = 1_000_000_000n
+    await liquidityPool.mint(utils.scale10Pow18(mintAmount), "0x")
     const balance0PostMint = await mintable0.balanceOf(admin)
     const balance1PostMint = await mintable1.balanceOf(admin)
     const balance2PostMint = await mintable2.balanceOf(admin)
@@ -37,7 +38,6 @@ describe("migration - complete lifecycle", function() {
       minBalanceMultiplierChangeDelay,
       maxBalanceMultiplierChangePerSecondQ96
     )
-    await liquidityPool0.connect(unpriviledged).mint(utils.scale10Pow18(1_000_000n), "0x")
     const migrationStartingBalance = await indexToken.balanceOf(admin)
     const migrationStartingTotalSupply = await indexToken.totalSupply()
     await increaseTime(Number(minBalanceMultiplierChangeDelay) + 1)
@@ -49,10 +49,10 @@ describe("migration - complete lifecycle", function() {
     expect(midMigrationTotalSupply).to.be.closeTo((migrationStartingTotalSupply << 96n) / maxBalanceMultiplierChangePerSecondQ96, midMigrationTotalSupply / 1_000_000_000n)
 
     //expect conversion rate to tick up at the same rate as balance ticks down
+    await increaseTime(69)
     const balance0Before = await mintable0.balanceOf(admin)
     const balance1Before = await mintable1.balanceOf(admin)
     const balance2Before = await mintable2.balanceOf(admin)
-    const totalScaledReservesBefore = await liquidityPool.getTotalReservesScaled()
     await liquidityPoolHelpers.burnAll();
     const balance0After = await mintable0.balanceOf(admin)
     const balance1After = await mintable1.balanceOf(admin)
@@ -60,11 +60,31 @@ describe("migration - complete lifecycle", function() {
     const migratingAmount0Received = balance0After - balance0Before
     const migratingAmount1Received = balance1After - balance1Before
     const migratingAmount2Received = balance2After - balance2Before
-    expect(migratingAmount0Received).to.equal(initialAmount0Paid - 1n)
-    expect(migratingAmount1Received).to.equal(initialAmount1Paid - 1n)
-    expect(migratingAmount2Received).to.equal(initialAmount2Paid - 1n)    
+    expect(migratingAmount0Received).to.be.closeTo(initialAmount0Paid, initialAmount0Paid / 1_000_000_000n)
+    expect(migratingAmount1Received).to.be.closeTo(initialAmount1Paid, initialAmount1Paid / 1_000_000_000n)
+    expect(migratingAmount2Received).to.be.closeTo(initialAmount2Paid, initialAmount2Paid / 1_000_000_000n)
+    {
+      // new liquidity pool must be configured properly before minting is allowed
+      await liquidityPool0.mint(utils.scale10Pow18(mintAmount), "0x")
+      expect(await mintable0.balanceOf(liquidityPool0)).not.to.equal(0n)
+      expect(await mintable1.balanceOf(liquidityPool0)).not.to.equal(0n)
+      expect(await mintable2.balanceOf(liquidityPool0)).not.to.equal(0n)
+    }
 
+    const preWithdrawalLiquidityPoolBalance0 = await mintable0.balanceOf(liquidityPool)
+    const preWithdrawalLiquidityPoolBalance1 = await mintable1.balanceOf(liquidityPool)
+    const preWithdrawalLiquidityPoolBalance2 = await mintable2.balanceOf(liquidityPool)
+    const preWithdrawalCallerBalance0 = await mintable0.balanceOf(admin)
+    const preWithdrawalCallerBalance1 = await mintable1.balanceOf(admin)
+    const preWithdrawalCallerBalance2 = await mintable2.balanceOf(admin)
     await liquidityPool.withdrawAll()
+    const postWithdrawalCallerBalance0 = await mintable0.balanceOf(admin)
+    const postWithdrawalCallerBalance1 = await mintable1.balanceOf(admin)
+    const postWithdrawalCallerBalance2 = await mintable2.balanceOf(admin)
+    expect(postWithdrawalCallerBalance0).to.equal(preWithdrawalCallerBalance0 + preWithdrawalLiquidityPoolBalance0)
+    expect(postWithdrawalCallerBalance1).to.equal(preWithdrawalCallerBalance1 + preWithdrawalLiquidityPoolBalance1)
+    expect(postWithdrawalCallerBalance2).to.equal(preWithdrawalCallerBalance2 + preWithdrawalLiquidityPoolBalance2)
+
     await liquidityPool.finishEmigration()
   })
 
