@@ -148,7 +148,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     //in this case, we must scale up the "true" burn amount proportionally.
     trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
-    outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
+    outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
@@ -630,6 +630,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     );
   }
 
+  /// @inheritdoc ILiquidityPoolAdmin
   function finishEmigration() external mustIsEmigrating {
     require(nextLiquidityPool_ != address(0), "liquidity pool not migrating");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
@@ -640,7 +641,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     //each token is backed 1:1. In this case, the burned tokens will be re-minted immediately
     //we do this instead of transferring them because this contract doesn't have access
     //to the required data to calculate the surplus/deficit.
-    indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
+    indexToken_.transfer(address(this), indexToken_.balanceOf(address(this)));
     uint256 finalTotalReservesScaled = ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled();
     indexToken_.finishMigration(finalTotalReservesScaled);
     delete migrationSlot_;
