@@ -12,17 +12,19 @@ async function increaseTime(seconds) {
 }
 
 describe("migration - complete lifecycle", function() {
-  it.only("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
+  it("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
     const {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96,
+      liquidityPoolHelpers, liquidityPoolHelpers0, liquidityPoolHelpers1, liquidityPoolHelpers2, liquidityPoolHelpers3, liquidityPoolHelpers4,
     } = await loadFixture(deployAll)
     const balance0Initial = await mintable0.balanceOf(admin)
     const balance1Initial = await mintable1.balanceOf(admin)
     const balance2Initial = await mintable2.balanceOf(admin)
-    await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
+    await liquidityPool.setMintFeeQ96(0)
+    await liquidityPool.mint(utils.scale10Pow18(1_000_000_000n), "0x")
     const balance0PostMint = await mintable0.balanceOf(admin)
     const balance1PostMint = await mintable1.balanceOf(admin)
     const balance2PostMint = await mintable2.balanceOf(admin)
@@ -38,7 +40,7 @@ describe("migration - complete lifecycle", function() {
     await liquidityPool0.connect(unpriviledged).mint(utils.scale10Pow18(1_000_000n), "0x")
     const migrationStartingBalance = await indexToken.balanceOf(admin)
     const migrationStartingTotalSupply = await indexToken.totalSupply()
-    await increaseTime(Number(minBalanceMultiplierChangeDelay))
+    await increaseTime(Number(minBalanceMultiplierChangeDelay) + 1)
 
     //expect balance and total supply to tick down
     const midMigrationBalance = await indexToken.balanceOf(admin)
@@ -50,15 +52,15 @@ describe("migration - complete lifecycle", function() {
     const balance0Before = await mintable0.balanceOf(admin)
     const balance1Before = await mintable1.balanceOf(admin)
     const balance2Before = await mintable2.balanceOf(admin)
-    const totalScaledReservesBefore = await liquidityPool.totaReservesScaled()
-    await liquidityPool.burn(await indexToken.balanceOf(admin), "0x")
+    const totalScaledReservesBefore = await liquidityPool.getTotalReservesScaled()
+    await liquidityPoolHelpers.burnAll();
     const balance0After = await mintable0.balanceOf(admin)
     const balance1After = await mintable1.balanceOf(admin)
     const balance2After = await mintable2.balanceOf(admin)
     const migratingAmount0Received = balance0After - balance0Before
     const migratingAmount1Received = balance1After - balance1Before
     const migratingAmount2Received = balance2After - balance2Before
-    expect(migratingAmount0Received).to.equal(initialAmount0Paid -1n)
+    expect(migratingAmount0Received).to.equal(initialAmount0Paid - 1n)
     expect(migratingAmount1Received).to.equal(initialAmount1Paid - 1n)
     expect(migratingAmount2Received).to.equal(initialAmount2Paid - 1n)    
 

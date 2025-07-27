@@ -11,6 +11,8 @@
 
 pragma solidity ^0.8.27;
 
+import "hardhat/console.sol";
+
 import "./interfaces/ILiquidityPoolGetters.sol";
 import "./interfaces/ILiquidityPoolWrite.sol";
 import "./interfaces/IIndexToken.sol";
@@ -31,6 +33,7 @@ contract LiquidityPoolHelpers {
   /// predict the balance at the moment of execution.
   function burnAll() external {
     uint256 burnAmount = indexToken.balanceOf(msg.sender);
+    indexToken.transferFrom(msg.sender, address(this), burnAmount);
     AssetParams[] memory currentAssetParams = liquidityPool.getCurrentAssetParams();
     //approve all assets
     for(uint i = 0; i < currentAssetParams.length; i++) {

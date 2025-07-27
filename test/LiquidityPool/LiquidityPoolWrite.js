@@ -4,6 +4,13 @@ const utils = require("../testModules/utils.js");
 const deployAll = require("../deployAll.js");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
+async function increaseTime(seconds) {
+  await ethers.provider.send("evm_increaseTime", [seconds]);
+
+  // Mine a new block so the increased time takes effect
+  await ethers.provider.send("evm_mine", []);
+}
+
 describe("LiquidityPool - Mint/Burn Functions", function () {
   describe("mint", function () {
     it("mints liquidity tokens and updates reserves as expected", async function () {
@@ -201,8 +208,8 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const currentAllocation0 = (previousSpecificReservesScaled0 << 96n) / totalReservesScaled
       const currentAllocation1 = (previousSpecificReservesScaled1 << 96n) / totalReservesScaled
       const currentAllocation2 = (previousSpecificReservesScaled2 << 96n) / totalReservesScaled
-
-      await indexToken.connect(admin).approve(liquidityPool.target, burnAmount);
+      console.log("balance:", await indexToken.balanceOf(admin))
+      console.log("burnamt:", burnAmount)
       await expect(
         liquidityPool.connect(admin).burn(burnAmount, "0x")
       ).to.emit(liquidityPool, "Burn");
@@ -255,6 +262,47 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       expect(actualIncrease1).to.equal(expectedIncrease1);
       expect(actualIncrease2).to.equal(expectedIncrease2);
     });
+    
+    it("should give a discount if migrating", async function() {
+      const {
+        indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+        admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
+        assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
+        assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96,
+        liquidityPoolHelpers, liquidityPoolHelpers0, liquidityPoolHelpers1, liquidityPoolHelpers2, liquidityPoolHelpers3, liquidityPoolHelpers4,
+      } = await loadFixture(deployAll)
+      await liquidityPool.setMintFeeQ96(0)
+      const balance0Initial = await mintable0.balanceOf(admin)
+      const balance1Initial = await mintable1.balanceOf(admin)
+      const balance2Initial = await mintable2.balanceOf(admin)
+      await liquidityPool.mint(utils.scale10Pow18(1_000_000_000n), "0x")
+      const balance0PostMint = await mintable0.balanceOf(admin)
+      const balance1PostMint = await mintable1.balanceOf(admin)
+      const balance2PostMint = await mintable2.balanceOf(admin)
+      const initialAmount0Paid = BigInt(balance0Initial - balance0PostMint)
+      const initialAmount1Paid = BigInt(balance1Initial - balance1PostMint)
+      const initialAmount2Paid = BigInt(balance2Initial - balance2PostMint)
+      await liquidityPool.startEmigration(
+        liquidityPool0,
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96
+      )
+      await increaseTime(Number(minBalanceMultiplierChangeDelay) + 100)
+      const balance0Before = await mintable0.balanceOf(admin)
+      const balance1Before = await mintable1.balanceOf(admin)
+      const balance2Before = await mintable2.balanceOf(admin)
+      await liquidityPoolHelpers.burnAll()
+      const balance0After = await mintable0.balanceOf(admin)
+      const balance1After = await mintable1.balanceOf(admin)
+      const balance2After = await mintable2.balanceOf(admin)
+      const migratingAmount0Received = balance0After - balance0Before
+      const migratingAmount1Received = balance1After - balance1Before
+      const migratingAmount2Received = balance2After - balance2Before
+      //it should recieve back the same amount that it paid even though its balance has decreased
+      expect(migratingAmount0Received).to.be.closeTo(initialAmount0Paid, initialAmount0Paid / 1_000_000_000_000n)
+      expect(migratingAmount1Received).to.be.closeTo(initialAmount1Paid, initialAmount1Paid / 1_000_000_000_000n)
+      expect(migratingAmount2Received).to.be.closeTo(initialAmount2Paid, initialAmount2Paid / 1_000_000_000_000n)
+    })
 
     it("reverts if user tries to burn more than their balance", async function () {
       const { liquidityPool, indexToken, admin } = await loadFixture(deployAll);
