@@ -10,7 +10,6 @@
  */
 
 pragma solidity ^0.8.27;
-import "hardhat/console.sol";
 
 import "./PoolMath.sol";
 import "./DataStructs.sol";
@@ -569,6 +568,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint88[] memory targetAllocations = new uint88[](_params.length);
     uint8[] memory decimalsList = new uint8[](_params.length);
     for (uint i = 0; i < _params.length; i++) {
+      require(_params[i].assetAddress != address(indexToken_), "index not allowed");
+      require(IIndexToken(_params[i].assetAddress).decimals() == _params[i].decimals, "decimal mismatch");
       assetAddresses[i] = _params[i].assetAddress;
       targetAllocations[i] = _params[i].targetAllocation;
       decimalsList[i] = _params[i].decimals;

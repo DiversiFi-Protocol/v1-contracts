@@ -10,6 +10,8 @@ module.exports = async function deployAll() {
     const mintable1Decimals = 20n;
     const mintable1TargetAllocation = utils.formatAllocationFromDecimal(0.333333333333333333333333333333333)
     const mintable2Decimals = 6n;
+    const mintable3Decimals = 17n;
+    const mintable4Decimals = 16n;
     //the remaining allocation goes to mintable2
     const mintable2TargetAllocation = MAX_ALLOCATION - mintable0TargetAllocation - mintable1TargetAllocation;
     const [admin, unpriviledged] = await hre.ethers.getSigners()
@@ -28,6 +30,16 @@ module.exports = async function deployAll() {
       "Mintable2",
       "M2",
       mintable2Decimals,
+    ]);
+    const mintable3 = await hre.ethers.deployContract("MintableERC20", [
+      "Mintable3",
+      "M3",
+      mintable3Decimals,
+    ]);
+    const mintable4 = await hre.ethers.deployContract("MintableERC20", [
+      "Mintable4",
+      "M4",
+      mintable4Decimals,
     ]);
 
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
@@ -202,6 +214,13 @@ module.exports = async function deployAll() {
       mintable0,
       mintable1,
       mintable2,
+      mintable3,
+      mintable4,
+      mintable0Decimals,
+      mintable1Decimals,
+      mintable2Decimals,
+      mintable3Decimals,
+      mintable4Decimals,
       maxReserves,
       maxReservesIncreaseRateQ96,
       assetParams0,
