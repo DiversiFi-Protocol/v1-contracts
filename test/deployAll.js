@@ -26,66 +26,73 @@ module.exports = async function deployAll() {
       minBalanceMultiplierChangeDelay,
       maxBalanceMultiplierChangePerSecondQ96
     ]);
+    const approveAddresses = []
 
     const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool.getAddress())
 
-    const liquidityPoolHelper = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers.getAddress())
 
     const liquidityPool0 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool0.getAddress())
 
-    const liquidityPoolHelper0 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers0 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool0.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers0.getAddress())
 
     const liquidityPool1 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool1.getAddress())
 
-    const liquidityPoolHelper1 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers1 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool1.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers1.getAddress())
 
     const liquidityPool2 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool2.getAddress())
 
-    const liquidityPoolHelper2 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers2 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool2.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers2.getAddress())
 
     const liquidityPool3 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool3.getAddress())
 
-    const liquidityPoolHelper3 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers3 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool3.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers3.getAddress())
 
     const liquidityPool4 = await hre.ethers.deployContract("LiquidityPool", [
       await admin.getAddress(),
       await indexToken.getAddress(),
     ]);
+    approveAddresses.push(await liquidityPool4.getAddress())
 
-    const liquidityPoolHelper4 = await hr.ethers.deployContract("LiquidityPoolHelper", [
+    const liquidityPoolHelpers4 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
       await liquidityPool4.getAddress(),
-      await indexToken.getAddress()
     ])
+    approveAddresses.push(await liquidityPoolHelpers4.getAddress())
 
     const mintable0 = await hre.ethers.deployContract("MintableERC20", [
       "Mintable0",
@@ -106,18 +113,23 @@ module.exports = async function deployAll() {
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable1.approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable2.approve(liquidityPool.target, utils.MAX_UINT_256)
-    await indexToken.approve(liquidityPool.target, utils.MAX_UINT_256)
+    await Promise.all(approveAddresses.map(async address => {
+      await mintable0.approve(address, utils.MAX_UINT_256)
+      await mintable1.approve(address, utils.MAX_UINT_256)
+      await mintable2.approve(address, utils.MAX_UINT_256)
+      await indexToken.approve(address, utils.MAX_UINT_256)
+
+      await mintable0.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+      await mintable1.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+      await mintable2.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+      await indexToken.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+    }))
+    
 
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
-    await mintable0.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable1.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-    await mintable2.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
-    await indexToken.attach(unpriviledged).approve(liquidityPool.target, utils.MAX_UINT_256)
+    
 
 
     assetParams0 = {
@@ -209,11 +221,11 @@ module.exports = async function deployAll() {
       assetParamsNoMintable2,
       minBalanceMultiplierChangeDelay,
       maxBalanceMultiplierChangePerSecondQ96,
-      liquidityPoolHelper,
-      liquidityPoolHelper0,
-      liquidityPoolHelper1,
-      liquidityPoolHelper2,
-      liquidityPoolHelper3,
-      liquidityPoolHelper4
+      liquidityPoolHelpers,
+      liquidityPoolHelpers0,
+      liquidityPoolHelpers1,
+      liquidityPoolHelpers2,
+      liquidityPoolHelpers3,
+      liquidityPoolHelpers4
     };
   }
