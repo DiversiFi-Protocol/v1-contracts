@@ -80,13 +80,21 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   constructor(
     address _admin,
-    address _indexToken
-    ) {
+    address _indexToken,
+    uint256 _mintFeeQ96,
+    uint256 _burnFeeQ96,
+    uint256 _maxReserves,
+    AssetParams[] memory _assetParams
+  ) {
     indexToken_ = IIndexToken(_indexToken);
+    admin_ = address(this);//make this contract teporary admin so we can set the asset params
+    setTargetAssetParams(_assetParams);
     admin_ = _admin;
     DECIMAL_SCALE = indexToken_.decimals();
-    maxReserves_ = 1e6 * 10 ** DECIMAL_SCALE; //initial limit is 1 million scaled reserves
-    maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 10; //the next limit will be 1/10th larger than the current limit
+    maxReserves_ = _maxReserves;
+    maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 100; //1% increase per cooldown period
+    mintFeeQ96_ = _mintFeeQ96;
+    burnFeeQ96_ = _burnFeeQ96;
   }
   
   /*
@@ -552,7 +560,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setTargetAssetParams(AssetParams[] calldata _params) external onlyAdmin mustNotEmigrating {
+  function setTargetAssetParams(AssetParams[] memory _params) public onlyAdmin mustNotEmigrating {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
     {//scope reduction
