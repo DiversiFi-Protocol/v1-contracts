@@ -287,35 +287,6 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       await liquidityPool0.mint(52069n, "0x")
       await expect(liquidityPool0.burn(42069n, "0x")).to.be.revertedWith("only liquidity pool")
     })
-
-    it.only("should be able to burn all reserves when migrating by passing totalReservesScaled", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
-      console.log("reserves0", await liquidityPool.getSpecificReservesScaled(mintable0.target), await liquidityPool.getSpecificReserves(mintable0.target))
-      console.log("reserves1", await liquidityPool.getSpecificReservesScaled(mintable1.target), await liquidityPool.getSpecificReserves(mintable1.target))
-      console.log("reserves2", await liquidityPool.getSpecificReservesScaled(mintable2.target), await liquidityPool.getSpecificReserves(mintable2.target))
-      console.log("totalReservesScaled:", await liquidityPool.getTotalReservesScaled(), await indexToken.totalSupply())
-      await liquidityPool.mint(utils.scale10Pow18(42069n), "0x")
-      await liquidityPool.startEmigration(
-        liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
-      )
-      console.log("reserves0", await liquidityPool.getSpecificReservesScaled(mintable0.target), await liquidityPool.getSpecificReserves(mintable0.target))
-      console.log("reserves1", await liquidityPool.getSpecificReservesScaled(mintable1.target), await liquidityPool.getSpecificReserves(mintable1.target))
-      console.log("reserves2", await liquidityPool.getSpecificReservesScaled(mintable2.target), await liquidityPool.getSpecificReserves(mintable2.target))
-      console.log("totalReservesScaled:", await liquidityPool.getTotalReservesScaled(), await indexToken.totalSupply())
-      await liquidityPool0.mint(await liquidityPool.getTotalReservesScaled(), "0x")
-      console.log("reserves0", await liquidityPool.getSpecificReservesScaled(mintable0.target), await liquidityPool.getSpecificReserves(mintable0.target))
-      console.log("reserves1", await liquidityPool.getSpecificReservesScaled(mintable1.target), await liquidityPool.getSpecificReserves(mintable1.target))
-      console.log("reserves2", await liquidityPool.getSpecificReservesScaled(mintable2.target), await liquidityPool.getSpecificReserves(mintable2.target))
-      console.log("totalReservesScaled:", await liquidityPool.getTotalReservesScaled(), await indexToken.totalSupply())
-      await liquidityPool.burn(await liquidityPool.getTotalReservesScaled(), "0x")
-      console.log("reserves0", await liquidityPool.getSpecificReservesScaled(mintable0.target), await liquidityPool.getSpecificReserves(mintable0.target))
-      console.log("reserves1", await liquidityPool.getSpecificReservesScaled(mintable1.target), await liquidityPool.getSpecificReserves(mintable1.target))
-      console.log("reserves2", await liquidityPool.getSpecificReservesScaled(mintable2.target), await liquidityPool.getSpecificReserves(mintable2.target))
-      console.log("totalReservesScaled:", await liquidityPool.getTotalReservesScaled(), await indexToken.totalSupply())
-      expect(await liquidityPool.getTotalReservesScaled()).to.equal(0n)
-    })
   });
 
   describe("swapTowardsTarget", function() {
@@ -1251,6 +1222,32 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const callerIndexReservesAfter = await indexToken.balanceOf(admin.address)
       expect(callerIndexReservesAfter - callerIndexReservesBefore).to.equal(equalizationBounty)
       expect(bountyRemainingAfter).to.equal(equalizationBounty)
+    })
+  })
+
+  describe("withdrawAll", function() {
+    it("should be able to withdraw all reserves", async function() {
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      await liquidityPool.mint(utils.scale10Pow18(42069n), "0x")
+      await liquidityPool.startEmigration(
+        liquidityPool0,
+        minBalanceMultiplierChangeDelay,
+        maxBalanceMultiplierChangePerSecondQ96
+      )
+      await liquidityPool0.mint(await liquidityPool.getTotalReservesScaled(), "0x")
+      await liquidityPool.withdrawAll()
+      expect(await liquidityPool.getTotalReservesScaled()).to.equal(0n)
+      expect(await liquidityPool.getSpecificReservesScaled(mintable0)).to.equal(0n)
+      expect(await liquidityPool.getSpecificReservesScaled(mintable1)).to.equal(0n)
+      expect(await liquidityPool.getSpecificReservesScaled(mintable2)).to.equal(0n)
+      expect(await liquidityPool.getSpecificReserves(mintable0)).to.equal(0n)
+      expect(await liquidityPool.getSpecificReserves(mintable1)).to.equal(0n)
+      expect(await liquidityPool.getSpecificReserves(mintable2)).to.equal(0n)
+    })
+
+    it("should not be callable if the pool is not emigrating", async function() {
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      await expect(liquidityPool.withdrawAll()).to.be.revertedWith("pool is not emigrating")
     })
   })
 });

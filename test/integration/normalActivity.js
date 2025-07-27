@@ -5,7 +5,7 @@ const deployAll = require("../deployAll.js");
 const { time } = require("@nomicfoundation/hardhat-network-helpers");
 
 describe("normal minting and burning activity", function() {
-  it.only("minting and burning equal amounts should never result in less totalReserves than totalSupply", async function() {
+  it("minting and burning equal amounts should never result in less totalReserves than totalSupply", async function() {
     const {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
