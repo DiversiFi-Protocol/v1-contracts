@@ -146,7 +146,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 trueBurnAmount = _burnAmount - fee;
     //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
     //in this case, we must scale up the "true" burn amount proportionally.
-    trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
+    uint256 discoutAppliedBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
     outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
@@ -159,9 +159,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         we may not be able to send the exact target transfer amount because of precision loss
         when scaling the transfer amount to the asset's decimals.
       */
-      uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
+      uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * discoutAppliedBurnAmount);
       uint256 trueWithdrawal = PoolMath.scaleDecimals(targetScaledWithdrawal, DECIMAL_SCALE, params.decimals);
       uint256 trueScaledWithdrawal = PoolMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
+      console.log("withdrawal:", trueWithdrawal);
       IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
 
       AssetAmount memory assetAmount;
