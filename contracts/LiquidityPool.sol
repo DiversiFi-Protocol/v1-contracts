@@ -51,7 +51,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private mintFeeQ96_ = 0;
   uint256 private burnFeeQ96_ = 0;
   uint256 private equalizationBounty_ = 0;//a bounty paid to callers of swapTowardsTarget or EqualizeToTarget in the form of a discount applied to the swap
-  uint256 private maxReservesIncreaseRateQ96_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
 
   /*~~~~~~~~~~~~~~~~~~~~~loss prevention measures~~~~~~~~~~~~~~~~~~~~*/
   //admin switches
@@ -60,7 +59,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   //automated max reserves limiting
   uint256 private maxReserves_;//the maximum numerical value of totalScaledReserves
-  uint256 private maxReservesIncreaseCooldown_ = 1 days;//the delay before an unpriviledged user can increase the maxReserves again
+  uint256 private maxReservesIncreaseRateQ96_;//maxReserves can be increased by this number * maxReserves every time it is increased via public cooldown
+  uint256 private maxReservesIncreaseCooldown_ = 1 hours;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
   modifier onlyAdmin {
@@ -84,15 +84,16 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     uint256 _mintFeeQ96,
     uint256 _burnFeeQ96,
     uint256 _maxReserves,
+    uint256 _maxReservesIncreaseRateQ96,
     AssetParams[] memory _assetParams
   ) {
     indexToken_ = IIndexToken(_indexToken);
-    admin_ = address(this);//make this contract teporary admin so we can set the asset params
+    admin_ = msg.sender;//make the caller teporary admin so we can set the asset params
     setTargetAssetParams(_assetParams);
     admin_ = _admin;
     DECIMAL_SCALE = indexToken_.decimals();
     maxReserves_ = _maxReserves;
-    maxReservesIncreaseRateQ96_ = PoolMath.toFixed(1) / 100; //1% increase per cooldown period
+    maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     mintFeeQ96_ = _mintFeeQ96;
     burnFeeQ96_ = _burnFeeQ96;
   }
