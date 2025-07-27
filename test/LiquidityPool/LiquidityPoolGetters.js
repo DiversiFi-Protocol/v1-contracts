@@ -195,15 +195,17 @@ describe("LiquidityPool - Getters", function () {
 
   it("getMaxReservesIncreaseCooldown", async function () {
     const { liquidityPool } = await loadFixture(deployAll);
-    // Default value is 1 day in seconds
+    // Default value is 1 hour in seconds
     const result = await liquidityPool.getMaxReservesIncreaseCooldown();
-    expect(result).to.equal(24 * 60 * 60); // 1 day in seconds
+    expect(result).to.equal(60 * 60); // 1 hour in seconds
   });
 
   it("getLastMaxReservesChangeTimestamp", async function () {
     const { liquidityPool, setMaxReservesTimestamp } = await loadFixture(deployAll);
+    await liquidityPool.setMaxReserves(42069n)
+    const latestBlock = await ethers.provider.getBlock("latest");
     const result = await liquidityPool.getLastMaxReservesChangeTimestamp();
-    expect(result).to.equal(setMaxReservesTimestamp);
+    expect(result).to.equal(latestBlock.timestamp);
   });
 
   it("getEqualizationVectorScaled", async function () {
