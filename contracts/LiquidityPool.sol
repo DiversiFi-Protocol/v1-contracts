@@ -162,7 +162,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
       uint256 trueWithdrawal = PoolMath.scaleDecimals(targetScaledWithdrawal, DECIMAL_SCALE, params.decimals);
       uint256 trueScaledWithdrawal = PoolMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
-      console.log("withdrawal:", trueWithdrawal);
       IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
 
       AssetAmount memory assetAmount;

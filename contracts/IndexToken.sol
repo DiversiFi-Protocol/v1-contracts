@@ -195,7 +195,6 @@ contract IndexToken is ERC20Permit {
     uint256 amount
   ) internal override {
     uint256 baseAmount = scaleToBase(amount);
-    console.log("mintBaseAmt", baseAmount);
 
     _baseTotalSupply += baseAmount;
     _baseBalances[account] += baseAmount;
@@ -210,10 +209,7 @@ contract IndexToken is ERC20Permit {
     uint256 baseAmount = scaleToBase(amount);
 
     uint256 baseAccountBalance = _baseBalances[account];
-    console.log("baseBalance", baseAccountBalance);
-    console.log("baseAmount:", baseAmount);
     require(baseAccountBalance >= baseAmount, "ERC20: burn amount exceeds balance");
-    console.log("???");
     unchecked { _baseBalances[account] = baseAccountBalance - baseAmount; }
     _baseTotalSupply -= baseAmount;
 
