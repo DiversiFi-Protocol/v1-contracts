@@ -45,9 +45,14 @@ module.exports = async function deployAll() {
     await mintable0.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(admin.address, utils.MAX_UINT_256 / 2n)
+    await mintable3.mint(admin.address, utils.MAX_UINT_256 / 2n)
+    await mintable4.mint(admin.address, utils.MAX_UINT_256 / 2n)
     await mintable0.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable1.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
     await mintable2.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
+    await mintable3.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
+    await mintable4.mint(unpriviledged.address, utils.MAX_UINT_256 / 2n)
+
     assetParams0 = {
       decimals: mintable0Decimals,
       targetAllocation: mintable0TargetAllocation,
@@ -158,11 +163,15 @@ module.exports = async function deployAll() {
       await mintable0.approve(address, utils.MAX_UINT_256)
       await mintable1.approve(address, utils.MAX_UINT_256)
       await mintable2.approve(address, utils.MAX_UINT_256)
+      await mintable3.approve(address, utils.MAX_UINT_256)
+      await mintable4.approve(address, utils.MAX_UINT_256)
       await indexToken.approve(address, utils.MAX_UINT_256)
 
       await mintable0.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
       await mintable1.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
       await mintable2.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+      await mintable3.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
+      await mintable4.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
       await indexToken.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
     }))
     
