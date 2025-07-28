@@ -119,11 +119,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     inputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     for (uint i = 0; i < targetAssetParamsList_.length; i++) {
       AssetParams memory params = targetAssetParamsList_[i];
-      uint256 targetDeposit = PoolMath.fromFixed(
+      uint256 targetDepositScaled = PoolMath.fromFixed(
         PoolMath.allocationToFixed(params.targetAllocation) * trueMintAmount
       );
-      uint256 trueDeposit = PoolMath.scaleDecimals(targetDeposit, DECIMAL_SCALE, params.decimals) + 1;//round up
-      uint256 trueScaledDeposit = PoolMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
+      uint256 trueDeposit = PoolMath.scaleDecimals(targetDepositScaled, DECIMAL_SCALE, params.decimals) + 1;//round up
+      uint256 trueDepositScaled = PoolMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
 
       AssetAmount memory assetAmount;
@@ -131,8 +131,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       assetAmount.amount = trueDeposit;
       inputAmounts[i] = assetAmount;
 
-      totalReservesIncrease += trueScaledDeposit;
-      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueScaledDeposit;
+      totalReservesIncrease += trueDepositScaled;
+      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueDepositScaled;
       specificReservesScaled_[targetAssetParamsList_[i].assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ += totalReservesIncrease;
@@ -167,9 +167,9 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         we may not be able to send the exact target transfer amount because of precision loss
         when scaling the transfer amount to the asset's decimals.
       */
-      uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
-      uint256 trueWithdrawal = PoolMath.scaleDecimals(targetScaledWithdrawal, DECIMAL_SCALE, params.decimals);
-      uint256 trueScaledWithdrawal = PoolMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
+      uint256 targetWithdrawalScaled = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
+      uint256 trueWithdrawal = PoolMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
+      uint256 trueWithdrawalScaled = PoolMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
 
       AssetAmount memory assetAmount;
@@ -177,8 +177,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       assetAmount.amount = trueWithdrawal;
       outputAmounts[i] = assetAmount;
 
-      totalReserveReduction += trueScaledWithdrawal;
-      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueScaledWithdrawal;
+      totalReserveReduction += trueWithdrawalScaled;
+      scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueWithdrawalScaled;
       specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
