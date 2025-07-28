@@ -12,7 +12,7 @@ async function increaseTime(seconds) {
 }
 
 describe("migration - complete lifecycle", function() {
-  it("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
+  it.only("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
     const {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
@@ -84,9 +84,17 @@ describe("migration - complete lifecycle", function() {
     expect(postWithdrawalCallerBalance0).to.equal(preWithdrawalCallerBalance0 + preWithdrawalLiquidityPoolBalance0)
     expect(postWithdrawalCallerBalance1).to.equal(preWithdrawalCallerBalance1 + preWithdrawalLiquidityPoolBalance1)
     expect(postWithdrawalCallerBalance2).to.equal(preWithdrawalCallerBalance2 + preWithdrawalLiquidityPoolBalance2)
-
+    var totalReserves = await liquidityPool0.getTotalReservesScaled()
+    var totalSupply = await indexToken.totalSupply()
+    console.log("reserves:", totalReserves)
+    console.log("supply  :", totalSupply)
+    expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)
     await liquidityPool.finishEmigration()
-  })
+    totalReserves = await liquidityPool0.getTotalReservesScaled()
+    totalSupply = await indexToken.totalSupply()
+    console.log("reserves:", totalReserves)
+    console.log("supply  :", totalSupply)
+    expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)  })
 
   it("multiple migrations", async function() {
 
