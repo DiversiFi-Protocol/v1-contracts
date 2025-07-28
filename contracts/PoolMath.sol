@@ -11,6 +11,8 @@
 
 pragma solidity ^0.8.27;
 
+import "hardhat/console.sol";
+
 
 library PoolMath {
   uint256 constant SHIFT = 96; //shift a normal integer to get 96.96 fixed point
@@ -108,6 +110,7 @@ library PoolMath {
 
     surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceMultiplier));
     if (surplus >= 0) {
+      console.log("positive surplus:", uint256(surplus));
       return (lastBalanceMultiplier, surplus);
     } else {
       if (totalReserves == 0) {
@@ -117,7 +120,9 @@ library PoolMath {
         //since there is no infinity, we just use the max possible value instead
         return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceMultiplier)));
       }
-      return (uint96(baseTotalSupply / totalReserves), surplus);
+      console.log("negative surplus:", uint256(surplus * -1));
+      //round the multiplier up
+      return (uint96(baseTotalSupply / totalReserves) + 1, surplus);
     }
   }
 
