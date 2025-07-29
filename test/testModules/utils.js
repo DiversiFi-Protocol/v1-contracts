@@ -125,10 +125,10 @@ function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function predictDeposit(mintAmount, mintFeeQ96, assetParam) {
-  // const compoundingFeeRate()
+function predictDeposit(mintAmount, compoundingMintFeeQ96, assetParam) {
+  const trueMintAmount = (mintAmount * compoundingMintFeeQ96) >> SHIFT
   const allocation = scaleAllocation(assetParam.targetAllocation)
-  const targetDepositScaled = (allocation * mintAmount) >> SHIFT
+  const targetDepositScaled = (allocation * trueMintAmount) >> SHIFT
   const trueDeposit = scaleDecimals(targetDepositScaled, 18n, assetParam.decimals) + 1n
   const trueDepositScaled = scaleDecimals(trueDeposit, assetParam.decimals, 18n)
   return { true: trueDeposit, scaled: trueDepositScaled }
@@ -141,14 +141,17 @@ function predictWithdrawal(
   specificReservesScaled, 
   totalReservesScaled
 ) {
+  const trueBurnAmount = (burnAmount * burnFeeQ96) >> SHIFT
   const currentAllocation = (specificReservesScaled << SHIFT) / totalReservesScaled
-  const targetWithdrawalScaled = (burnAmount * currentAllocation) >> SHIFT
+  const targetWithdrawalScaled = (trueBurnAmount * currentAllocation) >> SHIFT
   const trueWithdrawal = scaleDecimals(targetWithdrawalScaled, 18n, assetParam.decimals)
   const trueWithdrawalScaled = scaleDecimals(trueWithdrawal, assetParam.decimals, 18n)
   return { true: trueWithdrawal, scaled: trueWithdrawalScaled }
 }
 
 module.exports = {
+  predictDeposit,
+  predictWithdrawal,
   scaleDecimals,
   randomBetween,
   randomBigInt,
