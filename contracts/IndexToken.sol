@@ -19,7 +19,8 @@ import "./PoolMath.sol";
 //a balance multiplier below this level gives sufficient space
 //for any reasonable migration, if the balance multiplier is above this number,
 //further soft migrations are not allowed.
-uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** 92;
+uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** (96 - 4);
+uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
 
 contract IndexToken is ERC20Permit {
   uint64 private immutable _minBalanceMultiplierChangeDelay;
@@ -198,6 +199,7 @@ contract IndexToken is ERC20Permit {
     address account,
     uint256 amount
   ) internal override {
+    require(totalSupply() + amount <= MAX_TOTAL_SUPPLY, "max supply");
     uint256 baseAmount = scaleToBase(amount);
 
     _baseTotalSupply += baseAmount;

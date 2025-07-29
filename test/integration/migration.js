@@ -97,7 +97,7 @@ describe("migration - complete lifecycle", function() {
     expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)  })
 
   it("multiple migrations", async function() {
-
+    const deployParams = await loadFixture(deployAll)
   })
 
   describe("migration during allocation change", function() {
