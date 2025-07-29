@@ -143,6 +143,10 @@ contract IndexToken is ERC20Permit {
     _burn(burnAddress, amount);
   }
 
+  function burn(uint256 amount) external {
+    _burn(msg.sender, amount);
+  }
+
   function balanceMultiplier() public view returns (uint96) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
     if (migrationSlot0.nextLiquidityPool == address(0)) {

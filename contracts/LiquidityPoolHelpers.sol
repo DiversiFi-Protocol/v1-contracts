@@ -49,9 +49,9 @@ contract LiquidityPoolHelpers {
     }
   }
 
-  function quoteMint(uint256 mintAmount) external returns (AssetAmount[] memory inputAmounts) {
+  function quoteMint(uint256 mintAmount) external returns (AssetAmount[] memory inputAmounts, uint256 fee) {
     require(liquidityPool.getIsMintEnabled(), "minting disabled");
-    uint256 fee = PoolMath.fromFixed(mintAmount * PoolMath.calcCompoundingFeeRate(liquidityPool.getMintFeeQ96()));
+    fee = PoolMath.fromFixed(mintAmount * PoolMath.calcCompoundingFeeRate(liquidityPool.getMintFeeQ96()));
     uint256 trueMintAmount = mintAmount + fee;
     AssetParams[] memory targetAssetParamsList = liquidityPool.getTargetAssetParams();
     uint256 finalTotalReserves = liquidityPool.getTotalReservesScaled();
@@ -78,9 +78,9 @@ contract LiquidityPoolHelpers {
     require(finalTotalReserves < maxTotalReserves, "max reserves limit");
   }
 
-  function quoteBurn(uint256 burnAmount) external returns (AssetAmount[] memory outputAmounts) {
+  function quoteBurn(uint256 burnAmount) external returns (AssetAmount[] memory outputAmounts, uint256 fee) {
     uint256 totalReservesScaled = liquidityPool.getTotalReservesScaled();
-    uint256 fee = PoolMath.fromFixed(burnAmount * liquidityPool.getBurnFeeQ96());
+    fee = PoolMath.fromFixed(burnAmount * liquidityPool.getBurnFeeQ96());
     uint256 trueBurnAmount = burnAmount - fee;
     //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
     //in this case, we must scale up the "true" burn amount proportionally.
@@ -99,6 +99,5 @@ contract LiquidityPoolHelpers {
       assetAmount.amount = trueWithdrawal;
       outputAmounts[i] = assetAmount;
     }
-    return outputAmounts;
   }
 }
