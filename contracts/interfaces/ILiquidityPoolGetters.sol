@@ -17,17 +17,25 @@ interface ILiquidityPoolGetters {
   /// @dev The returned value is a 96.96 fixed point number
   /// @return mintFeeQ96 The mint fee rate
   function getMintFeeQ96() external view returns (uint256);
+
+  /// @dev the returned value is a 96.96 fixed point numbe
+  /// The compounding fee refers the the fee for minting n tokens,
+  /// plus the fee to mint the tokens for the fee, plus the fee of minting the fee.. etc etc
+  /// @return compoundingMintFeeQ96 The effective mint fee when minting n tokens
+  function getCompoundingMintFeeQ96() external view returns (uint256);
   
   /// @dev The returned value is a 96.96 fixed point number
+  /// compounding burn fee is not needed like with the mint fee
   /// @return burnFeeQ96 The burn fee rate
   function getBurnFeeQ96() external view returns (uint256);
 
   /// @return isMintEnabled True if minting is enabled, false if minting is disabled
   function getIsMintEnabled() external view returns (bool);
 
-  /// @dev Fees are collected in the pool's index token and denoted in atomic units
-  /// @return feesCollected The amount of fees collected by the pool and available for withdrawal
-  function getFeesCollected() external view returns (uint256);
+  /// @dev Swap fees accumulate into the pool's surplus, the surplus is equal to:
+  /// totalReservesScaled - indexToken.totalSupply - equalizationBounty
+  /// @return surplus The surplus of reserves vs total supply of the index token
+  function getSurplus() external view returns (int256);
 
   /// @return indexToken The address of the pool's index token
   function getIndexToken() external view returns (address);

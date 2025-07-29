@@ -125,7 +125,8 @@ function randomBetween(min, max) {
   return Math.random() * (max - min) + min;
 }
 
-function predictDeposit(mintAmount, assetParam) {
+function predictDeposit(mintAmount, mintFeeQ96, assetParam) {
+  // const compoundingFeeRate()
   const allocation = scaleAllocation(assetParam.targetAllocation)
   const targetDepositScaled = (allocation * mintAmount) >> SHIFT
   const trueDeposit = scaleDecimals(targetDepositScaled, 18n, assetParam.decimals) + 1n
@@ -134,7 +135,8 @@ function predictDeposit(mintAmount, assetParam) {
 }
 
 function predictWithdrawal(
-  burnAmount, 
+  burnAmount,
+  burnFeeQ96,
   assetParam, 
   specificReservesScaled, 
   totalReservesScaled

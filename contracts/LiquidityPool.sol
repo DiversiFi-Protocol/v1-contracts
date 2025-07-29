@@ -48,6 +48,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   AssetParams[] private currentAssetParamsList_;//the asset params of all underlying assets that have nonzero current allocations
   mapping(address => AssetParams) private assetParams_;
   uint256 private mintFeeQ96_ = 0;
+  uint256 private compoundingMintFeeQ96_ = 0;//cached value, see PoolMath.calcCompoundingFeeRate for details
   uint256 private burnFeeQ96_ = 0;
   uint256 private equalizationBounty_ = 0;//a bounty paid to callers of swapTowardsTarget or EqualizeToTarget in the form of a discount applied to the swap
 
@@ -94,6 +95,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     maxReserves_ = _maxReserves;
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     mintFeeQ96_ = _mintFeeQ96;
+    compoundingMintFeeQ96_ = PoolMath.calcCompoundingFeeRate(_mintFeeQ96);
     burnFeeQ96_ = _burnFeeQ96;
   }
   
@@ -112,7 +114,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     //forward data to callback for a flash mint
     if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashMintCallback(_forwardData); }
 
-    uint256 fee = PoolMath.fromFixed(_mintAmount * PoolMath.calcCompoundingFeeRate(mintFeeQ96_));
+    uint256 fee = PoolMath.fromFixed(_mintAmount * compoundingMintFeeQ96_);
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
     uint256 totalReservesIncrease = 0;
@@ -137,7 +139,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     }
     totalReservesScaled_ += totalReservesIncrease;
     checkMaxTotalReservesLimit();
-    indexToken_.mint(address(this), fee);
 
     emit Mint(
       msg.sender,
@@ -182,12 +183,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       specificReservesScaled_[params.assetAddress] = scaledReservesList[i];
     }
     totalReservesScaled_ -= totalReserveReduction;
-    indexToken_.transferFrom(msg.sender, address(this), fee);
 
     //forward data back to the caller for a flash burn
     if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
 
-    indexToken_.burnFrom(msg.sender, _burnAmount - fee);
+    indexToken_.burnFrom(msg.sender, _burnAmount);
     emit Burn(
       msg.sender,
       _burnAmount,
@@ -386,6 +386,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolGetters
+  function getCompoundingMintFeeQ96() external view returns (uint256) {
+    return compoundingMintFeeQ96_;
+  }
+
+  /// @inheritdoc ILiquidityPoolGetters
   function getBurnFeeQ96() external view returns (uint256) {
     return burnFeeQ96_;
   }
@@ -396,8 +401,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getFeesCollected() public view returns (uint256) {
-    return indexToken_.balanceOf(address(this)) - equalizationBounty_;
+  function getSurplus() public view returns (int256) {
+    return int256(totalReservesScaled_) - int256(indexToken_.totalSupply()) - int256(equalizationBounty_);
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -531,7 +536,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolAdmin
   function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
-    emit MintFeeChange(_mintFeeQ96);
+    compoundingMintFeeQ96_ = PoolMath.calcCompoundingFeeRate(_mintFeeQ96);
+    emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
@@ -600,16 +606,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function withdrawFees(address _recipient) external onlyAdmin mustNotEmigrating {
-    uint256 fees = indexToken_.balanceOf(address(this)) - equalizationBounty_;
-    indexToken_.transfer(
-      _recipient,
-      fees
-    );
-    emit FeesCollected(fees);
-  }
-
-  /// @inheritdoc ILiquidityPoolAdmin
   function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
@@ -617,7 +613,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   /// @inheritdoc ILiquidityPoolAdmin
   function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin mustNotEmigrating {
-    require(getFeesCollected() >= _bountyIncrease, "not enough tokens to cover bounty");
+    require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
   }
