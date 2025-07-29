@@ -92,20 +92,110 @@ async function testBurnNoMigration(indexToken, burnAmount) {
   expect(endingTotalReservesScaled).to.be.greaterThanOrEqual(endingIndexTotalSupply, "burn resulted in reserves defecit")
 }
 
-async function testAdminControls(deployParams) {
-  const liquidityPool = await indexToken.getLiquidityPool()
+async function testAdminControlsNoMigration(deployParams) {
+  //setAdmin
+  await expect(
+    deployParams.liquidityPool.connect(unpriviledged).setAdmin(unpriviledged)
+  ).to.be.revertedWith("only_admin")
+  await deployParams.liquidityPool.setAdmin(unpriviledged)
+  await deployParams.liquidityPool.connect(unpriviledged).setAdmin(deployParams.admin)
+
+  //setMintFeeQ96
+  const startingMintFee = await deployParams.liquidityPool.getMintFeeQ96()
+  const startingCompoundingMintFee = await deployParams.liquidityPool.getCompoundingMintFeeQ96()
+  const mintFee2 = utils.decimalToFixed(0.69)
+  await deployParams.liquidityPool.setMintFeeQ96(mintFee2)
+  expect(await liquidityPool.getMintFeeQ96()).to.equal(mintFee2)
+  expect(await liquidityPool.getCompoundingMintFeeQ96()).to.equal(utils.calcCompoundingFeeRate(mintFee2))
+  await deployParams.liquidityPool.setMintFeeQ96(startingMintFee)
+  expect(await liquidityPool.getMintFeeQ96()).to.equal(startingMintFee)
+  expect(await liquidityPool.getCompoundingMintFeeQ96()).to.equal(startingCompoundingMintFee)
+
+  //setBurnFeeQ96
+  const startingBurnFee = await deployParams.liquidityPool.getBurnFeeQ96()
+  const burnFee2 = utils.decimalToFixed(0.69)
+  await deployParams.liquidityPool.setBurnFeeQ96(burnFee2)
+  expect(await liquidityPool.getBurnFeeQ96()).to.equal(burnFee2)
+  await deployParams.liquidityPool.setBurnFeeQ96(startingBurnFee)
+  expect(await liquidityPool.getBurnFeeQ96()).to.equal(startingBurnFee)
+
+  //setMaxReserves
+  const startingMaxReserves = await deployParams.liquidityPool.getMaxReserves()
+  const maxReserves2 = 42069n;
+  await deployParams.liquidityPool.setMaxReserves(maxReserves2)
+  expect(
+    await deployParams.liquidityPool.getMaxReserves()
+  ).to.equal(maxReserves2)
+  await deployParams.liquidityPool.setMaxReserves(startingMaxReserves)
+  expect(
+    await deployParams.liquidityPool.getAllReserves()
+  ).to.equal(startingMaxReserves)
+
+  //setMaxReservesIncreaseRateQ96
+  const startingMaxReservesIncreaseRateQ96 = await deployParams.liquidityPool.getMaxReservesIncreaseRateQ96()
+  const maxReservesIncreaseRateQ962 = 42069n;
+  await deployParams.liquidityPool.setMaxReservesIncreaseRateQ96(maxReservesIncreaseRateQ962)
+  expect(
+    await deployParams.liquidityPool.getMaxReservesIncreaseRateQ96()
+  ).to.equal(maxReservesIncreaseRateQ962)
+  await deployParams.liquidityPool.setMaxReservesIncreaseRateQ96(startingMaxReservesIncreaseRateQ96)
+  expect(
+    await deployParams.liquidityPool.getAllReservesIncreaseRateQ96()
+  ).to.equal(startingMaxReservesIncreaseRateQ96)
+
+  //setMaxReservesIncreaseCooldown
+  const startingMaxReservesIncreaseCooldown = await deployParams.liquidityPool.getMaxReservesIncreaseCooldown()
+  const maxReservesIncreaseRCooldown = 42069n;
+  await deployParams.liquidityPool.setMaxReservesIncreaseCooldown(maxReservesIncreaseRCooldown)
+  expect(
+    await deployParams.liquidityPool.getMaxReservesIncreaseCooldown()
+  ).to.equal(maxReservesIncreaseRCooldown)
+  await deployParams.liquidityPool.setMaxReservesIncreaseCooldown(startingMaxReservesIncreaseCooldown)
+  expect(
+    await deployParams.liquidityPool.getAllReservesIncreaseCooldown()
+  ).to.equal(startingMaxReservesIncreaseCooldown)
+
+  //setIsMintEnabled
+  expect(await deployParams.liquidityPool.getIsMintEnabled()).to.equal(true)
+  await deployParams.liquidityPool.setIsMintEnabled(false)
+  expect(await deployParams.liquidityPool.getIsMintEnabled()).to.equal(false)
+  await deployParams.liquidityPool.setIsMintEnabled(true)
+  expect(await deployParams.liquidityPool.getIsMintEnabled()).to.equal(true)
+
+  //increaseEqualizationBounty
+  const bountyAmount = 42069n
+  await deployParams.liquidityPool.mint(bountyAmount)
+  await deployParams.indexToken.burn(bountyAmount)
+  const bountyBefore = await deployParams.liquidityPool.getEqualizationBounty()
+  await deployParams.liquidityPool.increaseEqualizationBounty(bountyAmount)
+  const bountyAfter = await deployParams.liquidityPool.getEqualizationBounty()
+  expect(bountyAfter - bountyBefore).to.equal(bountyAmount)
+}
+
+async function testMintMidMigration(deployParams, nextPool) {
+  expect(deployParams.liquidityPool).mint(42069n, "0x").to.be.revertedWith("liquidity pool is migrating")
+  nextPool.mint(utils.scale10Pow18(1_000_000n))
   
+}
+
+async function testBurnMidMigration(deployParams) {
+
+}
+
+async function testAdminControlsMidMigration(deployParams) {
+
 }
 
 async function testPreMigration(deployParams) {
   const liquidityPool = deployParams.liquidityPool
   //should be able to mint and burn as expected
-  await testMintNoMigration(indexToken, 0n)
-  await testMintNoMigration(indexToken, BigInt(Math.random() * 1_000_000 * 10 ** 18))
-  await testMintNoMigration(indexToken, 2n ** 160n - 1_000_000_000n)
-  await testBurnNoMigration(indexToken, 0n)
-  await testBurnNoMigration(indexToken, BigInt(Math.random() * 1_000_000 * 10 ** 18))
-  await testBurnNoMigration(indexToken, await indexToken.balanceOf(await hre.ethers.getSigner()))
+  await testMintNoMigration(deployParams.indexToken, 0n)
+  await testMintNoMigration(deployParams.indexToken, BigInt(Math.random() * 1_000_000 * 10 ** 18))
+  await testMintNoMigration(deployParams.indexToken, 2n ** 160n - 1_000_000_000n)
+  await testBurnNoMigration(deployParams.indexToken, 0n)
+  await testBurnNoMigration(deployParams.indexToken, BigInt(Math.random() * 1_000_000 * 10 ** 18))
+  await testBurnNoMigration(deployParams.indexToken, await deployParams.indexToken.balanceOf(await hre.ethers.getSigner()))
+  await testAdminControlsNoMigration(deployParams)
 }
 
 async function testMidMigration(indexToken) {

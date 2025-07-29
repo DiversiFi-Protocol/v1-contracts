@@ -90,27 +90,27 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(true);
   })
 
-  describe("getFeesCollected", function () {
+  describe("getSurplus", function () {
     it("should return the token balance as fees", async function() {
       const { liquidityPool, indexToken } = await loadFixture(deployAll);
       await liquidityPool.mint(1000000n, "0x")
-      const feesBefore = await liquidityPool.getFeesCollected()
-      const transferAmount = 42069n
-      await indexToken.transfer(liquidityPool, transferAmount)
-      const feesAfter = await liquidityPool.getFeesCollected();
-      expect(feesAfter - feesBefore).to.equal(transferAmount);
+      const surplusBefore = await liquidityPool.getSurplus()
+      const burnAmount = 42069n
+      await indexToken.burn(burnAmount)
+      const surplusAfter = await liquidityPool.getSurplus();
+      expect(surplusAfter - surplusBefore).to.equal(burnAmount);
     })
 
     it("should deduct the equalization bounty from the fees collected", async function() {
       const { liquidityPool, indexToken } = await loadFixture(deployAll);
       await liquidityPool.mint(1000000n, "0x")
-      const feesBefore = await liquidityPool.getFeesCollected()
-      const transferAmount = 42069n
+      const feesBefore = await liquidityPool.getSurplus()
+      const burnAmount = 42069n
       const equalizationBounty = 69n
-      await indexToken.transfer(liquidityPool, transferAmount)
+      await indexToken.burn(burnAmount)
       await liquidityPool.increaseEqualizationBounty(equalizationBounty)
-      const feesAfter = await liquidityPool.getFeesCollected()
-      expect(feesAfter - feesBefore).to.equal(transferAmount - equalizationBounty)
+      const feesAfter = await liquidityPool.getSurplus()
+      expect(feesAfter - feesBefore).to.equal(burnAmount - equalizationBounty)
     })
   })
 

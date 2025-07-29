@@ -249,14 +249,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         int256(trueDepositScaled),
         bounty
       );
-      indexTransfer = trueDepositScaled + bounty;
+      indexTransfer = trueDepositScaled + bounty; // bounty is awarded as a bonus
       indexToken_.mint(
         msg.sender,
-        indexTransfer//bounty is awarded as a bonus
-      );
-      indexToken_.burnFrom(
-        address(this),
-        bounty
+        indexTransfer
       );
     } else { // withdraw
       uint256 targetWithdrawalScaled = PoolMath.scaleDecimals(
@@ -287,8 +283,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         endingDiscrepency
       );
       if (bounty >= trueWithdrawalScaled) {
-        //if the bounty is greater than the withdrawal, don't burn anything from the caller
-        //and treat the bounty for this transaction as the amount the caller would have burned
+        // if the bounty is greater than the withdrawal, don't burn anything from the caller
+        // and treat the bounty for this transaction as the amount the caller would have burned
         bounty = trueWithdrawalScaled;
       }
       emit Swap(
@@ -296,14 +292,10 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
         int256(trueWithdrawalScaled) * -1,
         bounty
       );
-      indexTransfer = trueWithdrawalScaled - bounty;
+      indexTransfer = trueWithdrawalScaled - bounty; // bounty is awarded as a discount
       indexToken_.burnFrom(
         msg.sender, 
-        indexTransfer //bounty is awarded as a discount
-      );
-      indexToken_.burnFrom(
-        address(this),
-        bounty
+        indexTransfer 
       );
     }
     equalizationBounty_ -= bounty;
@@ -349,7 +341,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
       }
     }
     //send the rest of the equalizationBounty to the caller
-    indexToken_.transfer(msg.sender, equalizationBounty_);
+    indexToken_.mint(msg.sender, equalizationBounty_);
     emit Equalization(deltasScaled);
     return actualDeltas;
   }
