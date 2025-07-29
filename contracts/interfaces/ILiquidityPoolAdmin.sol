@@ -23,7 +23,6 @@ interface ILiquidityPoolAdmin {
   function setMaxReservesIncreaseRateQ96(uint256 maxReservesIncreaseRateQ96) external;
   function setMaxReservesIncreaseCooldown(uint256 maxReservesIncreaseCooldown) external;
   function setTargetAssetParams(AssetParams[] calldata params) external;
-  function withdrawFees(address recipient) external;
   function setIsMintEnabled(bool isMintEnabled) external;
   function increaseEqualizationBounty(uint256 bountyIncrease) external;
   function startEmigration(

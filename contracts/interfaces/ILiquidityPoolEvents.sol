@@ -48,11 +48,12 @@ interface ILiquidityPoolEvents {
   );
 
   event MintFeeChange(
-    uint256 mintFeeQ96_
+    uint256 mintFeeQ96,
+    uint256 compoundingMintFeeQ96
   );
 
   event BurnFeeChange(
-    uint256 burnFeeQ96_
+    uint256 burnFeeQ96
   );
 
   event TargetAssetParamsChange(
@@ -75,7 +76,7 @@ interface ILiquidityPoolEvents {
   );
 
   event MaxReservesIncreaseRateChange(
-    uint256 maxReservesIncreaseRateQ96_
+    uint256 maxReservesIncreaseRateQ96
   );
 
   event FeesCollected(
