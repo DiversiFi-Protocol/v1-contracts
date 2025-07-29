@@ -14,7 +14,9 @@ const compareFunctions = (func0, func1, args, args1=[]) => {
   return diff
 }
 
-
+const calcCompoundingFeeRate = rate => {
+  return (rate << SHIFT) / (SCALE - rate)
+}
 
 const decimalToFixed = (num) => {
   return BigInt(Math.floor(num * Number(SCALE)))
@@ -150,6 +152,7 @@ function predictWithdrawal(
 }
 
 module.exports = {
+  calcCompoundingFeeRate,
   predictDeposit,
   predictWithdrawal,
   scaleDecimals,
