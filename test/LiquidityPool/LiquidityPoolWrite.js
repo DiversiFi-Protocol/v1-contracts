@@ -20,8 +20,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-      const prevPoolLiquidityBal = await indexToken.balanceOf(liquidityPool);
-      const prevFeeBalance = await liquidityPool.getFeesCollected();
+      const prevSurplus = await liquidityPool.getSurplus()
       const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ96())
       const fee = (mintAmount * compoundingFeeRate) >> 96n
       const mintAmountPlusFee = mintAmount + fee
@@ -33,12 +32,11 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
-      const poolLiquidityBal = await indexToken.balanceOf(liquidityPool);
-      const feeBalance = await liquidityPool.getFeesCollected();
+      const surplus = await liquidityPool.getSurplus()
 
-      // check that the mint fee accrues as index token balance in the pool
-      expect(poolLiquidityBal).to.equal(prevPoolLiquidityBal + fee)
-      expect(feeBalance).to.equal(prevFeeBalance + fee)
+      // check that the mint fee accrues as surplus of reserves to total supply
+      expect(surplus - prevSurplus).to.be.greaterThanOrEqual(fee)
+      expect(surplus - prevSurplus).to.be.closeTo(fee, mintAmountPlusFee / 1_000_000_000n)
 
       // Check that liquidity tokens were minted
       const expectedReductionScaled0 = (utils.scaleAllocation(assetParams0.targetAllocation) * mintAmountPlusFee) >> utils.SHIFT
@@ -197,8 +195,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-      const prevPoolLiquidityBal = await indexToken.balanceOf(liquidityPool);
-      const prevFeeBalance = await liquidityPool.getFeesCollected();
+      const prevSurplus = await liquidityPool.getSurplus();
       const fee = (burnAmount * (await liquidityPool.getBurnFeeQ96())) >> 96n
       const trueBurnAmount = burnAmount - fee;
       const totalReservesScaled = await liquidityPool.getTotalReservesScaled()
@@ -216,12 +213,11 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
-      const poolLiquidityBal = await indexToken.balanceOf(liquidityPool);
-      const feeBalance = await liquidityPool.getFeesCollected();
+      const surplus = await liquidityPool.getSurplus();
 
       //check that the burn fee accrues as index token balance to the liquidity pool
-      expect(poolLiquidityBal).to.equal(prevPoolLiquidityBal + fee)
-      expect(feeBalance).to.equal(prevFeeBalance + fee)
+      expect(surplus).to.be.greaterThanOrEqual(prevSurplus + fee)
+      expect(surplus).to.be.closeTo(prevSurplus + fee, burnAmount / 1_000_000_000n)
 
       // Check that liquidity tokens were minted
       const targetIncreaseScaled0 = (currentAllocation0 * trueBurnAmount) >> utils.SHIFT
@@ -440,7 +436,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
           const bounty = utils.scale10Pow18(1_000_000n)
-          await indexToken.transfer(liquidityPool, bounty)
+          await indexToken.burn(bounty)
           await liquidityPool.increaseEqualizationBounty(bounty)
           const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable0.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
@@ -725,7 +721,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
           const bounty = utils.scale10Pow18(1_000_000n)
-          await indexToken.transfer(liquidityPool, bounty)
+          await indexToken.burn(bounty)
           await liquidityPool.increaseEqualizationBounty(bounty)
           const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable2.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
@@ -1011,7 +1007,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
           const bounty = utils.scale10Pow18(1_000_000n)
-          await indexToken.transfer(liquidityPool, bounty)
+          await indexToken.burn(bounty)
           await liquidityPool.increaseEqualizationBounty(bounty)
           const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable1.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
@@ -1259,15 +1255,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const { liquidityPool, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
       await liquidityPool.mint(utils.scale10Pow18(1_000n), "0x")
       await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-      const equalizationBounty = utils.scale10Pow18(100n)
-      await indexToken.transfer(liquidityPool, equalizationBounty)
-      await liquidityPool.increaseEqualizationBounty(equalizationBounty)
+      const bounty = utils.scale10Pow18(100n)
+      await indexToken.burn(bounty)
+      await liquidityPool.increaseEqualizationBounty(bounty)
       const callerIndexReservesBefore = await indexToken.balanceOf(admin.address)
       await liquidityPool.equalizeToTarget()
       const bountyRemainingAfter = await liquidityPool.getEqualizationBounty()
       const callerIndexReservesAfter = await indexToken.balanceOf(admin.address)
-      expect(callerIndexReservesAfter - callerIndexReservesBefore).to.equal(equalizationBounty)
-      expect(bountyRemainingAfter).to.equal(equalizationBounty)
+      expect(callerIndexReservesAfter - callerIndexReservesBefore).to.equal(bounty)
+      expect(bountyRemainingAfter).to.equal(bounty)
     })
   })
 

@@ -12,7 +12,7 @@ async function increaseTime(seconds) {
 }
 
 describe("migration - complete lifecycle", function() {
-  it.only("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
+  it("normal migration - test that everything is as expected throughout the migration lifecycle", async function() {
     const {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
