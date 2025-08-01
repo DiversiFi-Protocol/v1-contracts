@@ -73,14 +73,14 @@ module.exports = async function deployAll() {
       from: admin.address,
       nonce: BigInt(await hre.ethers.provider.getTransactionCount(admin.address)) + 1n,
     });
-    const minBalanceMultiplierChangeDelay = 100n
-    const maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(1.001)
+    const minbalanceDivisorChangeDelay = 100n
+    const maxbalanceDivisorChangePerSecondQ96 = utils.decimalToFixed(1.001)
     const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
       liquidityPoolAddress,
-      minBalanceMultiplierChangeDelay,
-      maxBalanceMultiplierChangePerSecondQ96
+      minbalanceDivisorChangeDelay,
+      maxbalanceDivisorChangePerSecondQ96
     ]);
 
     const assetParams = [ assetParams0, assetParams1, assetParams2 ];
@@ -240,8 +240,8 @@ module.exports = async function deployAll() {
       assetParamsNoMintable0,
       assetParamsNoMintable1,
       assetParamsNoMintable2,
-      minBalanceMultiplierChangeDelay,
-      maxBalanceMultiplierChangePerSecondQ96,
+      minbalanceDivisorChangeDelay,
+      maxbalanceDivisorChangePerSecondQ96,
       liquidityPoolHelpers,
       liquidityPoolHelpers0,
       liquidityPoolHelpers1,

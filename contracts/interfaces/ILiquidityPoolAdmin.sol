@@ -27,8 +27,8 @@ interface ILiquidityPoolAdmin {
   function increaseEqualizationBounty(uint256 bountyIncrease) external;
   function startEmigration(
     address nextLiquidityPool,
-    uint64 balanceMultiplierChangeDelay,
-    uint104 balanceMultiplierChangePerSecondQ96
+    uint64 balanceDivisorChangeDelay,
+    uint104 balanceDivisorChangePerSecondQ96
   ) external;
   /// @dev this is technically not an admin-only function
   function finishEmigration() external;

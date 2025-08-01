@@ -10,7 +10,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -19,7 +19,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -28,7 +28,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -37,7 +37,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -46,7 +46,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -55,7 +55,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -64,7 +64,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -73,7 +73,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -82,7 +82,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 
@@ -91,7 +91,7 @@ describe("allocationChange - complete lifecycle", function() {
       indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-      assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 
+      assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
     } = await loadFixture(deployAll)
   })
 })

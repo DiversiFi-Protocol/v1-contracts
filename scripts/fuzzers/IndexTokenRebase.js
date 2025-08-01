@@ -5,28 +5,28 @@ async function deployIndex() {
   const [liquidityPool, nextLiquidityPool, unprivileged0] = await hre.ethers.getSigners()
   const tokenName = "Diversified USD";
   const tokenSymbol = "USD1";
-  const minBalanceMultiplierChangeDelay = 100n
-  const maxBalanceMultiplierChangePerSecondQ96 = utils.decimalToFixed(1.001)
+  const minbalanceDivisorChangeDelay = 100n
+  const maxbalanceDivisorChangePerSecondQ96 = utils.decimalToFixed(1.001)
   const indexToken = await hre.ethers.deployContract("IndexToken", [
     tokenName,
     tokenSymbol,
     liquidityPool.address,
-    minBalanceMultiplierChangeDelay,
-    maxBalanceMultiplierChangePerSecondQ96
+    minbalanceDivisorChangeDelay,
+    maxbalanceDivisorChangePerSecondQ96
   ]);
   const startingTotalSupply = utils.scale10Pow18(1_000_000n)
   await indexToken.mint(liquidityPool.address, startingTotalSupply)
-  return { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply }
+  return { indexToken, liquidityPool, nextLiquidityPool, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply }
 }
 
 async function main() {
   for (let i = 0; i < 100_000_000_000; i++) {
-    const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+    const { indexToken, liquidityPool, nextLiquidityPool, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
     await indexToken.mint(liquidityPool, utils.scale10Pow18(1_000_000_000n))
     await indexToken.startMigration(
       nextLiquidityPool,
-      minBalanceMultiplierChangeDelay,
-      maxBalanceMultiplierChangePerSecondQ96
+      minbalanceDivisorChangeDelay,
+      maxbalanceDivisorChangePerSecondQ96
     )
     const totalSupply = await indexToken.totalSupply()
     await indexToken.finishMigration(totalSupply - (BigInt(i) * BigInt(Math.floor(Math.random() * 1000))))
