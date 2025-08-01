@@ -207,7 +207,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   function swapTowardsTarget(
     address _asset,
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
-  ) external nonReentrant returns (uint256 reservesTransfer, uint256 indexTransfer) {
+  ) external nonReentrant mustNotEmigrating returns (uint256 reservesTransfer, uint256 indexTransfer) {
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
     uint256 startingDiscrepency = getTotalReservesDiscrepencyScaled();
@@ -304,7 +304,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
   /// @inheritdoc ILiquidityPoolWrite
-  function equalizeToTarget() external returns (int256[] memory) {
+  function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
