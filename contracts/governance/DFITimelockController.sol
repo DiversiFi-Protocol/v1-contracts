@@ -74,19 +74,31 @@ contract DFITimelockController is TimelockController {
   *------------------------------Unique Functionality---------------------------------
   ***********************************************************************************/
 
+  event CommandRegistered(
+    address callAddress,
+    string functionSignature
+  );
+
+  event CommandDeRegistered(
+    address callAddress,
+    string functionSignature
+  );
+
   /// @dev registers a command for a custom delay
   /// @param callAddress the address of the contract being called in this command
   /// @param functionSignature the function signature for the command being called
   /// @param delay the delay to execute the command once it is prepared
-  function registerCommand(address callAddress, bytes4 functionSignature, uint64 delay) public onlyRole(REGISTRAR_ROLE) {
-    commandDelays[getCommandSignature(callAddress, functionSignature)] = Delay({
+  function registerCommand(address callAddress, string memory functionSignature, uint64 delay) public onlyRole(REGISTRAR_ROLE) {
+    commandDelays[getCommandSignature(callAddress, getFunctionSelector(functionSignature))] = Delay({
       delay: delay,
       lastEdit: uint64(block.timestamp)
     });
+    emit CommandRegistered(callAddress, functionSignature);
   }
 
-  function deRegisterCommand(bytes32 commandSignature) public onlyRole(REGISTRAR_ROLE) {
-    delete(commandDelays[commandSignature]);
+  function deRegisterCommand(address callAddress, string memory functionSignature) public onlyRole(REGISTRAR_ROLE) {
+    delete(commandDelays[getCommandSignature(callAddress, getFunctionSelector(functionSignature))]);
+    emit CommandDeRegistered(callAddress, functionSignature);
   }
 
   /// @dev returns highest minimum delay of a group of commands
@@ -130,6 +142,13 @@ contract DFITimelockController is TimelockController {
     }
 
     return highestDelay;
+  }
+
+  /// @notice Takes a function signature and returns the function selector
+  /// @param signature The function signature string (e.g., "transfer(address,uint256)")
+  /// @return selector The 4-byte selector of the function
+  function getFunctionSelector(string memory signature) private pure returns (bytes4 selector) {
+      return bytes4(keccak256(bytes(signature)));
   }
 
   function getCommandSignature(address callAddress, bytes4 functionSignature) private pure returns (bytes32) {
