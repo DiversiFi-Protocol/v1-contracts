@@ -7,7 +7,7 @@ import "./IERC20MintAndBurn.sol";
 interface IIndexToken is IERC20MintAndBurn {
   function isMigrating() external view returns (bool);
   function getNextLiquidityPool() view external returns (address);
-  function getLastBalanceMultiplier() view external returns (uint96);
+  function getlastBalanceDivisor() view external returns (uint96);
   function getMigrationStartTimestamp() view external returns (uint64);
   function getBalanceMultiplierChangeDelay() view external returns (uint64);
   function getBalanceMultiplierChangePerSecondQ96() view external returns (uint104);
