@@ -72,10 +72,10 @@ describe("IndexToken", function() {
       })
     })
 
-    describe("getLastBalanceMultiplier", function() {
+    describe("getlastBalanceDivisor", function() {
       it("returns last balance multiplier", async function() {
         const { indexToken, liquidityPool, nextLiquidityPool, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployIndex)
-        expect(await indexToken.getLastBalanceMultiplier()).to.equal(DEFAULT_BALANCE_MULTIPLIER)
+        expect(await indexToken.getlastBalanceDivisor()).to.equal(DEFAULT_BALANCE_MULTIPLIER)
       })
     })
 
@@ -215,7 +215,7 @@ describe("IndexToken", function() {
         expect(await indexToken.getLiquidityPool()).to.equal(nextLiquidityPool)
         expect(await indexToken.getNextLiquidityPool()).to.equal(ethers.ZeroAddress)
         expect(await indexToken.isMigrating()).to.equal(false)
-        expect(await indexToken.getLastBalanceMultiplier()).to.be.greaterThan(startingBalanceMultiplier)
+        expect(await indexToken.getlastBalanceDivisor()).to.be.greaterThan(startingBalanceMultiplier)
       })
     })
 

@@ -29,7 +29,7 @@ contract IndexToken is ERC20Permit {
 
   struct MigrationSlot0 {
     address nextLiquidityPool;
-    uint96 lastBalanceMultiplier;
+    uint96 lastBalanceDivisor;
   }
   MigrationSlot0 private _migrationSlot0;
 
@@ -69,7 +69,7 @@ contract IndexToken is ERC20Permit {
     uint104 maxBalanceMultiplierChangePerSecondQ96
   ) ERC20(name, symbol) ERC20Permit(name) {
     _liquidityPool = liquidityPool;
-    _migrationSlot0.lastBalanceMultiplier = PoolMath.DEFAULT_BALANCE_MULTIPLIER;
+    _migrationSlot0.lastBalanceDivisor = PoolMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceMultiplierChangeDelay = minBalanceMultiplierChangeDelay;
     _maxBalanceMultiplierChangePerSecondQ96 = maxBalanceMultiplierChangePerSecondQ96;
   }
@@ -83,8 +83,8 @@ contract IndexToken is ERC20Permit {
     return _migrationSlot0.nextLiquidityPool;
   }
 
-  function getLastBalanceMultiplier() view external returns (uint96) {
-    return _migrationSlot0.lastBalanceMultiplier;
+  function getlastBalanceDivisor() view external returns (uint96) {
+    return _migrationSlot0.lastBalanceDivisor;
   }
 
   function getBalanceMultiplierChangeDelay() view external returns (uint64) {
@@ -108,7 +108,7 @@ contract IndexToken is ERC20Permit {
     uint64 balanceMultiplierChangeDelay,
     uint104 balanceMultiplierChangePerSecondQ96
   ) external onlyLiquidityPool migrationCheck(false) {
-    require(_migrationSlot0.lastBalanceMultiplier <= MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
+    require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
     require(balanceMultiplierChangeDelay >= _minBalanceMultiplierChangeDelay, "balance multiplier change delay too short");
     require(balanceMultiplierChangePerSecondQ96 >= _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
     _migrationSlot0.nextLiquidityPool = nextLiquidityPool;
@@ -120,9 +120,9 @@ contract IndexToken is ERC20Permit {
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
     (uint96 finalBalanceMultiplier, int256 surplus) = PoolMath.computeFinalBalanceMultiplierAndSurplus(
-      totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceMultiplier
+      totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
-    _migrationSlot0.lastBalanceMultiplier = finalBalanceMultiplier;
+    _migrationSlot0.lastBalanceDivisor = finalBalanceMultiplier;
     if (surplus > 0) {
       //send the surplus to the next liquidity pool (ignores normal mint permission check)
       _mint(_migrationSlot0.nextLiquidityPool, uint256(surplus));
@@ -151,18 +151,18 @@ contract IndexToken is ERC20Permit {
   function balanceMultiplier() public view returns (uint96) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
     if (migrationSlot0.nextLiquidityPool == address(0)) {
-      return migrationSlot0.lastBalanceMultiplier;
+      return migrationSlot0.lastBalanceDivisor;
     } else { //we are migrating - the balance multiplier is changing
       MigrationSlot1 memory migrationSlot1 = _migrationSlot1;
       uint256 timeDiff = block.timestamp - uint256(migrationSlot1.migrationStartTimestamp);
       if (timeDiff <= migrationSlot1.balanceMultiplierChangeDelay) {
-        return migrationSlot0.lastBalanceMultiplier;
+        return migrationSlot0.lastBalanceDivisor;
       } else {
         timeDiff -= migrationSlot1.balanceMultiplierChangeDelay;
       }
       uint256 compoundedChangeQ96 = PoolMath.powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
       return uint96(
-        (migrationSlot0.lastBalanceMultiplier * compoundedChangeQ96) >> 96
+        (migrationSlot0.lastBalanceDivisor * compoundedChangeQ96) >> 96
       );
     }
   }

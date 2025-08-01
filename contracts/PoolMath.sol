@@ -92,7 +92,7 @@ library PoolMath {
   function computeFinalBalanceMultiplierAndSurplus(
     uint256 totalReserves,
     uint256 baseTotalSupply,
-    uint96 lastBalanceMultiplier
+    uint96 lastBalanceDivisor
   ) internal pure returns (uint96 balanceMultiplier, int256 surplus /*(or deficit)*/) {
     /**
      * SANITY CHECKS:
@@ -103,22 +103,22 @@ library PoolMath {
      * having effectively total control over the reserves, they can then oversee the proper
      * distribution of the reserves. 
      */
-    if (totalReserves > baseTotalSupply || lastBalanceMultiplier == 0) {
+    if (totalReserves > baseTotalSupply || lastBalanceDivisor == 0) {
       return (type(uint96).max, int256(uint256(type(uint160).max)));
     }
     //END SANITY CHECKS
 
-    surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceMultiplier));
+    surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceDivisor));
     if (surplus >= 0) {
       console.log("positive surplus:", uint256(surplus));
-      return (lastBalanceMultiplier, surplus);
+      return (lastBalanceDivisor, surplus);
     } else {
       if (totalReserves == 0) {
         //if there are no reserves, then the total supply should be zero
         //since we get total supply by dividing baseTotalSupply by the balance multiplier,
         //we would need to set the balance multiplier to infinity to achieve this.
         //since there is no infinity, we just use the max possible value instead
-        return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceMultiplier)));
+        return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceDivisor)));
       }
       console.log("negative surplus:", uint256(surplus * -1));
       //round the multiplier up
