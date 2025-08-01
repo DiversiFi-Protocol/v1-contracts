@@ -119,7 +119,7 @@ contract IndexToken is ERC20Permit {
 
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
-    (uint96 finalBalanceDivisor, int256 surplus) = PoolMath.computeFinalbalanceDivisorAndSurplus(
+    (uint96 finalBalanceDivisor, int256 surplus) = PoolMath.computeFinalBalanceDivisorAndSurplus(
       totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
     _migrationSlot0.lastBalanceDivisor = finalBalanceDivisor;

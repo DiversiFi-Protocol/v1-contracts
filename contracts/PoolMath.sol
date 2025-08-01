@@ -89,7 +89,7 @@ library PoolMath {
   /// i.e. (the resulting balance multiplier is less than the last balance multiplier)
   /// the resulting balance multiplier will equal the last balance multiplier and the surplus is returned.
   /// if there is a deficit, the deficit is returned
-  function computeFinalbalanceDivisorAndSurplus(
+  function computeFinalBalanceDivisorAndSurplus(
     uint256 totalReserves,
     uint256 baseTotalSupply,
     uint96 lastBalanceDivisor
