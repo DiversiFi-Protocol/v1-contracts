@@ -70,12 +70,12 @@ describe("LiquidityPool - Getters", function () {
     })
 
     it("should return zero if the pool is migrating", async function() {
-      const { liquidityPool, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       // Set the burn fee to a random value
       const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
       await liquidityPool.setBurnFeeQ96(randomBurnFee);
       await liquidityPool.startEmigration(
-        liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96
+        liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96
       )
 
       // Assert that the burn fee was set correctly
@@ -244,14 +244,14 @@ describe("LiquidityPool - Getters", function () {
     })
 
     it("should return an increasing number if migrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       const oneQ96 = 1n << utils.SHIFT
       await liquidityPool.startEmigration(
         liquidityPool0, 
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96,
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96,
       )
-      await increaseTime(Number(minBalanceMultiplierChangeDelay) + 100)
+      await increaseTime(Number(minbalanceDivisorChangeDelay) + 100)
       const conversionRate = await liquidityPool.getMigrationBurnConversionRateQ96()
       expect(conversionRate).to.be.greaterThan(oneQ96)
     })
@@ -259,16 +259,16 @@ describe("LiquidityPool - Getters", function () {
 
   describe("isEmigrating", function () {
     it("should return false if not emigrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       expect(await liquidityPool.isEmigrating()).to.equal(false)
     })
 
     it("should return true if emigrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll)
+      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       await liquidityPool.startEmigration(
         liquidityPool0, 
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96,
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96,
       )
       expect(await liquidityPool.isEmigrating()).to.equal(true)
     })

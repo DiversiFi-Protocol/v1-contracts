@@ -23,8 +23,8 @@ uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
 
 contract IndexToken is ERC20Permit {
-  uint64 private immutable _minBalanceMultiplierChangeDelay;
-  uint104 private immutable _maxBalanceMultiplierChangePerSecondQ96;
+  uint64 private immutable _minBalanceDivisorChangeDelay;
+  uint104 private immutable _maxBalanceDivisorChangePerSecondQ96;
   address private _liquidityPool;
 
   struct MigrationSlot0 {
@@ -35,8 +35,8 @@ contract IndexToken is ERC20Permit {
 
   struct MigrationSlot1 {
     uint64 migrationStartTimestamp;
-    uint64 balanceMultiplierChangeDelay;
-    uint104 balanceMultiplierChangePerSecondQ96;
+    uint64 balanceDivisorChangeDelay;
+    uint104 balanceDivisorChangePerSecondQ96;
   }
   MigrationSlot1 private _migrationSlot1;
 
@@ -65,13 +65,13 @@ contract IndexToken is ERC20Permit {
     string memory name, 
     string memory symbol,
     address liquidityPool,
-    uint64 minBalanceMultiplierChangeDelay,
-    uint104 maxBalanceMultiplierChangePerSecondQ96
+    uint64 minBalanceDivisorChangeDelay,
+    uint104 maxBalanceDivisorChangePerSecondQ96
   ) ERC20(name, symbol) ERC20Permit(name) {
     _liquidityPool = liquidityPool;
     _migrationSlot0.lastBalanceDivisor = PoolMath.DEFAULT_BALANCE_MULTIPLIER;
-    _minBalanceMultiplierChangeDelay = minBalanceMultiplierChangeDelay;
-    _maxBalanceMultiplierChangePerSecondQ96 = maxBalanceMultiplierChangePerSecondQ96;
+    _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;
+    _maxBalanceDivisorChangePerSecondQ96 = maxBalanceDivisorChangePerSecondQ96;
   }
 
 
@@ -87,16 +87,16 @@ contract IndexToken is ERC20Permit {
     return _migrationSlot0.lastBalanceDivisor;
   }
 
-  function getBalanceMultiplierChangeDelay() view external returns (uint64) {
-    return _migrationSlot1.balanceMultiplierChangeDelay;
+  function getBalanceDivisorChangeDelay() view external returns (uint64) {
+    return _migrationSlot1.balanceDivisorChangeDelay;
   }
 
   function getMigrationStartTimestamp() view external returns (uint64) {
     return _migrationSlot1.migrationStartTimestamp;
   }
 
-  function getBalanceMultiplierChangePerSecondQ96() view external returns (uint104) {
-    return _migrationSlot1.balanceMultiplierChangePerSecondQ96;
+  function getBalanceDivisorChangePerSecondQ96() view external returns (uint104) {
+    return _migrationSlot1.balanceDivisorChangePerSecondQ96;
   }
 
   function getLiquidityPool() view external returns (address) {
@@ -105,24 +105,24 @@ contract IndexToken is ERC20Permit {
 
   function startMigration(
     address nextLiquidityPool, 
-    uint64 balanceMultiplierChangeDelay,
-    uint104 balanceMultiplierChangePerSecondQ96
+    uint64 balanceDivisorChangeDelay,
+    uint104 balanceDivisorChangePerSecondQ96
   ) external onlyLiquidityPool migrationCheck(false) {
     require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
-    require(balanceMultiplierChangeDelay >= _minBalanceMultiplierChangeDelay, "balance multiplier change delay too short");
-    require(balanceMultiplierChangePerSecondQ96 >= _maxBalanceMultiplierChangePerSecondQ96, "balance multiplier change rate too high");
+    require(balanceDivisorChangeDelay >= _minBalanceDivisorChangeDelay, "balance multiplier change delay too short");
+    require(balanceDivisorChangePerSecondQ96 >= _maxBalanceDivisorChangePerSecondQ96, "balance multiplier change rate too high");
     _migrationSlot0.nextLiquidityPool = nextLiquidityPool;
     _migrationSlot1.migrationStartTimestamp = uint64(block.timestamp);
-    _migrationSlot1.balanceMultiplierChangeDelay = balanceMultiplierChangeDelay;
-    _migrationSlot1.balanceMultiplierChangePerSecondQ96 = balanceMultiplierChangePerSecondQ96;
+    _migrationSlot1.balanceDivisorChangeDelay = balanceDivisorChangeDelay;
+    _migrationSlot1.balanceDivisorChangePerSecondQ96 = balanceDivisorChangePerSecondQ96;
   }
 
   function finishMigration(uint256 totalReservesScaled) external onlyLiquidityPool migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new liquidity pool and the total supply
-    (uint96 finalBalanceMultiplier, int256 surplus) = PoolMath.computeFinalBalanceMultiplierAndSurplus(
+    (uint96 finalBalanceDivisor, int256 surplus) = PoolMath.computeFinalbalanceDivisorAndSurplus(
       totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
-    _migrationSlot0.lastBalanceDivisor = finalBalanceMultiplier;
+    _migrationSlot0.lastBalanceDivisor = finalBalanceDivisor;
     if (surplus > 0) {
       //send the surplus to the next liquidity pool (ignores normal mint permission check)
       _mint(_migrationSlot0.nextLiquidityPool, uint256(surplus));
@@ -148,19 +148,19 @@ contract IndexToken is ERC20Permit {
     _burn(msg.sender, amount);
   }
 
-  function balanceMultiplier() public view returns (uint96) {
+  function balanceDivisor() public view returns (uint96) {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
     if (migrationSlot0.nextLiquidityPool == address(0)) {
       return migrationSlot0.lastBalanceDivisor;
     } else { //we are migrating - the balance multiplier is changing
       MigrationSlot1 memory migrationSlot1 = _migrationSlot1;
       uint256 timeDiff = block.timestamp - uint256(migrationSlot1.migrationStartTimestamp);
-      if (timeDiff <= migrationSlot1.balanceMultiplierChangeDelay) {
+      if (timeDiff <= migrationSlot1.balanceDivisorChangeDelay) {
         return migrationSlot0.lastBalanceDivisor;
       } else {
-        timeDiff -= migrationSlot1.balanceMultiplierChangeDelay;
+        timeDiff -= migrationSlot1.balanceDivisorChangeDelay;
       }
-      uint256 compoundedChangeQ96 = PoolMath.powQ96(uint256(migrationSlot1.balanceMultiplierChangePerSecondQ96), timeDiff);
+      uint256 compoundedChangeQ96 = PoolMath.powQ96(uint256(migrationSlot1.balanceDivisorChangePerSecondQ96), timeDiff);
       return uint96(
         (migrationSlot0.lastBalanceDivisor * compoundedChangeQ96) >> 96
       );
@@ -227,10 +227,10 @@ contract IndexToken is ERC20Permit {
   ***********************************************************************************/
 
   function scaleFromBase(uint256 baseAmount) private view returns (uint256 tokenAmount) {
-    return baseAmount / uint256(balanceMultiplier());
+    return baseAmount / uint256(balanceDivisor());
   }
 
   function scaleToBase(uint256 tokenAmount) private view returns (uint256 baseAmount) {
-    return tokenAmount * uint256(balanceMultiplier());
+    return tokenAmount * uint256(balanceDivisor());
   }
 }

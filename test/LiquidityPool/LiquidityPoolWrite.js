@@ -165,21 +165,21 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts if pool is emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
       await expect(liquidityPool.mint(42069n, "0x")).to.be.revertedWith("pool is emigrating")
     })
 
     it("succeeds if pool is being immigrated into", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
       await liquidityPool0.mint(42069n, "0x")
     })
@@ -262,7 +262,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
         admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
         assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
-        assetParamsNoMintable1, assetParamsNoMintable2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96,
+        assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96,
         liquidityPoolHelpers, liquidityPoolHelpers0, liquidityPoolHelpers1, liquidityPoolHelpers2, liquidityPoolHelpers3, liquidityPoolHelpers4,
       } = await loadFixture(deployAll)
       await liquidityPool.setMintFeeQ96(0)
@@ -278,10 +278,10 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const initialAmount2Paid = BigInt(balance2Initial - balance2PostMint)
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
-      await increaseTime(Number(minBalanceMultiplierChangeDelay) + 100)
+      await increaseTime(Number(minbalanceDivisorChangeDelay) + 100)
       const balance0Before = await mintable0.balanceOf(admin)
       const balance1Before = await mintable1.balanceOf(admin)
       const balance2Before = await mintable2.balanceOf(admin)
@@ -309,22 +309,22 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("succeeds if pool is emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await liquidityPool.mint(52069n, "0x")
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
       await liquidityPool.burn(42069n, "0x")
     })
 
     it("fails if pool is being immigrated into", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
       await liquidityPool0.mint(52069n, "0x")
       await expect(liquidityPool0.burn(42069n, "0x")).to.be.revertedWith("only liquidity pool")
@@ -1269,12 +1269,12 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
   describe("withdrawAll", function() {
     it("should be able to withdraw all reserves", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await liquidityPool.mint(utils.scale10Pow18(42069n), "0x")
       await liquidityPool.startEmigration(
         liquidityPool0,
-        minBalanceMultiplierChangeDelay,
-        maxBalanceMultiplierChangePerSecondQ96
+        minbalanceDivisorChangeDelay,
+        maxbalanceDivisorChangePerSecondQ96
       )
       await liquidityPool0.mint(await liquidityPool.getTotalReservesScaled(), "0x")
       await liquidityPool.withdrawAll()
@@ -1288,7 +1288,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     })
 
     it("should not be callable if the pool is not emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minBalanceMultiplierChangeDelay, maxBalanceMultiplierChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await expect(liquidityPool.withdrawAll()).to.be.revertedWith("pool is not emigrating")
     })
   })

@@ -35,7 +35,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private totalReservesScaled_; //the sum of all reserves scaled by 10^DECIMAL_SCALE
   struct MigrationSlot {
     uint64 migrationStartTimestamp;
-    uint96 migrationStartBalanceMultiplier;
+    uint96 migrationStartbalanceDivisor;
   }
   MigrationSlot private migrationSlot_;
 
@@ -507,8 +507,8 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolGetters
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
     if (!isEmigrating()) { return PoolMath.toFixed(1); }
-    uint256 currentBalanceMultiplier = uint256(indexToken_.balanceMultiplier());
-    return (currentBalanceMultiplier << 96) / (migrationSlot_.migrationStartBalanceMultiplier);
+    uint256 currentbalanceDivisor = uint256(indexToken_.balanceDivisor());
+    return (currentbalanceDivisor << 96) / (migrationSlot_.migrationStartbalanceDivisor);
   }
 
   /// @inheritdoc ILiquidityPoolGetters
@@ -614,18 +614,18 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   /// @inheritdoc ILiquidityPoolAdmin
   function startEmigration(
     address _nextLiquidityPool,
-    uint64 balanceMultiplierChangeDelay,
-    uint104 balanceMultiplierChangePerSecondQ96
+    uint64 balanceDivisorChangeDelay,
+    uint104 balanceDivisorChangePerSecondQ96
   ) external onlyAdmin mustNotEmigrating {
     nextLiquidityPool_ = _nextLiquidityPool;
-    migrationSlot_.migrationStartBalanceMultiplier = indexToken_.balanceMultiplier();
+    migrationSlot_.migrationStartbalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
     burnFeeQ96_ = 0;
 
     indexToken_.startMigration(
       _nextLiquidityPool, 
-      balanceMultiplierChangeDelay, 
-      balanceMultiplierChangePerSecondQ96
+      balanceDivisorChangeDelay, 
+      balanceDivisorChangePerSecondQ96
     );
   }
 
