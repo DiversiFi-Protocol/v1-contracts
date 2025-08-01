@@ -2,7 +2,7 @@
 // OpenZeppelin Contracts (last updated v4.7.0) (governance/TimelockController.sol)
 
 // NOTE: Modified by Bravo labs 
-// The only modification was making _schedule internal instead of public.
+// The only modification was changing the visibility of _schedule() from private to internal.
 
 pragma solidity ^0.8.0;
 
