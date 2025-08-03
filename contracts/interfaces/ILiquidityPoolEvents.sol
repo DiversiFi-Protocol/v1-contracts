@@ -83,10 +83,6 @@ interface ILiquidityPoolEvents {
     uint256 feesCollected
   );
 
-  event AdminChange(
-    address admin
-  );
-
   event EqualizationBountySet(
     uint256 equalizationBounty
   );

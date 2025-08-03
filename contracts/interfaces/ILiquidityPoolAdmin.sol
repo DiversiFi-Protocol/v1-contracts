@@ -16,7 +16,6 @@ import "../DataStructs.sol";
 /// @notice These are administrative functions not for regular users and as such are not documented.
 /// Anyone wishing to understand them will have to interpret the code.
 interface ILiquidityPoolAdmin {
-  function setAdmin(address admin) external;
   function setMintFeeQ96(uint256 mintFeeQ96) external;
   function setBurnFeeQ96(uint256 burnFeeQ96) external;
   function setMaxReserves(uint256 maxReserves) external;

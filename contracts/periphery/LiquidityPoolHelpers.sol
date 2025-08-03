@@ -11,13 +11,11 @@
 
 pragma solidity ^0.8.27;
 
-import "hardhat/console.sol";
-
-import "./interfaces/ILiquidityPoolGetters.sol";
-import "./interfaces/ILiquidityPoolWrite.sol";
-import "./interfaces/IIndexToken.sol";
-import "./DataStructs.sol";
-import "./PoolMath.sol";
+import "../interfaces/ILiquidityPoolGetters.sol";
+import "../interfaces/ILiquidityPoolWrite.sol";
+import "../interfaces/IIndexToken.sol";
+import "../DataStructs.sol";
+import "../PoolMath.sol";
 
 contract LiquidityPoolHelpers {
   ILiquidityPoolGetters liquidityPool;

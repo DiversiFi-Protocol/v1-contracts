@@ -11,8 +11,6 @@
 
 pragma solidity ^0.8.27;
 
-import "hardhat/console.sol";
-
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "./PoolMath.sol";
 

@@ -40,9 +40,6 @@ interface ILiquidityPoolGetters {
   /// @return indexToken The address of the pool's index token
   function getIndexToken() external view returns (address);
 
-  /// @return admin The address of the administrator's account
-  function getAdmin() external view returns (address);
-
   /// @return allAssets An array of the addresses of all active underlying collateral in the pool
   function getAllAssets() external view returns (address[] memory);
 

@@ -22,13 +22,16 @@ import "./interfaces/IIndexToken.sol";
 import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
+import "openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
+contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
   ILiquidityPoolWrite, ILiquidityPoolEvents {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
+  bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+  bytes32 public constant MAINTAINER_ROLE = keccak256("MAINTAINER_ROLE");
 
   //pool state
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
@@ -44,7 +47,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   address private nextLiquidityPool_;
 
   //configuration
-  address private admin_;
   AssetParams[] private targetAssetParamsList_;//the asset params of all underlying assets that have nonzero target allocations
   AssetParams[] private currentAssetParamsList_;//the asset params of all underlying assets that have nonzero current allocations
   mapping(address => AssetParams) private assetParams_;
@@ -64,11 +66,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   uint256 private maxReservesIncreaseCooldown_ = 1 hours;//the delay before an unpriviledged user can increase the maxReserves again
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
-  modifier onlyAdmin {
-    require(msg.sender == admin_, "only_admin");
-    _;
-  }
-
   modifier mustNotEmigrating {
     require(!isEmigrating(), "pool is emigrating");
     _;
@@ -81,6 +78,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
 
   constructor(
     address _admin,
+    address _maintainer,
     address _indexToken,
     uint256 _mintFeeQ96,
     uint256 _burnFeeQ96,
@@ -89,9 +87,11 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     AssetParams[] memory _assetParams
   ) {
     indexToken_ = IIndexToken(_indexToken);
-    admin_ = msg.sender;//make the caller teporary admin so we can set the asset params
+    _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
+    _setRoleAdmin(MAINTAINER_ROLE, ADMIN_ROLE);
+    _setupRole(ADMIN_ROLE, _admin);
+    _setupRole(MAINTAINER_ROLE, _maintainer);
     setTargetAssetParams(_assetParams);
-    admin_ = _admin;
     DECIMAL_SCALE = indexToken_.decimals();
     maxReserves_ = _maxReserves;
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
@@ -404,11 +404,6 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolGetters
-  function getAdmin() external view returns (address) {
-    return admin_;
-  }
-
-  /// @inheritdoc ILiquidityPoolGetters
   function getAllAssets() external view returns (address[] memory) {
       address[] memory assetsList = new address[](currentAssetParamsList_.length);
       for (uint i = 0; i < currentAssetParamsList_.length; i++) {
@@ -521,45 +516,39 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   */
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setAdmin(address _newAdmin) external onlyAdmin mustNotEmigrating {
-    admin_ = _newAdmin;
-    emit AdminChange(_newAdmin);
-  }
-
-  /// @inheritdoc ILiquidityPoolAdmin
-  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin mustNotEmigrating {
+  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = PoolMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin mustNotEmigrating {
+  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReserves(uint256 _maxReserves) external onlyAdmin mustNotEmigrating {
+  function setMaxReserves(uint256 _maxReserves) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyAdmin mustNotEmigrating {
+  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyAdmin mustNotEmigrating {
+  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setTargetAssetParams(AssetParams[] memory _params) public onlyAdmin mustNotEmigrating {
+  function setTargetAssetParams(AssetParams[] memory _params) public onlyRole(ADMIN_ROLE) mustNotEmigrating {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
     {//scope reduction
@@ -599,13 +588,13 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function setIsMintEnabled(bool _isMintEnabled) external onlyAdmin mustNotEmigrating {
+  function setIsMintEnabled(bool _isMintEnabled) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
   /// @inheritdoc ILiquidityPoolAdmin
-  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin mustNotEmigrating {
+  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
@@ -616,7 +605,7 @@ contract LiquidityPool is ReentrancyGuard, ILiquidityPoolAdmin, ILiquidityPoolGe
     address _nextLiquidityPool,
     uint64 balanceDivisorChangeDelay,
     uint104 balanceDivisorChangePerSecondQ96
-  ) external onlyAdmin mustNotEmigrating {
+  ) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     nextLiquidityPool_ = _nextLiquidityPool;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
