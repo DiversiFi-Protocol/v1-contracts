@@ -86,14 +86,10 @@ describe("migration - complete lifecycle", function() {
     expect(postWithdrawalCallerBalance2).to.equal(preWithdrawalCallerBalance2 + preWithdrawalLiquidityPoolBalance2)
     var totalReserves = await liquidityPool0.getTotalReservesScaled()
     var totalSupply = await indexToken.totalSupply()
-    console.log("reserves:", totalReserves)
-    console.log("supply  :", totalSupply)
     expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)
     await liquidityPool.finishEmigration()
     totalReserves = await liquidityPool0.getTotalReservesScaled()
     totalSupply = await indexToken.totalSupply()
-    console.log("reserves:", totalReserves)
-    console.log("supply  :", totalSupply)
     expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)  })
 
   it("multiple migrations", async function() {

@@ -19,13 +19,12 @@ import "./interfaces/ILiquidityPoolWrite.sol";
 import "./interfaces/ILiquidityPoolEvents.sol";
 import "./interfaces/ILiquidityPoolCallback.sol";
 import "./interfaces/IIndexToken.sol";
-import "openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 import "openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
+contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
   ILiquidityPoolWrite, ILiquidityPoolEvents {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
@@ -105,7 +104,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
   */
 
   /// @inheritdoc ILiquidityPoolWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external nonReentrant mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
       msg.sender,
@@ -150,7 +149,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
   }
 
   /// @inheritdoc ILiquidityPoolWrite
-  function burn(uint256 _burnAmount, bytes calldata _forwardData) external nonReentrant returns (AssetAmount[] memory outputAmounts) {
+  function burn(uint256 _burnAmount, bytes calldata _forwardData) external returns (AssetAmount[] memory outputAmounts) {
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ96_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -207,7 +206,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
   function swapTowardsTarget(
     address _asset,
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
-  ) external nonReentrant mustNotEmigrating returns (uint256 reservesTransfer, uint256 indexTransfer) {
+  ) external mustNotEmigrating returns (uint256 reservesTransfer, uint256 indexTransfer) {
     AssetParams memory params = assetParams_[_asset];
     uint256 bounty;
     uint256 startingDiscrepency = getTotalReservesDiscrepencyScaled();
@@ -229,7 +228,6 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         params.decimals
       );
       reservesTransfer = trueDeposit;
-      IERC20(_asset).transferFrom(msg.sender, address(this), trueDeposit);
       uint256 trueDepositScaled = PoolMath.scaleDecimals(
         trueDeposit,
         params.decimals,
@@ -244,6 +242,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         startingDiscrepency, 
         endingDiscrepency
       );
+      equalizationBounty_ -= bounty;
       emit Swap(
         _asset,
         int256(trueDepositScaled),
@@ -254,6 +253,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         msg.sender,
         indexTransfer
       );
+      IERC20(_asset).transferFrom(msg.sender, address(this), trueDeposit);
     } else { // withdraw
       uint256 targetWithdrawalScaled = PoolMath.scaleDecimals(
         uint256(_delta * -1),
@@ -267,13 +267,11 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         params.decimals
       );
       reservesTransfer = trueWithdrawal;
-      IERC20(_asset).transfer(msg.sender, trueWithdrawal);
       uint256 trueWithdrawalScaled = PoolMath.scaleDecimals(
         trueWithdrawal,
         params.decimals,
         DECIMAL_SCALE
       );
-
       specificReservesScaled_[_asset] -= trueWithdrawalScaled;
       totalReservesScaled_ -= trueWithdrawalScaled;
       uint256 endingDiscrepency = getTotalReservesDiscrepencyScaled();
@@ -287,6 +285,7 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         // and treat the bounty for this transaction as the amount the caller would have burned
         bounty = trueWithdrawalScaled;
       }
+      equalizationBounty_ -= bounty;
       emit Swap(
         _asset,
         int256(trueWithdrawalScaled) * -1,
@@ -297,8 +296,8 @@ contract LiquidityPool is ReentrancyGuard, AccessControl, ILiquidityPoolAdmin, I
         msg.sender, 
         indexTransfer 
       );
+      IERC20(_asset).transfer(msg.sender, trueWithdrawal);
     }
-    equalizationBounty_ -= bounty;
   }
 
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished

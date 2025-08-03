@@ -75,18 +75,18 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts if minting is disabled", async function () {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
-      await liquidityPool.connect(admin).setIsMintEnabled(false);
+      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
+      await liquidityPool.connect(maintainer).setIsMintEnabled(false);
       await expect(
         liquidityPool.connect(admin).mint(utils.scale10Pow18(1000n), "0x")
       ).to.be.revertedWith("minting disabled");
     });
 
     it("succeeds when minting exactly up to the maxReserves limit (cooldown active)", async function () {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
       await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
@@ -96,10 +96,10 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts when minting above the maxReserves limit (cooldown active)", async function () {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
       await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
@@ -109,10 +109,10 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("succeeds when minting exactly up to the NEXT maxReserves limit (cooldown inactive)", async function () {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
       await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
@@ -128,7 +128,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       //set fee to zero so we don't have to do a complex calculation
       await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
-      await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
+      await resetVals.liquidityPool.connect(resetVals.maintainer).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // mint above the next max reserves limit
       await expect(
@@ -137,10 +137,10 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts when minting above the NEXT maxReserves limit (cooldown inactive)", async function () {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(admin).setMaxReserves(lowLimit);
+      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
       await liquidityPool.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
@@ -156,7 +156,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       //set fee to zero so we don't have to do a complex calculation
       await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
-      await resetVals.liquidityPool.connect(resetVals.admin).setMaxReserves(lowLimit);
+      await resetVals.liquidityPool.connect(resetVals.maintainer).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // mint above the next max reserves limit
       await expect(
@@ -513,7 +513,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           const { 
             liquidityPool,
             mintable0, 
-            admin, 
+            maintainer, 
             assetParamsNoMintable0, 
             assetParams0, 
             assetParams1, 
@@ -527,7 +527,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable0 is now targetted at 0.33
-          await liquidityPool.setMaxReserves(utils.scale10Pow18(900_000n))
+          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
           const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
           await expect(
             liquidityPool.swapTowardsTarget(
@@ -798,7 +798,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           const { 
             liquidityPool,
             mintable2, 
-            admin, 
+            maintainer, 
             assetParamsNoMintable2, 
             assetParams0, 
             assetParams1, 
@@ -812,7 +812,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable2 is now targetted at 0.33
-          await liquidityPool.setMaxReserves(utils.scale10Pow18(900_000n))
+          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
           const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
           await expect(
             liquidityPool.swapTowardsTarget(
@@ -1084,7 +1084,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           const { 
             liquidityPool,
             mintable1, 
-            admin, 
+            maintainer, 
             assetParamsNoMintable1, 
             assetParams0, 
             assetParams1, 
@@ -1098,7 +1098,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
           await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
           await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable1 is now targetted at 0.33
-          await liquidityPool.setMaxReserves(utils.scale10Pow18(900_000n))
+          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
           const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
           await expect(
             liquidityPool.swapTowardsTarget(

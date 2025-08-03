@@ -12,25 +12,6 @@ async function increaseTime(seconds) {
 }
 
 describe("LiquidityPool - Admin Functions", function() {
-  describe("setAdmin", function() {
-    it("sets new admin and emits event when called by admin", async function() {
-      const { liquidityPool, admin, unpriviledged } = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(admin).setAdmin(unpriviledged.address))
-        .to.emit(liquidityPool, "AdminChange").withArgs(unpriviledged.address);
-      expect(await liquidityPool.getAdmin()).to.equal(unpriviledged.address);
-    });
-    it("reverts when called by non-admin", async function() {
-      const { liquidityPool, unpriviledged, admin } = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(unpriviledged).setAdmin(admin.address))
-        .to.be.revertedWith("only_admin");
-    });
-    it("reverts when called during migration", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await liquidityPool.startEmigration(liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(liquidityPool.setAdmin(unpriviledged)).to.be.revertedWith("pool is emigrating")
-    })
-  });
-
   describe("setMintFeeQ96", function() {
     it("sets new mint fee and emits event when called by admin", async function() {
       const { liquidityPool, admin } = await loadFixture(deployAll);
@@ -43,7 +24,7 @@ describe("LiquidityPool - Admin Functions", function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.02);
       await expect(liquidityPool.connect(unpriviledged).setMintFeeQ96(newFee))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
       const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -64,7 +45,7 @@ describe("LiquidityPool - Admin Functions", function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.03);
       await expect(liquidityPool.connect(unpriviledged).setBurnFeeQ96(newFee))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
       const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -74,68 +55,68 @@ describe("LiquidityPool - Admin Functions", function() {
   });
 
   describe("setMaxReservesIncreaseCooldown", function() {
-    it("sets new cooldown and emits event when called by admin", async function() {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+    it("sets new cooldown and emits event when called by maintainer", async function() {
+      const { liquidityPool, admin, maintainer } = await loadFixture(deployAll);
       const newCooldown = 12345;
-      await expect(liquidityPool.connect(admin).setMaxReservesIncreaseCooldown(newCooldown))
+      await expect(liquidityPool.connect(maintainer).setMaxReservesIncreaseCooldown(newCooldown))
         .to.emit(liquidityPool, "MaxReservesIncreaseCooldownChange").withArgs(newCooldown);
       expect(await liquidityPool.getMaxReservesIncreaseCooldown()).to.equal(newCooldown);
     });
-    it("reverts when called by non-admin", async function() {
+    it("reverts when called by non-maintainer", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newCooldown = 12345;
       await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseCooldown(newCooldown))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(liquidityPool.setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(liquidityPool.connect(maintainer).setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("pool is emigrating")
     })
   });
 
   describe("setMaxReservesIncreaseRateQ96", function() {
-    it("sets new rate and emits event when called by admin", async function() {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+    it("sets new rate and emits event when called by maintainer", async function() {
+      const { liquidityPool, admin, maintainer } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
-      await expect(liquidityPool.connect(admin).setMaxReservesIncreaseRateQ96(newRate))
+      await expect(liquidityPool.connect(maintainer).setMaxReservesIncreaseRateQ96(newRate))
         .to.emit(liquidityPool, "MaxReservesIncreaseRateChange").withArgs(newRate);
       expect(await liquidityPool.getMaxReservesIncreaseRateQ96()).to.equal(newRate);
     });
-    it("reverts when called by non-admin", async function() {
+    it("reverts when called by non-maintainer", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
       await expect(liquidityPool.connect(unpriviledged).setMaxReservesIncreaseRateQ96(newRate))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(liquidityPool.setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(liquidityPool.connect(maintainer).setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("pool is emigrating")
     })
   });
 
   describe("setMaxReserves", function() {
-    it("sets new max reserves, emits event, and updates timestamp when called by admin", async function() {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
+    it("sets new max reserves, emits event, and updates timestamp when called by maintainer", async function() {
+      const { liquidityPool, admin, maintainer } = await loadFixture(deployAll);
       const newMax = 123456789n;
-      const tx = await liquidityPool.connect(admin).setMaxReserves(newMax);
+      const tx = await liquidityPool.connect(maintainer).setMaxReserves(newMax);
       const block0 = await hre.ethers.provider.getBlock(tx.blockNumber);
       await expect(tx).to.emit(liquidityPool, "MaxReservesChange").withArgs(newMax, block0.timestamp);
       expect(await liquidityPool.getMaxReserves()).to.equal(newMax);
       const block1 = await hre.ethers.provider.getBlock(tx.blockNumber);
       expect(await liquidityPool.getLastMaxReservesChangeTimestamp()).to.equal(block1.timestamp);
     });
-    it("reverts when called by non-admin", async function() {
+    it("reverts when called by non-maintainer", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       const newMax = 123456789n;
       await expect(liquidityPool.connect(unpriviledged).setMaxReserves(newMax))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(liquidityPool.setMaxReserves(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(liquidityPool.connect(maintainer).setMaxReserves(0n)).to.be.revertedWith("pool is emigrating")
     })
   });
 
@@ -242,7 +223,7 @@ describe("LiquidityPool - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n }
       ];
       await expect(liquidityPool.connect(unpriviledged).setTargetAssetParams(params))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
       const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -269,7 +250,7 @@ describe("LiquidityPool - Admin Functions", function() {
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       await expect(liquidityPool.connect(unpriviledged).withdrawFees(unpriviledged.address))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
       const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -279,9 +260,9 @@ describe("LiquidityPool - Admin Functions", function() {
   });
 
   describe("setIsMintEnabled", function() {
-    it("sets mint enabled and emits event when called by admin", async function() {
-      const { liquidityPool, admin } = await loadFixture(deployAll);
-      await expect(liquidityPool.connect(admin).setIsMintEnabled(false))
+    it("sets mint enabled and emits event when called by maintainer", async function() {
+      const { liquidityPool, maintainer } = await loadFixture(deployAll);
+      await expect(liquidityPool.connect(maintainer).setIsMintEnabled(false))
         .to.emit(liquidityPool, "IsMintEnabledChange").withArgs(false);
       expect(await liquidityPool.getIsMintEnabled()).to.equal(false);
     });
@@ -289,12 +270,12 @@ describe("LiquidityPool - Admin Functions", function() {
     it("reverts when called by non-admin", async function() {
       const { liquidityPool, unpriviledged } = await loadFixture(deployAll);
       await expect(liquidityPool.connect(unpriviledged).setIsMintEnabled(true))
-        .to.be.revertedWith("only_admin");
+        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const { liquidityPool, maintainer, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await liquidityPool.startEmigration(liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(liquidityPool.setIsMintEnabled(true)).to.be.revertedWith("pool is emigrating")
+      await expect(liquidityPool.connect(maintainer).setIsMintEnabled(true)).to.be.revertedWith("pool is emigrating")
     })
   });
 

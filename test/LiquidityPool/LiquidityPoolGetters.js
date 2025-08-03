@@ -24,7 +24,6 @@ describe("LiquidityPool - Getters", function () {
 
     // liquidity pool
     expect(await liquidityPool.getIndexToken()).to.equal(getAddress(indexToken.target));
-    expect(await liquidityPool.getAdmin()).to.equal(getAddress(admin.address));
   });
 
   it("getMaxReserves", async function () {
@@ -120,12 +119,6 @@ describe("LiquidityPool - Getters", function () {
     expect(result).to.equal(getAddress(indexToken.target));
   });
 
-  it("getAdmin", async function () {
-    const { admin, liquidityPool } = await loadFixture(deployAll);
-    const result = await liquidityPool.getAdmin();
-    expect(result).to.equal(getAddress(admin.address));
-  });
-
   it("getAllAssets", async function () {
     const { liquidityPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
 
@@ -201,8 +194,8 @@ describe("LiquidityPool - Getters", function () {
   });
 
   it("getLastMaxReservesChangeTimestamp", async function () {
-    const { liquidityPool, setMaxReservesTimestamp } = await loadFixture(deployAll);
-    await liquidityPool.setMaxReserves(42069n)
+    const { liquidityPool, maintainer, setMaxReservesTimestamp } = await loadFixture(deployAll);
+    await liquidityPool.connect(maintainer).setMaxReserves(42069n)
     const latestBlock = await ethers.provider.getBlock("latest");
     const result = await liquidityPool.getLastMaxReservesChangeTimestamp();
     expect(result).to.equal(latestBlock.timestamp);
