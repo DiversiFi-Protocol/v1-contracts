@@ -96,7 +96,7 @@ library PoolMath {
      * it is practically impossible to end up in these situations to begin with, but
      * if we are here, the least catastrophic option is to just make the multiplier the max value.
      * (thereby lowering the balances of all token holders to practically zero.)
-     * And setting the surplus to the max possible value, this will result in governance 
+     * and setting the surplus to the max possible value, this will result in governance 
      * having effectively total control over the reserves, they can then oversee the proper
      * distribution of the reserves. 
      */
