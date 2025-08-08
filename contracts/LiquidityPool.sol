@@ -621,14 +621,8 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
   function finishEmigration() external mustIsEmigrating {
     require(nextLiquidityPool_ != address(0), "liquidity pool not migrating");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
-    //burn all fees collected by this pool.
-    //if there is a deficit, the burned tokens will go towards covering it.
-    //if there is a surplus, appropriate tokens will be minted to the next
-    //liquidity pool's fees collected upon the migration finishing such that
-    //each token is backed 1:1. In this case, the burned tokens will be re-minted immediately
-    //we do this instead of transferring them because this contract doesn't have access
-    //to the required data to calculate the surplus/deficit.
-    indexToken_.transfer(address(this), indexToken_.balanceOf(address(this)));
+    //burn index tokens that may have been accidentally transferred to this address
+    indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
     uint256 finalTotalReservesScaled = ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled();
     indexToken_.finishMigration(finalTotalReservesScaled);
     delete migrationSlot_;
