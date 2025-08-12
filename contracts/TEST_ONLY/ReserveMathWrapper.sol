@@ -1,33 +1,33 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.27;
 
-import "../PoolMath.sol";
+import "../ReserveMath.sol";
 
-contract PoolMathWrapper {
+contract ReserveMathWrapper {
 
   function allocationToFixed(uint88 _allocation) public pure returns (uint256) {
-    return PoolMath.allocationToFixed(_allocation);
+    return ReserveMath.allocationToFixed(_allocation);
   }
 
   function fixedToAllocation(uint256 _fixed) public pure returns (uint88) {
-    return PoolMath.fixedToAllocation(_fixed);
+    return ReserveMath.fixedToAllocation(_fixed);
   }
 
   function toFixed(uint256 _num) public pure returns (uint256) {
-    return PoolMath.toFixed(_num);
+    return ReserveMath.toFixed(_num);
   }
 
   function fromFixed(uint256 _num) public pure returns (uint256) {
-    return PoolMath.fromFixed(_num);
+    return ReserveMath.fromFixed(_num);
   }
 
   function calcCompoundingFeeRate(uint256 _feeRateQ96) public pure returns (uint256) {
-    return PoolMath.calcCompoundingFeeRate(_feeRateQ96);
+    return ReserveMath.calcCompoundingFeeRate(_feeRateQ96);
   }
 
   //scale a token with specified decimals to be the same scale as _targetDecimals
   function scaleDecimals(uint256 _value, uint8 _currentScale, uint8 _targetScale) public pure returns (uint256) {
-    return PoolMath.scaleDecimals(
+    return ReserveMath.scaleDecimals(
         _value,
         _currentScale,
         _targetScale
@@ -39,7 +39,7 @@ contract PoolMathWrapper {
     uint256 _specificReserves,
     uint256 _totalReserves
   ) public pure returns (int256) {
-    return PoolMath.calcMaxIndividualDelta(
+    return ReserveMath.calcMaxIndividualDelta(
       _targetAllocation,
       _specificReserves,
       _totalReserves
@@ -51,7 +51,7 @@ contract PoolMathWrapper {
     uint256 _discrepencyBefore,
     uint256 _discrepencyAfter
   ) public pure returns (uint256 bounty) {
-    return PoolMath.calcEqualizationBounty(
+    return ReserveMath.calcEqualizationBounty(
       _totalEqualizationBounty,
       _discrepencyBefore,
       _discrepencyAfter

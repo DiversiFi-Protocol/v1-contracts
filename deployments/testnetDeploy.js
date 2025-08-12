@@ -145,7 +145,7 @@ async function main() {
 
   console.log("\n----------------------------------\n");
 
-  console.log(chalk.cyan("Minting base assets for Liquidity Pool"));
+  console.log(chalk.cyan("Minting base assets for Reserve Manager"));
   await token0.approve(reserveManager.getAddress(), utils.MAX_UINT_256);
   await token1.approve(reserveManager.getAddress(), utils.MAX_UINT_256);
   await token2.approve(reserveManager.getAddress(), utils.MAX_UINT_256);

@@ -32,24 +32,24 @@ interface IReserveManagerGetters {
   /// @return isMintEnabled True if minting is enabled, false if minting is disabled
   function getIsMintEnabled() external view returns (bool);
 
-  /// @dev Swap fees accumulate into the pool's surplus, the surplus is equal to:
+  /// @dev Swap fees accumulate into the reserve surplus, the surplus is equal to:
   /// totalReservesScaled - indexToken.totalSupply - equalizationBounty
   /// @return surplus The surplus of reserves vs total supply of the index token
   function getSurplus() external view returns (int256);
 
-  /// @return indexToken The address of the pool's index token
+  /// @return indexToken The address of the reserve manager's index token
   function getIndexToken() external view returns (address);
 
-  /// @return allAssets An array of the addresses of all active underlying collateral in the pool
+  /// @return allAssets An array of the addresses of all active underlying collateral in the reserve manager
   function getAllAssets() external view returns (address[] memory);
 
   /// @dev Current assets refer to all assets held by the reserve manager that are backing index tokens
   /// @return currentAssetParams A list of asset params for every current asset
   function getCurrentAssetParams() external view returns (AssetParams[] memory);
 
-  /// @dev Target assets refer to the assets and allocation that the pool is targetting.
-  /// i.e. The pool wants current asset params to equal target asset params, but may not be there yet
-  /// @return targetAssetParams A list of asset params that the pool is targetting
+  /// @dev Target assets refer to the assets and allocation that the reserve manager is targetting.
+  /// i.e. The reserve manager wants current asset params to equal target asset params, but may not be there yet
+  /// @return targetAssetParams A list of asset params that the reserve manager is targetting
   function getTargetAssetParams() external view returns (AssetParams[] memory);
 
   /// @param asset The address of an asset whose params are being fetched
@@ -87,16 +87,16 @@ interface IReserveManagerGetters {
   function getLastMaxReservesChangeTimestamp() external view returns (uint256);
   
   /// @dev A reward in the index token applied as a discount/premium to traders who call arbitrage functions
-  /// that move the pools reserves closer to equalization with the target allocations.
-  /// @return equalizationBounty The total reward for bringing the pool to equalization
+  /// that move the manager's reserves closer to equalization with the target allocations.
+  /// @return equalizationBounty The total reward for bringing the  to equalization
   function getEqualizationBounty() external view returns (uint256);
 
-  /// @dev Equalization refers to whether or not the pools current reserves are equal to its target reserves
-  /// @return isEqualized Whether or not the pool is equalized
+  /// @dev Equalization refers to whether or not the manager's current reserves are equal to its target reserves
+  /// @return isEqualized Whether or not the  is equalized
   function getIsEqualized() external view returns (bool);
 
   /// @dev The equalization vector is sorted in the same order as the currentAssetParams list
-  /// @return equalizationVectorScaled A list of scaled reserve deltas that would bring the pool to a state of equalization if applied
+  /// @return equalizationVectorScaled A list of scaled reserve deltas that would bring the  to a state of equalization if applied
   function getEqualizationVectorScaled() external view returns (int256[] memory);
 
   /// @dev See the Proofs section of the V1 whitepaper for an in depth explanation of the Discrepency
@@ -110,7 +110,7 @@ interface IReserveManagerGetters {
   /// @return conversionRateQ96 the migration conversion rate of index tokens to totalReserves
   function getMigrationBurnConversionRateQ96() external view returns (uint256);
 
-  /// @dev Emigrating in this context refers to a soft migration where reserves are moving to a new pool
+  /// @dev Emigrating in this context refers to a soft migration where reserves are moving to a new reserve manager
   /// @return isEmigrating true if the reserves are Emigrating, false if not
   function isEmigrating() external view returns (bool);
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - PoolMath.sol
+ * @title DiversiFi - ReserveMath.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-library PoolMath {
+library ReserveMath {
   uint256 constant SHIFT = 96; //shift a normal integer to get 96.96 fixed point
   uint256 constant ALLOCATION_FRAC_BITS = 88;
   uint256 constant ALLOCATION_SHIFT = SHIFT - ALLOCATION_FRAC_BITS; //shift 0.88 fixed point to get 96.96 fixed point

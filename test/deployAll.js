@@ -91,7 +91,7 @@ module.exports = async function deployAll() {
     const mintFee = utils.decimalToFixed(0.01); // 1% mint fee
     const burnFee = utils.decimalToFixed(0.02); // 2% burn fee
 
-    const reserveManager = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -104,7 +104,7 @@ module.exports = async function deployAll() {
     ])
     approveAddresses.push(await reserveManagerHelpers.getAddress())
 
-    const reserveManager0 = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager0 = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -115,7 +115,7 @@ module.exports = async function deployAll() {
     ])
     approveAddresses.push(await reserveManagerHelpers0.getAddress())
 
-    const reserveManager1 = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager1 = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -126,7 +126,7 @@ module.exports = async function deployAll() {
     ])
     approveAddresses.push(await reserveManagerHelpers1.getAddress())
 
-    const reserveManager2 = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager2 = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -137,7 +137,7 @@ module.exports = async function deployAll() {
     ])
     approveAddresses.push(await reserveManagerHelpers2.getAddress())
 
-    const reserveManager3 = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager3 = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -148,7 +148,7 @@ module.exports = async function deployAll() {
     ])
     approveAddresses.push(await reserveManagerHelpers3.getAddress())
 
-    const reserveManager4 = await hre.ethers.deployContract("ReserveManager", [
+    const reserveManager4 = await hre.ethers.deployContract("ReserveManagerV1", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
@@ -175,7 +175,7 @@ module.exports = async function deployAll() {
       await indexToken.attach(unpriviledged).approve(address, utils.MAX_UINT_256)
     }))
     
-    const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
+    const poolMathWrapperFactory = await hre.ethers.getContractFactory("ReserveMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
 
     const assetParamsNoMintable0 = [{

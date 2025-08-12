@@ -15,7 +15,7 @@ const targetAllocation3 = utils.allocationRemainder([
   targetAllocation2,
 ]);
 
-const reserveManagerAddress = process.env.LIQUIDITY_POOL
+const reserveManagerAddress = process.env.RESERVE_MANAGER
 
 async function main() {
   const ReserveManager = await ethers.getContractFactory("ReserveManager");

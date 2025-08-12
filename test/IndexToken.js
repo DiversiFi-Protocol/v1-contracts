@@ -130,7 +130,7 @@ describe("IndexToken", function() {
           nextReserveManager,
           minbalanceDivisorChangeDelay,
           maxbalanceDivisorChangePerSecondQ96
-        )).to.be.revertedWith("only liquidity pool")
+        )).to.be.revertedWith("only reserve manager")
       })
 
       it("should not be callable if a migration is already happening", async function() {
@@ -144,7 +144,7 @@ describe("IndexToken", function() {
           nextReserveManager,
           minbalanceDivisorChangeDelay,
           maxbalanceDivisorChangePerSecondQ96
-        )).to.be.revertedWith("reserveManager is migrating")
+        )).to.be.revertedWith("reserve manager is migrating")
       })
 
       it("should fail if the change delay is too below the minimum", async function() {
@@ -190,14 +190,14 @@ describe("IndexToken", function() {
         )
         await expect(
           indexToken.connect(unprivileged0).finishMigration(startingTotalSupply)
-        ).to.be.revertedWith("only liquidity pool")
+        ).to.be.revertedWith("only reserve manager")
       })
 
       it("should not be callable if not migrating", async function() {
         const { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
         await expect(
           indexToken.finishMigration(startingTotalSupply)
-        ).to.be.revertedWith("reserveManager not migrating")
+        ).to.be.revertedWith("reserve manager not migrating")
       })
 
       it("should set the relevant variables", async function() {

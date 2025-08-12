@@ -327,7 +327,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(52069n, "0x")
-      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only liquidity pool")
+      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only reserve manager")
     })
   });
 

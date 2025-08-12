@@ -13,7 +13,7 @@ pragma solidity ^0.8.27;
 
 interface IReserveManagerEvents {
     // emitted when a user mints the index token directly in exchange
-  // for depositing every asset in the pool at the same time
+  // for depositing every asset in the reserve manager at the same time
   // the updated scaled reserves of each asset are included in the scaledReserves array
   // the array is indexed by order of the ***********TARGETAssetParamsList_***********
   // NOTE THAT THIS ARRAY IS NOT NECESSARILY INDEXED IN THE SAME ORDER AS THE ARRAY EMITTED BY THE BURN() EVENT
@@ -25,7 +25,7 @@ interface IReserveManagerEvents {
   );
 
   // emitted when a user burns the index token directly
-  // to redeem every asset in the pool at the same time
+  // to redeem every asset in the reserve manager at the same time
   // the updated scaled reserves of each asset are included in the scaledReserves array
   // the array is indexed by order of the ***********CURRENTAssetParamsList_***********
   // NOTE THAT THIS ARRAY IS NOT NECESSARILY INDEXED IN THE SAME ORDER AS THE ARRAY EMITTED BY THE MINT() EVENT
@@ -38,13 +38,13 @@ interface IReserveManagerEvents {
 
   event Swap(
     address indexed asset,
-    int256 deltaScaled, //the scaled change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
+    int256 deltaScaled, //the scaled change in reserves from the reserve manager's perspective, positive is a deposit, negative is a withdrawal
     uint256 bountyPaid
   );
 
   //the entire remaining equalization bounty is paid out upon equalization
   event Equalization(
-    int256[] deltasScaled //the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal (ordered by currentAssetParamsList_)
+    int256[] deltasScaled //the change in reserves from the reserve manager's perspective, positive is a deposit, negative is a withdrawal (ordered by currentAssetParamsList_)
   );
 
   event MintFeeChange(

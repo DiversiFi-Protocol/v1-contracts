@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 const tokens = require("../../test/testModules/tokens")
 
-const reserveManagerAddress = process.env.LIQUIDITY_POOL
+const reserveManagerAddress = process.env.RESERVE_MANAGER
 
 async function main() {
   const [signer] = await ethers.getSigners()

@@ -5,7 +5,7 @@ const utils = require("./testModules/utils");
 
 describe("PoolMath", function() {
   async function deployAll() {
-    const poolMathWrapperFactory = await hre.ethers.getContractFactory("PoolMathWrapper");
+    const poolMathWrapperFactory = await hre.ethers.getContractFactory("ReserveMathWrapper");
     const poolMathWrapper = await poolMathWrapperFactory.deploy()
     return {poolMathWrapper};
   }

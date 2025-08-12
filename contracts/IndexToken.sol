@@ -12,7 +12,7 @@
 pragma solidity ^0.8.27;
 
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "./PoolMath.sol";
+import "./ReserveMath.sol";
 
 //a balance multiplier below this level gives sufficient space
 //for any reasonable migration, if the balance multiplier is above this number,
@@ -67,7 +67,7 @@ contract IndexToken is ERC20Permit {
     uint104 maxBalanceDivisorChangePerSecondQ96
   ) ERC20(name, symbol) ERC20Permit(name) {
     _reserveManager = reserveManager;
-    _migrationSlot0.lastBalanceDivisor = PoolMath.DEFAULT_BALANCE_MULTIPLIER;
+    _migrationSlot0.lastBalanceDivisor = ReserveMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;
     _maxBalanceDivisorChangePerSecondQ96 = maxBalanceDivisorChangePerSecondQ96;
   }
@@ -117,7 +117,7 @@ contract IndexToken is ERC20Permit {
 
   function finishMigration(uint256 totalReservesScaled) external onlyReserveManager migrationCheck(true) {
     //infer the exact balance multiplier based on the totalScaledReserves of the new reserve manager and the total supply
-    (uint96 finalBalanceDivisor, int256 surplus) = PoolMath.computeFinalBalanceDivisorAndSurplus(
+    (uint96 finalBalanceDivisor, int256 surplus) = ReserveMath.computeFinalBalanceDivisorAndSurplus(
       totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
     _migrationSlot0.lastBalanceDivisor = finalBalanceDivisor;
@@ -158,7 +158,7 @@ contract IndexToken is ERC20Permit {
       } else {
         timeDiff -= migrationSlot1.balanceDivisorChangeDelay;
       }
-      uint256 compoundedChangeQ96 = PoolMath.powQ96(uint256(migrationSlot1.balanceDivisorChangePerSecondQ96), timeDiff);
+      uint256 compoundedChangeQ96 = ReserveMath.powQ96(uint256(migrationSlot1.balanceDivisorChangePerSecondQ96), timeDiff);
       return uint96(
         (migrationSlot0.lastBalanceDivisor * compoundedChangeQ96) >> 96
       );
