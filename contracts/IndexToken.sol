@@ -14,8 +14,8 @@ pragma solidity ^0.8.27;
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "./ReserveMath.sol";
 
-//a balance multiplier below this level gives sufficient space
-//for any reasonable migration, if the balance multiplier is above this number,
+//a balance divisor below this level gives sufficient space
+//for any reasonable migration, if the balance divisor is above this number,
 //further soft migrations are not allowed.
 uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
@@ -115,7 +115,7 @@ contract IndexToken is ERC20Permit {
   }
 
   function finishMigration(uint256 totalReservesScaled) external onlyReserveManager migrationCheck(true) {
-    //infer the exact balance multiplier based on the totalScaledReserves of the new reserve manager and the total supply
+    //infer the exact balance divisor based on the totalScaledReserves of the new reserve manager and the total supply
     (uint96 finalBalanceDivisor, int256 surplus) = ReserveMath.computeFinalBalanceDivisorAndSurplus(
       totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
@@ -149,7 +149,7 @@ contract IndexToken is ERC20Permit {
     MigrationSlot0 memory migrationSlot0 = _migrationSlot0;
     if (migrationSlot0.nextReserveManager == address(0)) {
       return migrationSlot0.lastBalanceDivisor;
-    } else { //we are migrating - the balance multiplier is changing
+    } else { //we are migrating - the balance divisor is changing
       MigrationSlot1 memory migrationSlot1 = _migrationSlot1;
       uint256 timeDiff = block.timestamp - uint256(migrationSlot1.migrationStartTimestamp);
       if (timeDiff <= migrationSlot1.balanceDivisorChangeDelay) {
