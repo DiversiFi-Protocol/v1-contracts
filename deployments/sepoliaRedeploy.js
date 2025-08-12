@@ -31,7 +31,7 @@ async function main() {
 	console.log("\n----------------------------------\n");
 	let nonce = await hre.ethers.provider.getTransactionCount(deployer.address);
 
-	const liquidityPoolAddress = getCreateAddress({
+	const reserveManagerAddress = getCreateAddress({
 		from: deployer.address,
 		nonce: nonce + 1,
 	});
@@ -42,7 +42,7 @@ async function main() {
 	const indexToken = await IndexToken.deploy(
 		"Diversified USD",
 		"DFiUSD",
-		liquidityPoolAddress,
+		reserveManagerAddress,
 		deployer.getAddress()
 	);
 	await indexToken.waitForDeployment();
@@ -50,21 +50,21 @@ async function main() {
 
 	console.log("\n----------------------------------\n");
 
-	// Deploy liquidityPool Contract
-	console.log(chalk.cyan("Deploying LiquidityPool contract..."));
-	const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
-	const liquidityPool = await LiquidityPool.deploy(
+	// Deploy reserveManager Contract
+	console.log(chalk.cyan("Deploying ReserveManager contract..."));
+	const ReserveManager = await ethers.getContractFactory("ReserveManager");
+	const reserveManager = await ReserveManager.deploy(
 		deployer.getAddress(),
 		indexToken.getAddress()
 	);
-	await liquidityPool.waitForDeployment();
+	await reserveManager.waitForDeployment();
 	const targetAllocation0 = utils.formatAllocationFromDecimal(0.4);
 	const targetAllocation1 = utils.formatAllocationFromDecimal(0.35);
 	const targetAllocation2 = utils.allocationRemainder([
 		targetAllocation0,
 		targetAllocation1,
 	]);
-	await liquidityPool.setTargetAssetParams([
+	await reserveManager.setTargetAssetParams([
 		{
 			assetAddress: await token0.getAddress(),
 			targetAllocation: targetAllocation0,
@@ -81,11 +81,11 @@ async function main() {
 			decimals: token2Decimals,
 		},
 	]);
-	await liquidityPool.setIsMintEnabled(true);
-	console.log(`LiquidityPool deployed to: ${await liquidityPool.getAddress()}`);
+	await reserveManager.setIsMintEnabled(true);
+	console.log(`ReserveManager deployed to: ${await reserveManager.getAddress()}`);
 	console.log(
-		chalk.yellow("Predicted LiquidityPool address:"),
-		liquidityPoolAddress
+		chalk.yellow("Predicted ReserveManager address:"),
+		reserveManagerAddress
 	);
 	console.log("\n----------------------------------\n");
 
@@ -128,13 +128,13 @@ async function main() {
 	console.log("\n----------------------------------\n");
 
 	console.log(chalk.cyan("Minting base assets for Liquidity Pool"));
-	let tx = await token0.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+	let tx = await token0.approve(reserveManager.getAddress(), utils.MAX_UINT_256);
 	await tx.wait();
-	tx = await token1.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+	tx = await token1.approve(reserveManager.getAddress(), utils.MAX_UINT_256);
 	await tx.wait();
-	tx = await token2.approve(liquidityPool.getAddress(), utils.MAX_UINT_256);
+	tx = await token2.approve(reserveManager.getAddress(), utils.MAX_UINT_256);
 	await tx.wait();
-	tx = await liquidityPool.mint(
+	tx = await reserveManager.mint(
 		ethers.parseUnits("100000", await indexToken.decimals()),
 		"0x"
 	);

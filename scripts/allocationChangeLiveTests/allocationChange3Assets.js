@@ -12,12 +12,12 @@ const targetAllocation2 = utils.allocationRemainder([
   targetAllocation1,
 ]);
 
-const liquidityPoolAddress = process.env.LIQUIDITY_POOL
+const reserveManagerAddress = process.env.LIQUIDITY_POOL
 
 async function main() {
-  const LiquidityPool = await ethers.getContractFactory("LiquidityPool");
-  const liquidityPool = LiquidityPool.attach(liquidityPoolAddress)
-  const receipt = await liquidityPool.setTargetAssetParams(
+  const ReserveManager = await ethers.getContractFactory("ReserveManager");
+  const reserveManager = ReserveManager.attach(reserveManagerAddress)
+  const receipt = await reserveManager.setTargetAssetParams(
     [
       {
         assetAddress: tokens.token0.address,

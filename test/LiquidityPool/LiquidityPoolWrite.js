@@ -11,28 +11,28 @@ async function increaseTime(seconds) {
   await ethers.provider.send("evm_mine", []);
 }
 
-describe("LiquidityPool - Mint/Burn Functions", function () {
+describe("ReserveManager - Mint/Burn Functions", function () {
   describe("mint", function () {
     it("mints liquidity tokens and updates reserves as expected", async function () {
-      const { poolMathWrapper, liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+      const { poolMathWrapper, reserveManager, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(3000n);
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-      const prevSurplus = await liquidityPool.getSurplus()
-      const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await liquidityPool.getMintFeeQ96())
+      const prevSurplus = await reserveManager.getSurplus()
+      const compoundingFeeRate = await poolMathWrapper.calcCompoundingFeeRate(await reserveManager.getMintFeeQ96())
       const fee = (mintAmount * compoundingFeeRate) >> 96n
       const mintAmountPlusFee = mintAmount + fee
       await expect(
-        liquidityPool.connect(admin).mint(mintAmount, "0x")
-      ).to.emit(liquidityPool, "Mint");
+        reserveManager.connect(admin).mint(mintAmount, "0x")
+      ).to.emit(reserveManager, "Mint");
 
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
-      const surplus = await liquidityPool.getSurplus()
+      const surplus = await reserveManager.getSurplus()
 
       // check that the mint fee accrues as surplus of reserves to total supply
       expect(surplus - prevSurplus).to.be.greaterThanOrEqual(fee)
@@ -57,17 +57,17 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       expect(actualReduction1).to.equal(expectedReduction1)
       expect(actualReduction2).to.equal(expectedReduction2)
       // Check that pool reserves increased
-      const scaledReserves0 = await liquidityPool.getSpecificReservesScaled(mintable0.target);
-      const scaledReserves1 = await liquidityPool.getSpecificReservesScaled(mintable1.target);
-      const scaledReserves2 = await liquidityPool.getSpecificReservesScaled(mintable2.target);
+      const scaledReserves0 = await reserveManager.getSpecificReservesScaled(mintable0.target);
+      const scaledReserves1 = await reserveManager.getSpecificReservesScaled(mintable1.target);
+      const scaledReserves2 = await reserveManager.getSpecificReservesScaled(mintable2.target);
       expect(scaledReserves0).to.be.closeTo(expectedReductionScaled0, expectedReductionScaled0 / 1_000_000_000n);
       expect(scaledReserves1).to.be.closeTo(expectedReductionScaled1, expectedReductionScaled1 / 1_000_000_000n);
       expect(scaledReserves2).to.be.closeTo(expectedReductionScaled2, expectedReductionScaled2 / 1_000_000_000n);
       
       //compare balances of contract to scaled reserves
-      const contractBalance0 = await mintable0.balanceOf(liquidityPool.target);
-      const contractBalance1 = await mintable1.balanceOf(liquidityPool.target);
-      const contractBalance2 = await mintable2.balanceOf(liquidityPool.target);
+      const contractBalance0 = await mintable0.balanceOf(reserveManager.target);
+      const contractBalance1 = await mintable1.balanceOf(reserveManager.target);
+      const contractBalance2 = await mintable2.balanceOf(reserveManager.target);
       expect(contractBalance0).to.equal(utils.scaleDecimals(scaledReserves0, 18n, assetParams0.decimals))
       expect(contractBalance1).to.be.closeTo(utils.scaleDecimals(scaledReserves1, 18n, assetParams1.decimals), 1n)//rounding diff because this token has 20 decimal places. in reality this will probably not even matter in the insane case that we even have a token with 20 decimals
       expect(contractBalance2).to.equal(utils.scaleDecimals(scaledReserves2, 18n, assetParams2.decimals))
@@ -75,145 +75,145 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     });
 
     it("reverts if minting is disabled", async function () {
-      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
-      await liquidityPool.connect(maintainer).setIsMintEnabled(false);
+      const { reserveManager, maintainer, admin } = await loadFixture(deployAll);
+      await reserveManager.connect(maintainer).setIsMintEnabled(false);
       await expect(
-        liquidityPool.connect(admin).mint(utils.scale10Pow18(1000n), "0x")
+        reserveManager.connect(admin).mint(utils.scale10Pow18(1000n), "0x")
       ).to.be.revertedWith("minting disabled");
     });
 
     it("succeeds when minting exactly up to the maxReserves limit (cooldown active)", async function () {
-      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
+      const { reserveManager, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
+      await reserveManager.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ96(0n);
+      await reserveManager.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
       await expect(
-        liquidityPool.connect(admin).mint(lowLimit - utils.scale10Pow18(1n), "0x")
+        reserveManager.connect(admin).mint(lowLimit - utils.scale10Pow18(1n), "0x")
       ).to.not.be.reverted;
     });
 
     it("reverts when minting above the maxReserves limit (cooldown active)", async function () {
-      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
+      const { reserveManager, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
+      await reserveManager.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ96(0n);
+      await reserveManager.connect(admin).setMintFeeQ96(0n);
       // Mint below the limit
       await expect(
-        liquidityPool.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), "0x")
+        reserveManager.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), "0x")
       ).to.be.revertedWith("max reserves limit");
     });
 
     it("succeeds when minting exactly up to the NEXT maxReserves limit (cooldown inactive)", async function () {
-      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
+      const { reserveManager, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
+      await reserveManager.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ96(0n);
+      await reserveManager.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // Mint above the limit
       await expect(
-        liquidityPool.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), "0x")
+        reserveManager.connect(admin).mint(lowLimit+utils.scale10Pow18(1n), "0x")
       ).not.to.be.revertedWith("max reserves limit");
       // get the new limit
-      const nextMaxReserves = await liquidityPool.getMaxReserves();
+      const nextMaxReserves = await reserveManager.getMaxReserves();
       //reload the fixture to its initail state
       const resetVals = await loadFixture(deployAll);
       //set fee to zero so we don't have to do a complex calculation
-      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
+      await resetVals.reserveManager.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
-      await resetVals.liquidityPool.connect(resetVals.maintainer).setMaxReserves(lowLimit);
+      await resetVals.reserveManager.connect(resetVals.maintainer).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // mint above the next max reserves limit
       await expect(
-        resetVals.liquidityPool.connect(resetVals.admin).mint(nextMaxReserves - utils.scale10Pow18(1n), "0x")
+        resetVals.reserveManager.connect(resetVals.admin).mint(nextMaxReserves - utils.scale10Pow18(1n), "0x")
       ).not.to.be.revertedWith("max reserves limit");
     });
 
     it("reverts when minting above the NEXT maxReserves limit (cooldown inactive)", async function () {
-      const { liquidityPool, maintainer, admin } = await loadFixture(deployAll);
+      const { reserveManager, maintainer, admin } = await loadFixture(deployAll);
       // Set a low maxReserves limit
       const lowLimit = utils.scale10Pow18(1000000n);
-      await liquidityPool.connect(maintainer).setMaxReserves(lowLimit);
+      await reserveManager.connect(maintainer).setMaxReserves(lowLimit);
       //set fee to zero so we don't have to do a complex calculation
-      await liquidityPool.connect(admin).setMintFeeQ96(0n);
+      await reserveManager.connect(admin).setMintFeeQ96(0n);
       // fast forward to cooldown period end
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // Mint above the limit
       await expect(
-        liquidityPool.connect(admin).mint(lowLimit + utils.scale10Pow18(1n), "0x")
+        reserveManager.connect(admin).mint(lowLimit + utils.scale10Pow18(1n), "0x")
       ).not.to.be.revertedWith("max reserves limit");
       // get the new limit
-      const nextMaxReserves = await liquidityPool.getMaxReserves();
+      const nextMaxReserves = await reserveManager.getMaxReserves();
       //reload the fixture to its initail state
       const resetVals = await loadFixture(deployAll);
       //set fee to zero so we don't have to do a complex calculation
-      await resetVals.liquidityPool.connect(resetVals.admin).setMintFeeQ96(0n);
+      await resetVals.reserveManager.connect(resetVals.admin).setMintFeeQ96(0n);
       //set the low limit again
-      await resetVals.liquidityPool.connect(resetVals.maintainer).setMaxReserves(lowLimit);
+      await resetVals.reserveManager.connect(resetVals.maintainer).setMaxReserves(lowLimit);
       await time.increase(3600 * 24 + 1); // fast forward 1 day
       // mint above the next max reserves limit
       await expect(
-        resetVals.liquidityPool.connect(resetVals.admin).mint(nextMaxReserves + utils.scale10Pow18(1n), "0x")
+        resetVals.reserveManager.connect(resetVals.admin).mint(nextMaxReserves + utils.scale10Pow18(1n), "0x")
       ).to.be.revertedWith("max reserves limit");
     });
 
     it("reverts if pool is emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await expect(liquidityPool.mint(42069n, "0x")).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.mint(42069n, "0x")).to.be.revertedWith("pool is emigrating")
     })
 
     it("succeeds if pool is being immigrated into", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await liquidityPool0.mint(42069n, "0x")
+      await reserveManager0.mint(42069n, "0x")
     })
   });
 
   describe("burn", function () {
     it("burns liquidity tokens and returns assets as expected", async function () {
-      const { liquidityPool, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+      const { reserveManager, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(1000n);
-      await liquidityPool.connect(admin).mint(mintAmount, "0x");
+      await reserveManager.connect(admin).mint(mintAmount, "0x");
       const burnAmount = mintAmount
       const prevBal0 = await mintable0.balanceOf(admin.address);
       const prevBal1 = await mintable1.balanceOf(admin.address);
       const prevBal2 = await mintable2.balanceOf(admin.address);
       const prevLiquidityBal = await indexToken.balanceOf(admin.address);
-      const prevSurplus = await liquidityPool.getSurplus();
-      const fee = (burnAmount * (await liquidityPool.getBurnFeeQ96())) >> 96n
+      const prevSurplus = await reserveManager.getSurplus();
+      const fee = (burnAmount * (await reserveManager.getBurnFeeQ96())) >> 96n
       const trueBurnAmount = burnAmount - fee;
-      const totalReservesScaled = await liquidityPool.getTotalReservesScaled()
-      const previousSpecificReservesScaled0 = await liquidityPool.getSpecificReservesScaled(assetParams0.assetAddress)
-      const previousSpecificReservesScaled1 = await liquidityPool.getSpecificReservesScaled(assetParams1.assetAddress)
-      const previousSpecificReservesScaled2 = await liquidityPool.getSpecificReservesScaled(assetParams2.assetAddress)
+      const totalReservesScaled = await reserveManager.getTotalReservesScaled()
+      const previousSpecificReservesScaled0 = await reserveManager.getSpecificReservesScaled(assetParams0.assetAddress)
+      const previousSpecificReservesScaled1 = await reserveManager.getSpecificReservesScaled(assetParams1.assetAddress)
+      const previousSpecificReservesScaled2 = await reserveManager.getSpecificReservesScaled(assetParams2.assetAddress)
       const currentAllocation0 = (previousSpecificReservesScaled0 << 96n) / totalReservesScaled
       const currentAllocation1 = (previousSpecificReservesScaled1 << 96n) / totalReservesScaled
       const currentAllocation2 = (previousSpecificReservesScaled2 << 96n) / totalReservesScaled
       await expect(
-        liquidityPool.connect(admin).burn(burnAmount, "0x")
-      ).to.emit(liquidityPool, "Burn");
+        reserveManager.connect(admin).burn(burnAmount, "0x")
+      ).to.emit(reserveManager, "Burn");
 
       const balance0 = await mintable0.balanceOf(admin.address);
       const balance1 = await mintable1.balanceOf(admin.address);
       const balance2 = await mintable2.balanceOf(admin.address);
       const liquidityBal = await indexToken.balanceOf(admin.address);
-      const surplus = await liquidityPool.getSurplus();
+      const surplus = await reserveManager.getSurplus();
 
       //check that the burn fee accrues as index token balance to the liquidity pool
       expect(surplus).to.be.greaterThanOrEqual(prevSurplus + fee)
@@ -236,9 +236,9 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const actualIncrease1 = balance1 - prevBal1
       const actualIncrease2 = balance2 - prevBal2
 
-      const specificReservesScaled0 = await liquidityPool.getSpecificReservesScaled(assetParams0.assetAddress)
-      const specificReservesScaled1 = await liquidityPool.getSpecificReservesScaled(assetParams1.assetAddress)
-      const specificReservesScaled2 = await liquidityPool.getSpecificReservesScaled(assetParams2.assetAddress)
+      const specificReservesScaled0 = await reserveManager.getSpecificReservesScaled(assetParams0.assetAddress)
+      const specificReservesScaled1 = await reserveManager.getSpecificReservesScaled(assetParams1.assetAddress)
+      const specificReservesScaled2 = await reserveManager.getSpecificReservesScaled(assetParams2.assetAddress)
 
       const actualIncreaseScaled0 = previousSpecificReservesScaled0 - specificReservesScaled0
       const actualIncreaseScaled1 = previousSpecificReservesScaled1 - specificReservesScaled1
@@ -259,25 +259,25 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     
     it("should give a discount if migrating", async function() {
       const {
-        indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+        indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
         admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
         assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
         assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96,
-        liquidityPoolHelpers, liquidityPoolHelpers0, liquidityPoolHelpers1, liquidityPoolHelpers2, liquidityPoolHelpers3, liquidityPoolHelpers4,
+        reserveManagerHelpers, reserveManagerHelpers0, reserveManagerHelpers1, reserveManagerHelpers2, reserveManagerHelpers3, reserveManagerHelpers4,
       } = await loadFixture(deployAll)
-      await liquidityPool.setMintFeeQ96(0)
+      await reserveManager.setMintFeeQ96(0)
       const balance0Initial = await mintable0.balanceOf(admin)
       const balance1Initial = await mintable1.balanceOf(admin)
       const balance2Initial = await mintable2.balanceOf(admin)
-      await liquidityPool.mint(utils.scale10Pow18(1_000_000_000n), "0x")
+      await reserveManager.mint(utils.scale10Pow18(1_000_000_000n), "0x")
       const balance0PostMint = await mintable0.balanceOf(admin)
       const balance1PostMint = await mintable1.balanceOf(admin)
       const balance2PostMint = await mintable2.balanceOf(admin)
       const initialAmount0Paid = BigInt(balance0Initial - balance0PostMint)
       const initialAmount1Paid = BigInt(balance1Initial - balance1PostMint)
       const initialAmount2Paid = BigInt(balance2Initial - balance2PostMint)
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
@@ -285,7 +285,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       const balance0Before = await mintable0.balanceOf(admin)
       const balance1Before = await mintable1.balanceOf(admin)
       const balance2Before = await mintable2.balanceOf(admin)
-      await liquidityPoolHelpers.burnAll()
+      await reserveManagerHelpers.burnAll()
       const balance0After = await mintable0.balanceOf(admin)
       const balance1After = await mintable1.balanceOf(admin)
       const balance2After = await mintable2.balanceOf(admin)
@@ -299,35 +299,35 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     })
 
     it("reverts if user tries to burn more than their balance", async function () {
-      const { liquidityPool, indexToken, admin } = await loadFixture(deployAll);
+      const { reserveManager, indexToken, admin } = await loadFixture(deployAll);
       const mintAmount = utils.scale10Pow18(1000n);
-      await liquidityPool.connect(admin).mint(mintAmount, "0x");
-      await indexToken.connect(admin).approve(liquidityPool.target, mintAmount + 1n);
+      await reserveManager.connect(admin).mint(mintAmount, "0x");
+      await indexToken.connect(admin).approve(reserveManager.target, mintAmount + 1n);
       await expect(
-        liquidityPool.connect(admin).burn(mintAmount + 1n, "0x")
+        reserveManager.connect(admin).burn(mintAmount + 1n, "0x")
       ).to.be.reverted;
     });
 
     it("succeeds if pool is emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await liquidityPool.mint(52069n, "0x")
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await reserveManager.mint(52069n, "0x")
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await liquidityPool.burn(42069n, "0x")
+      await reserveManager.burn(42069n, "0x")
     })
 
     it("fails if pool is being immigrated into", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await liquidityPool0.mint(52069n, "0x")
-      await expect(liquidityPool0.burn(42069n, "0x")).to.be.revertedWith("only liquidity pool")
+      await reserveManager0.mint(52069n, "0x")
+      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only liquidity pool")
     })
   });
 
@@ -335,15 +335,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     describe("swap token equal to standard decimal scale", function() {
       describe("Withdraw", function() {
         it("should not allow swapping if the pool is equalized", async function() {
-          const { liquidityPool, mintable0 } = await loadFixture(deployAll)
+          const { reserveManager, mintable0 } = await loadFixture(deployAll)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               -1n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               1n
             )
@@ -351,18 +351,18 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that increases discrepency", async function() {
-          const { liquidityPool, mintable0, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+          const { reserveManager, mintable0, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           //mintable0 is now targetted at 0
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               -1n
             )
           ).not.to.be.reverted
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               1n
             )
@@ -370,13 +370,13 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that passes the target allocation", async function() {
-          const { liquidityPool, mintable0, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+          const { reserveManager, mintable0, assetParamsNoMintable0, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           //mintable0 is now targetted at 0
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable0.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable0.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               (maxWithdrawal * -1n) - 1n
             )
@@ -384,26 +384,26 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should swap exactly to the target", async function() {
-          const { liquidityPool, mintable0, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+          const { reserveManager, mintable0, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           //mintable0 is now targetted at 0
           const callerReserveBalanceBefore = await mintable0.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable0.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable0.target);
+          const poolReserveBalanceBefore = await mintable0.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable0.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable0.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable0.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               maxWithdrawal * -1n
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable0.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable0.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable0.target);
+          const poolReserveBalanceAfter = await mintable0.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable0.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceAfter - callerReserveBalanceBefore).to.equal(maxWithdrawal)
           expect(poolReserveBalanceBefore - poolReserveBalanceAfter).to.equal(maxWithdrawal)
@@ -413,15 +413,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should apply an equalization bounty if one is set", async function() {
-          const { liquidityPool, mintable0, assetParamsNoMintable0, admin, indexToken, assetParams0 } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+          const { reserveManager, mintable0, assetParamsNoMintable0, admin, indexToken, assetParams0 } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable0.target)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable0.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable0.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -432,15 +432,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should set the bounty exactly to the burn amount if it is greater than the burn amount", async function() {
-          const { liquidityPool, mintable0, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+          const { reserveManager, mintable0, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           const bounty = utils.scale10Pow18(1_000_000n)
           await indexToken.burn(bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable0.target)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable0.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable0.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -453,7 +453,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       describe("Deposit", function() {
         it("should not allow swapping that increases discrepency", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable0, 
             admin, 
             assetParamsNoMintable0, 
@@ -462,20 +462,20 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             assetParams2 
           } = await loadFixture(deployAll)
           //remove mintable0 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable0 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable0 is now targetted at 0.33
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               -1n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               1n
             )
@@ -484,7 +484,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow swapping that passes the target allocation", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable0, 
             admin, 
             assetParamsNoMintable0, 
@@ -494,15 +494,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable0 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable0 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable0 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams0.decimals) + 1n
             )
@@ -511,7 +511,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow a deposit that exceeds the max reserves limit", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable0, 
             maintainer, 
             assetParamsNoMintable0, 
@@ -521,16 +521,16 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable0 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable0 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable0 is now targetted at 0.33
-          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          await reserveManager.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams0.decimals)
             )
@@ -539,7 +539,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should swap exactly to the target", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable0, 
             admin, 
             assetParamsNoMintable0, 
@@ -550,29 +550,29 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable0 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable0 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable0 is now targetted at 0.33
           const callerReserveBalanceBefore = await mintable0.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable0.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable0.target);
+          const poolReserveBalanceBefore = await mintable0.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable0.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams0.decimals)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable0.target,
               maxDeposit
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable0.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable0.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable0.target);
+          const poolReserveBalanceAfter = await mintable0.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable0.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceBefore - callerReserveBalanceAfter).to.equal(maxDeposit)
           expect(poolReserveBalanceAfter - poolReserveBalanceBefore).to.equal(maxDeposit)
@@ -583,7 +583,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should apply an equalization bounty if one is set", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable0, 
             admin, 
             assetParamsNoMintable0, 
@@ -594,19 +594,19 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable0 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable0 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
           //mintable0 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams0.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams0.decimals)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable0.target,
             maxDeposit
           )).not.to.be.reverted
@@ -621,15 +621,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     describe("swap token below standard decimal scale", function() {
       describe("Withdraw", function() {
         it("should not allow swapping if the pool is equalized", async function() {
-          const { liquidityPool, mintable2 } = await loadFixture(deployAll)
+          const { reserveManager, mintable2 } = await loadFixture(deployAll)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               -1n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               1n
             )
@@ -637,18 +637,18 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that increases discrepency", async function() {
-          const { liquidityPool, mintable2, assetParamsNoMintable2, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
+          const { reserveManager, mintable2, assetParamsNoMintable2, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           //mintable2 is now targetted at 0
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               -1n
             )
           ).not.to.be.reverted
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               1n
             )
@@ -656,13 +656,13 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that passes the target allocation", async function() {
-          const { liquidityPool, mintable2, assetParamsNoMintable2, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
+          const { reserveManager, mintable2, assetParamsNoMintable2, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           //mintable2 is now targetted at 0
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable2.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable2.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               (maxWithdrawal * -1n) - 1n
             )
@@ -670,26 +670,26 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should swap exactly to the target", async function() {
-          const { liquidityPool, mintable2, assetParamsNoMintable2, admin, indexToken } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
+          const { reserveManager, mintable2, assetParamsNoMintable2, admin, indexToken } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           //mintable2 is now targetted at 0
           const callerReserveBalanceBefore = await mintable2.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable2.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable2.target);
+          const poolReserveBalanceBefore = await mintable2.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable2.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable2.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable2.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               maxWithdrawal * -1n
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable2.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable2.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable2.target);
+          const poolReserveBalanceAfter = await mintable2.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable2.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceAfter - callerReserveBalanceBefore).to.equal(maxWithdrawal)
           expect(poolReserveBalanceBefore - poolReserveBalanceAfter).to.equal(maxWithdrawal)
@@ -699,15 +699,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should apply an equalization bounty if one is set", async function() {
-          const { liquidityPool, mintable2, assetParamsNoMintable2, admin, indexToken, assetParams2 } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
+          const { reserveManager, mintable2, assetParamsNoMintable2, admin, indexToken, assetParams2 } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable2.target)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable2.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable2.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -717,15 +717,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should set the bounty exactly to the burn amount if it is greater than the burn amount", async function() {
-          const { liquidityPool, mintable2, assetParamsNoMintable2, admin, indexToken } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
+          const { reserveManager, mintable2, assetParamsNoMintable2, admin, indexToken } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           const bounty = utils.scale10Pow18(1_000_000n)
           await indexToken.burn(bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable2.target)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable2.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable2.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -738,7 +738,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       describe("Deposit", function() {
         it("should not allow swapping that increases discrepency", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable2, 
             admin, 
             assetParamsNoMintable2, 
@@ -747,20 +747,20 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             assetParams2 
           } = await loadFixture(deployAll)
           //remove mintable2 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable2 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable2 is now targetted at 0.33
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               -1n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               1n
             )
@@ -769,7 +769,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow swapping that passes the target allocation", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable2, 
             admin, 
             assetParamsNoMintable2, 
@@ -779,15 +779,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable2 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable2 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable2 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams2.decimals) + 1n
             )
@@ -796,7 +796,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow a deposit that exceeds the max reserves limit", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable2, 
             maintainer, 
             assetParamsNoMintable2, 
@@ -806,16 +806,16 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable2 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable2 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable2 is now targetted at 0.33
-          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          await reserveManager.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams2.decimals)
             )
@@ -824,7 +824,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should swap exactly to the target", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable2, 
             admin, 
             assetParamsNoMintable2, 
@@ -835,29 +835,29 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable2 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable2 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable2 is now targetted at 0.33
           const callerReserveBalanceBefore = await mintable2.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable2.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable2.target);
+          const poolReserveBalanceBefore = await mintable2.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable2.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams2.decimals)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable2.target,
               maxDeposit
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable2.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable2.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable2.target);
+          const poolReserveBalanceAfter = await mintable2.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable2.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceBefore - callerReserveBalanceAfter).to.equal(maxDeposit)
           expect(poolReserveBalanceAfter - poolReserveBalanceBefore).to.equal(maxDeposit)
@@ -868,7 +868,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should apply an equalization bounty if one is set", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable2, 
             admin, 
             assetParamsNoMintable2, 
@@ -879,19 +879,19 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable2 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable2)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable2 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
           //mintable2 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams2.decimals)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable2.target,
             maxDeposit
           )).not.to.be.reverted
@@ -906,15 +906,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     describe("swap token above standard decimal scale", function() {
       describe("Withdraw", function() {
         it("should not allow swapping if the pool is equalized", async function() {
-          const { liquidityPool, mintable1 } = await loadFixture(deployAll)
+          const { reserveManager, mintable1 } = await loadFixture(deployAll)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               -100n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               100n
             )
@@ -922,18 +922,18 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that increases discrepency", async function() {
-          const { liquidityPool, mintable1, assetParamsNoMintable1, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
+          const { reserveManager, mintable1, assetParamsNoMintable1, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           //mintable1 is now targetted at 0
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               -100n
             )
           ).not.to.be.reverted
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               100n
             )
@@ -941,13 +941,13 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should not allow swapping that passes the target allocation", async function() {
-          const { liquidityPool, mintable1, assetParamsNoMintable1, admin } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
+          const { reserveManager, mintable1, assetParamsNoMintable1, admin } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           //mintable1 is now targetted at 0
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable1.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable1.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               (maxWithdrawal * -1n) - 100n
             )
@@ -955,26 +955,26 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should swap exactly to the target", async function() {
-          const { liquidityPool, mintable1, assetParamsNoMintable1, admin, indexToken, assetParams1 } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
+          const { reserveManager, mintable1, assetParamsNoMintable1, admin, indexToken, assetParams1 } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           //mintable1 is now targetted at 0
           const callerReserveBalanceBefore = await mintable1.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable1.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable1.target);
+          const poolReserveBalanceBefore = await mintable1.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable1.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable1.target)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable1.target)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               maxWithdrawal * -1n
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable1.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable1.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable1.target);
+          const poolReserveBalanceAfter = await mintable1.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable1.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceAfter - callerReserveBalanceBefore).to.equal(maxWithdrawal)
           expect(poolReserveBalanceBefore - poolReserveBalanceAfter).to.equal(maxWithdrawal)
@@ -984,15 +984,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should apply an equalization bounty if one is set", async function() {
-          const { liquidityPool, mintable1, assetParamsNoMintable1, admin, indexToken, assetParams1 } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
+          const { reserveManager, mintable1, assetParamsNoMintable1, admin, indexToken, assetParams1 } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable1.target)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable1.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable1.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -1003,15 +1003,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
         })
 
         it("should set the bounty exactly to the burn amount if it is greater than the burn amount", async function() {
-          const { liquidityPool, mintable1, assetParamsNoMintable1, admin, indexToken } = await loadFixture(deployAll)
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
+          const { reserveManager, mintable1, assetParamsNoMintable1, admin, indexToken } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           const bounty = utils.scale10Pow18(1_000_000n)
           await indexToken.burn(bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
-          const maxWithdrawal = await liquidityPool.getSpecificReserves(mintable1.target)
+          await reserveManager.increaseEqualizationBounty(bounty)
+          const maxWithdrawal = await reserveManager.getSpecificReserves(mintable1.target)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable1.target,
             maxWithdrawal * -1n
           )).not.to.be.reverted
@@ -1024,7 +1024,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
       describe("Deposit", function() {
         it("should not allow swapping that increases discrepency", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable1, 
             admin, 
             assetParamsNoMintable1, 
@@ -1033,20 +1033,20 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             assetParams2 
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable1 is now targetted at 0.33
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               -1n
             )
           ).to.be.revertedWith("withdrawal exceeds target allocation")
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               1n
             )
@@ -1055,7 +1055,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow swapping that passes the target allocation", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable1, 
             admin, 
             assetParamsNoMintable1, 
@@ -1065,15 +1065,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable1 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams1.decimals) + 100n
             )
@@ -1082,7 +1082,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should not allow a deposit that exceeds the max reserves limit", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable1, 
             maintainer, 
             assetParamsNoMintable1, 
@@ -1092,16 +1092,16 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable1 is now targetted at 0.33
-          await liquidityPool.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          await reserveManager.connect(maintainer).setMaxReserves(utils.scale10Pow18(900_000n))
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams2.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               utils.scaleDecimals(maxDeltaScaled, 18n, assetParams2.decimals)
             )
@@ -1110,7 +1110,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should swap exactly to the target", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable1, 
             admin, 
             assetParamsNoMintable1, 
@@ -1121,29 +1121,29 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           //mintable1 is now targetted at 0.33
           const callerReserveBalanceBefore = await mintable1.balanceOf(admin.address);
-          const poolReserveBalanceBefore = await mintable1.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledBefore = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesBefore = await liquidityPool.getSpecificReserves(mintable1.target);
+          const poolReserveBalanceBefore = await mintable1.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledBefore = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesBefore = await reserveManager.getSpecificReserves(mintable1.target);
           const callerIndexBalanceBefore = await indexToken.balanceOf(admin.address);
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams1.decimals)
           await expect(
-            liquidityPool.swapTowardsTarget(
+            reserveManager.swapTowardsTarget(
               mintable1.target,
               maxDeposit
             )
           ).not.to.be.reverted
           const callerReserveBalanceAfter = await mintable1.balanceOf(admin.address);
-          const poolReserveBalanceAfter = await mintable1.balanceOf(liquidityPool.target);
-          const poolTotalReservesScaledAfter = await liquidityPool.getTotalReservesScaled()
-          const poolStorageReservesAfter = await liquidityPool.getSpecificReserves(mintable1.target);
+          const poolReserveBalanceAfter = await mintable1.balanceOf(reserveManager.target);
+          const poolTotalReservesScaledAfter = await reserveManager.getTotalReservesScaled()
+          const poolStorageReservesAfter = await reserveManager.getSpecificReserves(mintable1.target);
           const callerIndexBalanceAfter = await indexToken.balanceOf(admin.address);
           expect(callerReserveBalanceBefore - callerReserveBalanceAfter).to.equal(maxDeposit - (maxDeposit % 100n))
           expect(poolReserveBalanceAfter - poolReserveBalanceBefore).to.equal(maxDeposit- (maxDeposit % 100n))
@@ -1154,7 +1154,7 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
         it("should apply an equalization bounty if one is set", async function() {
           const { 
-            liquidityPool,
+            reserveManager,
             mintable1, 
             admin, 
             assetParamsNoMintable1, 
@@ -1165,19 +1165,19 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
             indexToken
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
-          await liquidityPool.setTargetAssetParams(assetParamsNoMintable1)
-          await liquidityPool.equalizeToTarget()
+          await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
+          await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
-          await liquidityPool.mint(utils.scale10Pow18(1_000_000n), "0x")
-          await liquidityPool.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
+          await reserveManager.mint(utils.scale10Pow18(1_000_000n), "0x")
+          await reserveManager.setTargetAssetParams([assetParams0, assetParams1, assetParams2])
           const bounty = utils.scale10Pow18(1_000n)
-          await indexToken.transfer(liquidityPool, bounty)
-          await liquidityPool.increaseEqualizationBounty(bounty)
+          await indexToken.transfer(reserveManager, bounty)
+          await reserveManager.increaseEqualizationBounty(bounty)
           //mintable1 is now targetted at 0.33
-          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await liquidityPool.getTotalReservesScaled())
+          const maxDeltaScaled = await poolMathWrapper.calcMaxIndividualDelta(assetParams1.targetAllocation, 0n, await reserveManager.getTotalReservesScaled())
           const maxDeposit = utils.scaleDecimals(maxDeltaScaled, 18n, assetParams1.decimals)
           const indexTokenBalanceBefore = await indexToken.balanceOf(admin.address)
-          await expect(liquidityPool.swapTowardsTarget(
+          await expect(reserveManager.swapTowardsTarget(
             mintable1.target,
             maxDeposit
           )).not.to.be.reverted
@@ -1192,21 +1192,21 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
   describe("equalizeToTarget", function() {
     it("equalizes the pool", async function() {
-      const { liquidityPool, assetParamsNoMintable0, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll)
-      await liquidityPool.mint(utils.scale10Pow18(1_000n), "0x")
-      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-      expect(await liquidityPool.getIsEqualized()).to.equal(false)
-      await liquidityPool.equalizeToTarget()
-      expect(await liquidityPool.getIsEqualized()).to.equal(true)
+      const { reserveManager, assetParamsNoMintable0, admin, mintable0, mintable1, mintable2 } = await loadFixture(deployAll)
+      await reserveManager.mint(utils.scale10Pow18(1_000n), "0x")
+      await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+      expect(await reserveManager.getIsEqualized()).to.equal(false)
+      await reserveManager.equalizeToTarget()
+      expect(await reserveManager.getIsEqualized()).to.equal(true)
     })
 
     it("removes zero allocation assets from assetParams_ map and currentAssetParams_ list", async function() {
-      const { liquidityPool, assetParamsNoMintable0, admin, mintable0 } = await loadFixture(deployAll)
-      await liquidityPool.mint(utils.scale10Pow18(1_000n), "0x")
-      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-      await liquidityPool.equalizeToTarget()
-      const mintable0ParamsEntryAfter = await liquidityPool.getAssetParams(mintable0.target)
-      const currentAssetParamsListAfter = await liquidityPool.getCurrentAssetParams()
+      const { reserveManager, assetParamsNoMintable0, admin, mintable0 } = await loadFixture(deployAll)
+      await reserveManager.mint(utils.scale10Pow18(1_000n), "0x")
+      await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+      await reserveManager.equalizeToTarget()
+      const mintable0ParamsEntryAfter = await reserveManager.getAssetParams(mintable0.target)
+      const currentAssetParamsListAfter = await reserveManager.getCurrentAssetParams()
       currentAssetParamsListAfter.forEach((params, i) => {
         expect(params.assetAddress).not.to.equal(mintable0.target, `mintable0 still here at index ${i}`)
       })
@@ -1216,33 +1216,33 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     })
 
     it("applies reserves tracking and token transfers correctly", async function() {
-      const { liquidityPool, assetParamsNoMintable0, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll)
-      await liquidityPool.mint(utils.scale10Pow18(1_000n), "0x")
-      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
-      const equalizationVectorScaled = await liquidityPool.getEqualizationVectorScaled()
+      const { reserveManager, assetParamsNoMintable0, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll)
+      await reserveManager.mint(utils.scale10Pow18(1_000n), "0x")
+      await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
+      const equalizationVectorScaled = await reserveManager.getEqualizationVectorScaled()
       const callerBalance0Before = await mintable0.balanceOf(admin.address)
       const callerBalance1Before = await mintable1.balanceOf(admin.address)
       const callerBalance2Before = await mintable2.balanceOf(admin.address)
-      const poolBalance0Before = await mintable0.balanceOf(liquidityPool.target)
-      const poolBalance1Before = await mintable1.balanceOf(liquidityPool.target)
-      const poolBalance2Before = await mintable2.balanceOf(liquidityPool.target)
-      await liquidityPool.equalizeToTarget()
+      const poolBalance0Before = await mintable0.balanceOf(reserveManager.target)
+      const poolBalance1Before = await mintable1.balanceOf(reserveManager.target)
+      const poolBalance2Before = await mintable2.balanceOf(reserveManager.target)
+      await reserveManager.equalizeToTarget()
       const callerBalance0After = await mintable0.balanceOf(admin.address)
       const callerBalance1After = await mintable1.balanceOf(admin.address)
       const callerBalance2After = await mintable2.balanceOf(admin.address)
-      const poolBalance0After = await mintable0.balanceOf(liquidityPool.target)
-      const poolBalance1After = await mintable1.balanceOf(liquidityPool.target)
-      const poolBalance2After = await mintable2.balanceOf(liquidityPool.target)
+      const poolBalance0After = await mintable0.balanceOf(reserveManager.target)
+      const poolBalance1After = await mintable1.balanceOf(reserveManager.target)
+      const poolBalance2After = await mintable2.balanceOf(reserveManager.target)
       expect(poolBalance0After).to.equal(poolBalance0Before + utils.scaleDecimals(equalizationVectorScaled[0], 18n, assetParams0.decimals))
       expect(poolBalance1After).to.equal(poolBalance1Before + utils.scaleDecimals(equalizationVectorScaled[1], 18n, assetParams1.decimals))
       expect(poolBalance2After).to.equal(poolBalance2Before + utils.scaleDecimals(equalizationVectorScaled[2], 18n, assetParams2.decimals))
       expect(callerBalance0After).to.equal(callerBalance0Before - utils.scaleDecimals(equalizationVectorScaled[0], 18n, assetParams0.decimals))
       expect(callerBalance1After).to.equal(callerBalance1Before - utils.scaleDecimals(equalizationVectorScaled[1], 18n, assetParams1.decimals))
       expect(callerBalance2After).to.equal(callerBalance2Before - utils.scaleDecimals(equalizationVectorScaled[2], 18n, assetParams2.decimals))
-      const specificReserves0Scaled = await liquidityPool.getSpecificReservesScaled(mintable0.target)
-      const specificReserves1Scaled = await liquidityPool.getSpecificReservesScaled(mintable1.target)
-      const specificReserves2Scaled = await liquidityPool.getSpecificReservesScaled(mintable2.target)
-      const totalReservesScaled = await liquidityPool.getTotalReservesScaled()
+      const specificReserves0Scaled = await reserveManager.getSpecificReservesScaled(mintable0.target)
+      const specificReserves1Scaled = await reserveManager.getSpecificReservesScaled(mintable1.target)
+      const specificReserves2Scaled = await reserveManager.getSpecificReservesScaled(mintable2.target)
+      const totalReservesScaled = await reserveManager.getTotalReservesScaled()
       const allocation0 = Number(specificReserves0Scaled) / Number(totalReservesScaled)
       const allocation1 = Number(specificReserves1Scaled) / Number(totalReservesScaled)
       const allocation2 = Number(specificReserves2Scaled) / Number(totalReservesScaled)
@@ -1252,15 +1252,15 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
     })
 
     it("distributes the entire equalization bounty to the caller", async function() {
-      const { liquidityPool, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
-      await liquidityPool.mint(utils.scale10Pow18(1_000n), "0x")
-      await liquidityPool.setTargetAssetParams(assetParamsNoMintable0)
+      const { reserveManager, assetParamsNoMintable0, admin, indexToken } = await loadFixture(deployAll)
+      await reserveManager.mint(utils.scale10Pow18(1_000n), "0x")
+      await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
       const bounty = utils.scale10Pow18(100n)
       await indexToken.burn(bounty)
-      await liquidityPool.increaseEqualizationBounty(bounty)
+      await reserveManager.increaseEqualizationBounty(bounty)
       const callerIndexReservesBefore = await indexToken.balanceOf(admin.address)
-      await liquidityPool.equalizeToTarget()
-      const bountyRemainingAfter = await liquidityPool.getEqualizationBounty()
+      await reserveManager.equalizeToTarget()
+      const bountyRemainingAfter = await reserveManager.getEqualizationBounty()
       const callerIndexReservesAfter = await indexToken.balanceOf(admin.address)
       expect(callerIndexReservesAfter - callerIndexReservesBefore).to.equal(bounty)
       expect(bountyRemainingAfter).to.equal(bounty)
@@ -1269,27 +1269,27 @@ describe("LiquidityPool - Mint/Burn Functions", function () {
 
   describe("withdrawAll", function() {
     it("should be able to withdraw all reserves", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await liquidityPool.mint(utils.scale10Pow18(42069n), "0x")
-      await liquidityPool.startEmigration(
-        liquidityPool0,
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await reserveManager.mint(utils.scale10Pow18(42069n), "0x")
+      await reserveManager.startEmigration(
+        reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await liquidityPool0.mint(await liquidityPool.getTotalReservesScaled(), "0x")
-      await liquidityPool.withdrawAll()
-      expect(await liquidityPool.getTotalReservesScaled()).to.equal(0n)
-      expect(await liquidityPool.getSpecificReservesScaled(mintable0)).to.equal(0n)
-      expect(await liquidityPool.getSpecificReservesScaled(mintable1)).to.equal(0n)
-      expect(await liquidityPool.getSpecificReservesScaled(mintable2)).to.equal(0n)
-      expect(await liquidityPool.getSpecificReserves(mintable0)).to.equal(0n)
-      expect(await liquidityPool.getSpecificReserves(mintable1)).to.equal(0n)
-      expect(await liquidityPool.getSpecificReserves(mintable2)).to.equal(0n)
+      await reserveManager0.mint(await reserveManager.getTotalReservesScaled(), "0x")
+      await reserveManager.withdrawAll()
+      expect(await reserveManager.getTotalReservesScaled()).to.equal(0n)
+      expect(await reserveManager.getSpecificReservesScaled(mintable0)).to.equal(0n)
+      expect(await reserveManager.getSpecificReservesScaled(mintable1)).to.equal(0n)
+      expect(await reserveManager.getSpecificReservesScaled(mintable2)).to.equal(0n)
+      expect(await reserveManager.getSpecificReserves(mintable0)).to.equal(0n)
+      expect(await reserveManager.getSpecificReserves(mintable1)).to.equal(0n)
+      expect(await reserveManager.getSpecificReserves(mintable2)).to.equal(0n)
     })
 
     it("should not be callable if the pool is not emigrating", async function() {
-      const { liquidityPool, liquidityPool0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await expect(liquidityPool.withdrawAll()).to.be.revertedWith("pool is not emigrating")
+      const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      await expect(reserveManager.withdrawAll()).to.be.revertedWith("pool is not emigrating")
     })
   })
 });

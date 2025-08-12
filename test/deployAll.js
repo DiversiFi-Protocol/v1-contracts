@@ -69,7 +69,7 @@ module.exports = async function deployAll() {
       assetAddress: getAddress(mintable2.target),
     }
 
-    const liquidityPoolAddress = getCreateAddress({
+    const reserveManagerAddress = getCreateAddress({
       from: admin.address,
       nonce: BigInt(await hre.ethers.provider.getTransactionCount(admin.address)) + 1n,
     });
@@ -78,7 +78,7 @@ module.exports = async function deployAll() {
     const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
-      liquidityPoolAddress,
+      reserveManagerAddress,
       minbalanceDivisorChangeDelay,
       maxbalanceDivisorChangePerSecondQ96
     ]);
@@ -91,73 +91,73 @@ module.exports = async function deployAll() {
     const mintFee = utils.decimalToFixed(0.01); // 1% mint fee
     const burnFee = utils.decimalToFixed(0.02); // 2% burn fee
 
-    const liquidityPool = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
     const setMaxReservesBlock = await hre.ethers.provider.getBlock('latest');
     const setMaxReservesTimestamp = setMaxReservesBlock.timestamp;
-    approveAddresses.push(await liquidityPool.getAddress())
+    approveAddresses.push(await reserveManager.getAddress())
 
-    const liquidityPoolHelpers = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool.getAddress(),
+    const reserveManagerHelpers = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers.getAddress())
+    approveAddresses.push(await reserveManagerHelpers.getAddress())
 
-    const liquidityPool0 = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager0 = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
-    approveAddresses.push(await liquidityPool0.getAddress())
+    approveAddresses.push(await reserveManager0.getAddress())
 
-    const liquidityPoolHelpers0 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool0.getAddress(),
+    const reserveManagerHelpers0 = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager0.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers0.getAddress())
+    approveAddresses.push(await reserveManagerHelpers0.getAddress())
 
-    const liquidityPool1 = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager1 = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
-    approveAddresses.push(await liquidityPool1.getAddress())
+    approveAddresses.push(await reserveManager1.getAddress())
 
-    const liquidityPoolHelpers1 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool1.getAddress(),
+    const reserveManagerHelpers1 = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager1.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers1.getAddress())
+    approveAddresses.push(await reserveManagerHelpers1.getAddress())
 
-    const liquidityPool2 = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager2 = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
-    approveAddresses.push(await liquidityPool2.getAddress())
+    approveAddresses.push(await reserveManager2.getAddress())
 
-    const liquidityPoolHelpers2 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool2.getAddress(),
+    const reserveManagerHelpers2 = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager2.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers2.getAddress())
+    approveAddresses.push(await reserveManagerHelpers2.getAddress())
 
-    const liquidityPool3 = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager3 = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
-    approveAddresses.push(await liquidityPool3.getAddress())
+    approveAddresses.push(await reserveManager3.getAddress())
 
-    const liquidityPoolHelpers3 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool3.getAddress(),
+    const reserveManagerHelpers3 = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager3.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers3.getAddress())
+    approveAddresses.push(await reserveManagerHelpers3.getAddress())
 
-    const liquidityPool4 = await hre.ethers.deployContract("LiquidityPool", [
+    const reserveManager4 = await hre.ethers.deployContract("ReserveManager", [
       await admin.getAddress(), await maintainer.getAddress(), await indexToken.getAddress(), mintFee,
       burnFee, maxReserves, maxReservesIncreaseRateQ96, assetParams
     ]);
-    approveAddresses.push(await liquidityPool4.getAddress())
+    approveAddresses.push(await reserveManager4.getAddress())
 
-    const liquidityPoolHelpers4 = await hre.ethers.deployContract("LiquidityPoolHelpers", [
-      await liquidityPool4.getAddress(),
+    const reserveManagerHelpers4 = await hre.ethers.deployContract("ReserveManagerHelpers", [
+      await reserveManager4.getAddress(),
     ])
-    approveAddresses.push(await liquidityPoolHelpers4.getAddress())
+    approveAddresses.push(await reserveManagerHelpers4.getAddress())
 
     await Promise.all(approveAddresses.map(async address => {
       await mintable0.approve(address, utils.MAX_UINT_256)
@@ -210,12 +210,12 @@ module.exports = async function deployAll() {
 
     return {
       indexToken,
-      liquidityPool,
-      liquidityPool0,
-      liquidityPool1,
-      liquidityPool2,
-      liquidityPool3,
-      liquidityPool4,
+      reserveManager,
+      reserveManager0,
+      reserveManager1,
+      reserveManager2,
+      reserveManager3,
+      reserveManager4,
       admin,
       maintainer,
       unpriviledged,
@@ -243,11 +243,11 @@ module.exports = async function deployAll() {
       assetParamsNoMintable2,
       minbalanceDivisorChangeDelay,
       maxbalanceDivisorChangePerSecondQ96,
-      liquidityPoolHelpers,
-      liquidityPoolHelpers0,
-      liquidityPoolHelpers1,
-      liquidityPoolHelpers2,
-      liquidityPoolHelpers3,
-      liquidityPoolHelpers4
+      reserveManagerHelpers,
+      reserveManagerHelpers0,
+      reserveManagerHelpers1,
+      reserveManagerHelpers2,
+      reserveManagerHelpers3,
+      reserveManagerHelpers4
     };
   }

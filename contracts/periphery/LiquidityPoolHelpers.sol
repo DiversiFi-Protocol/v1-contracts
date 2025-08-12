@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - LiquidityPoolHelpers.sol
+ * @title DiversiFi - ReserveManagerHelpers.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -11,19 +11,19 @@
 
 pragma solidity ^0.8.27;
 
-import "../interfaces/ILiquidityPoolGetters.sol";
-import "../interfaces/ILiquidityPoolWrite.sol";
+import "../interfaces/IReserveManagerGetters.sol";
+import "../interfaces/IReserveManagerWrite.sol";
 import "../interfaces/IIndexToken.sol";
 import "../DataStructs.sol";
 import "../PoolMath.sol";
 
-contract LiquidityPoolHelpers {
-  ILiquidityPoolGetters liquidityPool;
+contract ReserveManagerHelpers {
+  IReserveManagerGetters reserveManager;
   IIndexToken indexToken;
 
-  constructor(address liquidityPool_) {
-    liquidityPool = ILiquidityPoolGetters(liquidityPool_);
-    indexToken = IIndexToken(liquidityPool.getIndexToken());
+  constructor(address reserveManager_) {
+    reserveManager = IReserveManagerGetters(reserveManager_);
+    indexToken = IIndexToken(reserveManager.getIndexToken());
   }
 
   /// @dev burns the caller's entire balance, useful if the pool is migrating
@@ -32,15 +32,15 @@ contract LiquidityPoolHelpers {
   function burnAll() external {
     uint256 burnAmount = indexToken.balanceOf(msg.sender);
     indexToken.transferFrom(msg.sender, address(this), burnAmount);
-    AssetParams[] memory currentAssetParams = liquidityPool.getCurrentAssetParams();
+    AssetParams[] memory currentAssetParams = reserveManager.getCurrentAssetParams();
     //approve all assets
     for(uint i = 0; i < currentAssetParams.length; i++) {
       IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
-      if(asset.allowance(address(this), address(liquidityPool)) < type(uint256).max / 2) {
-        asset.approve(address(liquidityPool), type(uint256).max);
+      if(asset.allowance(address(this), address(reserveManager)) < type(uint256).max / 2) {
+        asset.approve(address(reserveManager), type(uint256).max);
       }
     }
-    ILiquidityPoolWrite(address(liquidityPool)).burn(burnAmount, "");
+    IReserveManagerWrite(address(reserveManager)).burn(burnAmount, "");
     for(uint i = 0; i < currentAssetParams.length; i++) {
       IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
       asset.transfer(msg.sender, asset.balanceOf(address(this)));
@@ -48,11 +48,11 @@ contract LiquidityPoolHelpers {
   }
 
   function quoteMint(uint256 mintAmount) external returns (AssetAmount[] memory inputAmounts, uint256 fee) {
-    require(liquidityPool.getIsMintEnabled(), "minting disabled");
-    fee = PoolMath.fromFixed(mintAmount * PoolMath.calcCompoundingFeeRate(liquidityPool.getMintFeeQ96()));
+    require(reserveManager.getIsMintEnabled(), "minting disabled");
+    fee = PoolMath.fromFixed(mintAmount * PoolMath.calcCompoundingFeeRate(reserveManager.getMintFeeQ96()));
     uint256 trueMintAmount = mintAmount + fee;
-    AssetParams[] memory targetAssetParamsList = liquidityPool.getTargetAssetParams();
-    uint256 finalTotalReserves = liquidityPool.getTotalReservesScaled();
+    AssetParams[] memory targetAssetParamsList = reserveManager.getTargetAssetParams();
+    uint256 finalTotalReserves = reserveManager.getTotalReservesScaled();
     inputAmounts = new AssetAmount[](targetAssetParamsList.length);
     for (uint i = 0; i < targetAssetParamsList.length; i++) {
       AssetParams memory params = targetAssetParamsList[i];
@@ -69,25 +69,25 @@ contract LiquidityPoolHelpers {
 
       finalTotalReserves += trueScaledDeposit;
     }
-    uint256 maxTotalReserves = liquidityPool.getMaxReserves();
-    if(block.timestamp > liquidityPool.getLastMaxReservesChangeTimestamp() + liquidityPool.getMaxReservesIncreaseCooldown()) {
-      maxTotalReserves += PoolMath.fromFixed(maxTotalReserves * liquidityPool.getMaxReservesIncreaseRateQ96());
+    uint256 maxTotalReserves = reserveManager.getMaxReserves();
+    if(block.timestamp > reserveManager.getLastMaxReservesChangeTimestamp() + reserveManager.getMaxReservesIncreaseCooldown()) {
+      maxTotalReserves += PoolMath.fromFixed(maxTotalReserves * reserveManager.getMaxReservesIncreaseRateQ96());
     } 
     require(finalTotalReserves < maxTotalReserves, "max reserves limit");
   }
 
   function quoteBurn(uint256 burnAmount) external returns (AssetAmount[] memory outputAmounts, uint256 fee) {
-    uint256 totalReservesScaled = liquidityPool.getTotalReservesScaled();
-    fee = PoolMath.fromFixed(burnAmount * liquidityPool.getBurnFeeQ96());
+    uint256 totalReservesScaled = reserveManager.getTotalReservesScaled();
+    fee = PoolMath.fromFixed(burnAmount * reserveManager.getBurnFeeQ96());
     uint256 trueBurnAmount = burnAmount - fee;
     //if burning during a migration, index tokens may be backed by more than 1 unit of reserves,
     //in this case, we must scale up the "true" burn amount proportionally.
-    trueBurnAmount = (trueBurnAmount * liquidityPool.getMigrationBurnConversionRateQ96()) >> 96;
-    AssetParams[] memory currentAssetParamsList = liquidityPool.getCurrentAssetParams();
+    trueBurnAmount = (trueBurnAmount * reserveManager.getMigrationBurnConversionRateQ96()) >> 96;
+    AssetParams[] memory currentAssetParamsList = reserveManager.getCurrentAssetParams();
     outputAmounts = new AssetAmount[](currentAssetParamsList.length);
     for (uint i = 0; i < currentAssetParamsList.length; i++) {
       AssetParams memory params = currentAssetParamsList[i];
-      uint256 currentAllocation = PoolMath.toFixed(liquidityPool.getSpecificReservesScaled(params.assetAddress)) / totalReservesScaled;
+      uint256 currentAllocation = PoolMath.toFixed(reserveManager.getSpecificReservesScaled(params.assetAddress)) / totalReservesScaled;
 
       uint256 targetScaledWithdrawal = PoolMath.fromFixed(currentAllocation * trueBurnAmount);
       uint256 trueWithdrawal = PoolMath.scaleDecimals(targetScaledWithdrawal, indexToken.decimals(), params.decimals);

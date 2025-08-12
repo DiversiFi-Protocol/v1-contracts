@@ -13,117 +13,117 @@ async function increaseTime(seconds) {
   await ethers.provider.send("evm_mine", []);
 }
 
-describe("LiquidityPool - Getters", function () {
+describe("ReserveManager - Getters", function () {
   it("Deployments", async () => {
-    const { indexToken, liquidityPool, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
+    const { indexToken, reserveManager, admin, tokenName, tokenSymbol } = await loadFixture(deployAll);
 
     // liquidity token
-    expect(await indexToken.getLiquidityPool()).to.equal(getAddress(liquidityPool.target));
+    expect(await indexToken.getReserveManager()).to.equal(getAddress(reserveManager.target));
     expect(await indexToken.name()).to.equal(tokenName);
     expect(await indexToken.symbol()).to.equal(tokenSymbol);
 
     // liquidity pool
-    expect(await liquidityPool.getIndexToken()).to.equal(getAddress(indexToken.target));
+    expect(await reserveManager.getIndexToken()).to.equal(getAddress(indexToken.target));
   });
 
   it("getMaxReserves", async function () {
-    const { liquidityPool, maxReserves } = await loadFixture(deployAll);
+    const { reserveManager, maxReserves } = await loadFixture(deployAll);
 
     // Call the getMaxReservesfunction
-    const result = await liquidityPool.getMaxReserves();
+    const result = await reserveManager.getMaxReserves();
 
     // Assert that the result matches the expected value
     expect(result).to.equal(maxReserves);
   })
 
   it("getMaxReservesIncreaseRateQ96", async function () {
-    const { liquidityPool, maxReservesIncreaseRateQ96 } = await loadFixture(deployAll);
+    const { reserveManager, maxReservesIncreaseRateQ96 } = await loadFixture(deployAll);
 
     // Call the getMaxReservesIncreaseRateQ96 function
-    const result = await liquidityPool.getMaxReservesIncreaseRateQ96();
+    const result = await reserveManager.getMaxReservesIncreaseRateQ96();
     // Assert that the result matches the expected value
     expect(result).to.equal(maxReservesIncreaseRateQ96);
   })
 
   it("getMintFeeQ96", async function() {
-    const { liquidityPool } = await loadFixture(deployAll);
+    const { reserveManager } = await loadFixture(deployAll);
     // Set the mint fee to a random value
     const randomMintFee = utils.decimalToFixed(0.01); // Example: 1% mint fee
-    await liquidityPool.setMintFeeQ96(randomMintFee);
+    await reserveManager.setMintFeeQ96(randomMintFee);
 
     // Assert that the mint fee was set correctly
-    const setMintFee = await liquidityPool.getMintFeeQ96();
+    const setMintFee = await reserveManager.getMintFeeQ96();
     expect(setMintFee).to.equal(randomMintFee);
   })
 
   describe("getBurnFeeQ96", function() {
     it("should return the burn fee", async function() {
-      const { liquidityPool } = await loadFixture(deployAll);
+      const { reserveManager } = await loadFixture(deployAll);
       // Set the burn fee to a random value
       const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
-      await liquidityPool.setBurnFeeQ96(randomBurnFee);
+      await reserveManager.setBurnFeeQ96(randomBurnFee);
 
       // Assert that the burn fee was set correctly
-      const setBurnFee = await liquidityPool.getBurnFeeQ96();
+      const setBurnFee = await reserveManager.getBurnFeeQ96();
       expect(setBurnFee).to.equal(randomBurnFee);
     })
 
     it("should return zero if the pool is migrating", async function() {
-      const { liquidityPool, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       // Set the burn fee to a random value
       const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
-      await liquidityPool.setBurnFeeQ96(randomBurnFee);
-      await liquidityPool.startEmigration(
-        liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96
+      await reserveManager.setBurnFeeQ96(randomBurnFee);
+      await reserveManager.startEmigration(
+        reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96
       )
 
       // Assert that the burn fee was set correctly
-      const setBurnFee = await liquidityPool.getBurnFeeQ96();
+      const setBurnFee = await reserveManager.getBurnFeeQ96();
       expect(setBurnFee).to.equal(0n);
     })
   })
 
   it("getIsMintEnabled", async function () {
-    const { liquidityPool } = await loadFixture(deployAll);
-    const result = await liquidityPool.getIsMintEnabled();
+    const { reserveManager } = await loadFixture(deployAll);
+    const result = await reserveManager.getIsMintEnabled();
     expect(result).to.equal(true);
   })
 
   describe("getSurplus", function () {
     it("should return the token balance as fees", async function() {
-      const { liquidityPool, indexToken } = await loadFixture(deployAll);
-      await liquidityPool.mint(1000000n, "0x")
-      const surplusBefore = await liquidityPool.getSurplus()
+      const { reserveManager, indexToken } = await loadFixture(deployAll);
+      await reserveManager.mint(1000000n, "0x")
+      const surplusBefore = await reserveManager.getSurplus()
       const burnAmount = 42069n
       await indexToken.burn(burnAmount)
-      const surplusAfter = await liquidityPool.getSurplus();
+      const surplusAfter = await reserveManager.getSurplus();
       expect(surplusAfter - surplusBefore).to.equal(burnAmount);
     })
 
     it("should deduct the equalization bounty from the fees collected", async function() {
-      const { liquidityPool, indexToken } = await loadFixture(deployAll);
-      await liquidityPool.mint(1000000n, "0x")
-      const feesBefore = await liquidityPool.getSurplus()
+      const { reserveManager, indexToken } = await loadFixture(deployAll);
+      await reserveManager.mint(1000000n, "0x")
+      const feesBefore = await reserveManager.getSurplus()
       const burnAmount = 42069n
       const equalizationBounty = 69n
       await indexToken.burn(burnAmount)
-      await liquidityPool.increaseEqualizationBounty(equalizationBounty)
-      const feesAfter = await liquidityPool.getSurplus()
+      await reserveManager.increaseEqualizationBounty(equalizationBounty)
+      const feesAfter = await reserveManager.getSurplus()
       expect(feesAfter - feesBefore).to.equal(burnAmount - equalizationBounty)
     })
   })
 
   it("getIndexToken", async function () {
-    const { indexToken, liquidityPool } = await loadFixture(deployAll);
-    const result = await liquidityPool.getIndexToken();
+    const { indexToken, reserveManager } = await loadFixture(deployAll);
+    const result = await reserveManager.getIndexToken();
     expect(result).to.equal(getAddress(indexToken.target));
   });
 
   it("getAllAssets", async function () {
-    const { liquidityPool, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
+    const { reserveManager, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
 
     // Call the getAllAssets function
-    const allAssets = await liquidityPool.getAllAssets();
+    const allAssets = await reserveManager.getAllAssets();
 
     // Assert that the returned assets match the expected assets
     expect(allAssets.length).to.equal(3); // Ensure there are 3 assets
@@ -133,8 +133,8 @@ describe("LiquidityPool - Getters", function () {
   });
 
   it("getCurrentAssetParams", async function () {
-    const { liquidityPool, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
-    const allAssetParams = await liquidityPool.getCurrentAssetParams();
+    const { reserveManager, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+    const allAssetParams = await reserveManager.getCurrentAssetParams();
     const expected = [assetParams0, assetParams1, assetParams2]
     allAssetParams.forEach((params, i) => {
       expect(params[0]).to.equal(expected[i].assetAddress);
@@ -144,8 +144,8 @@ describe("LiquidityPool - Getters", function () {
   });
 
   it("getTargetAssetParams", async function () {
-    const { liquidityPool, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
-    const allAssetParams = await liquidityPool.getTargetAssetParams();
+    const { reserveManager, assetParams0, assetParams1, assetParams2 } = await loadFixture(deployAll);
+    const allAssetParams = await reserveManager.getTargetAssetParams();
     const expected = [assetParams0, assetParams1, assetParams2]
     allAssetParams.forEach((params, i) => {
       expect(params[0]).to.equal(expected[i].assetAddress);
@@ -155,115 +155,115 @@ describe("LiquidityPool - Getters", function () {
   });
 
   it("getAssetParams", async function () {
-    const { liquidityPool, mintable0, assetParams0 } = await loadFixture(deployAll);
-    const result = await liquidityPool.getAssetParams(mintable0.target);
+    const { reserveManager, mintable0, assetParams0 } = await loadFixture(deployAll);
+    const result = await reserveManager.getAssetParams(mintable0.target);
     expect(result.assetAddress).to.equal(assetParams0.assetAddress);
     expect(result.decimals).to.equal(assetParams0.decimals);
     expect(result.targetAllocation).to.equal(assetParams0.targetAllocation);
   });
 
   it("getSpecificReservesScaled", async function () {
-    const { liquidityPool, mintable0 } = await loadFixture(deployAll);
-    const result = await liquidityPool.getSpecificReservesScaled(mintable0.target);
+    const { reserveManager, mintable0 } = await loadFixture(deployAll);
+    const result = await reserveManager.getSpecificReservesScaled(mintable0.target);
     expect(result).to.equal(0n);
   });
 
   it("getTotalReservesScaled", async function () {
-    const { liquidityPool } = await loadFixture(deployAll);
-    const initialTotalReserves = await liquidityPool.getTotalReservesScaled();
+    const { reserveManager } = await loadFixture(deployAll);
+    const initialTotalReserves = await reserveManager.getTotalReservesScaled();
     expect(initialTotalReserves).to.equal(0n);
   });
 
   it("getSpecificReserves", async function () {
-    const { liquidityPool, mintable0 } = await loadFixture(deployAll);
-    const result = await liquidityPool.getSpecificReserves(mintable0.target);
+    const { reserveManager, mintable0 } = await loadFixture(deployAll);
+    const result = await reserveManager.getSpecificReserves(mintable0.target);
     expect(result).to.equal(0n);
   });
 
   it("getMaxReserves", async function () {
-    const { liquidityPool, maxReserves } = await loadFixture(deployAll)
-    const result = await liquidityPool.getMaxReserves()
+    const { reserveManager, maxReserves } = await loadFixture(deployAll)
+    const result = await reserveManager.getMaxReserves()
     expect(result).to.equal(maxReserves);
   })
 
   it("getMaxReservesIncreaseCooldown", async function () {
-    const { liquidityPool } = await loadFixture(deployAll);
+    const { reserveManager } = await loadFixture(deployAll);
     // Default value is 1 hour in seconds
-    const result = await liquidityPool.getMaxReservesIncreaseCooldown();
+    const result = await reserveManager.getMaxReservesIncreaseCooldown();
     expect(result).to.equal(60 * 60); // 1 hour in seconds
   });
 
   it("getLastMaxReservesChangeTimestamp", async function () {
-    const { liquidityPool, maintainer, setMaxReservesTimestamp } = await loadFixture(deployAll);
-    await liquidityPool.connect(maintainer).setMaxReserves(42069n)
+    const { reserveManager, maintainer, setMaxReservesTimestamp } = await loadFixture(deployAll);
+    await reserveManager.connect(maintainer).setMaxReserves(42069n)
     const latestBlock = await ethers.provider.getBlock("latest");
-    const result = await liquidityPool.getLastMaxReservesChangeTimestamp();
+    const result = await reserveManager.getLastMaxReservesChangeTimestamp();
     expect(result).to.equal(latestBlock.timestamp);
   });
 
   it("getEqualizationVectorScaled", async function () {
-    const { liquidityPool } = await loadFixture(deployAll)
-    const result = await liquidityPool.getEqualizationVectorScaled()
+    const { reserveManager } = await loadFixture(deployAll)
+    const result = await reserveManager.getEqualizationVectorScaled()
     expect(result[0]).to.equal(0n)
     expect(result[1]).to.equal(0n)
     expect(result[2]).to.equal(0n)
   })
 
   it("getTotalReservesDiscrepencyScaled", async function () {
-    const { liquidityPool } = await loadFixture(deployAll)
-    const result = await liquidityPool.getTotalReservesDiscrepencyScaled()
+    const { reserveManager } = await loadFixture(deployAll)
+    const result = await reserveManager.getTotalReservesDiscrepencyScaled()
     expect(result).to.equal(0n)
   })
 
   it("getIsEqualized", async function () {
-    const { liquidityPool } = await loadFixture(deployAll)
-    const result = await liquidityPool.getIsEqualized()
+    const { reserveManager } = await loadFixture(deployAll)
+    const result = await reserveManager.getIsEqualized()
     expect(result).to.equal(true)
   })
 
   it("getEqualizationBounty", async function () {
-    const { liquidityPool } = await loadFixture(deployAll)
-    await liquidityPool.mint(1000n, "0x")
+    const { reserveManager } = await loadFixture(deployAll)
+    await reserveManager.mint(1000n, "0x")
     const equalizationBounty = 1n
-    await liquidityPool.increaseEqualizationBounty(equalizationBounty)
-    expect(await liquidityPool.getEqualizationBounty()).to.equal(equalizationBounty)
+    await reserveManager.increaseEqualizationBounty(equalizationBounty)
+    expect(await reserveManager.getEqualizationBounty()).to.equal(equalizationBounty)
   })
 
   describe("getMigrationBurnConversionRateQ96", function () {
     it("should return 1 if there is no migration", async function () {
-      const { liquidityPool } = await loadFixture(deployAll)
+      const { reserveManager } = await loadFixture(deployAll)
       const oneQ96 = 1n << utils.SHIFT
-      expect(await liquidityPool.getMigrationBurnConversionRateQ96()).to.equal(oneQ96)
+      expect(await reserveManager.getMigrationBurnConversionRateQ96()).to.equal(oneQ96)
     })
 
     it("should return an increasing number if migrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
+      const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       const oneQ96 = 1n << utils.SHIFT
-      await liquidityPool.startEmigration(
-        liquidityPool0, 
+      await reserveManager.startEmigration(
+        reserveManager0, 
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
       )
       await increaseTime(Number(minbalanceDivisorChangeDelay) + 100)
-      const conversionRate = await liquidityPool.getMigrationBurnConversionRateQ96()
+      const conversionRate = await reserveManager.getMigrationBurnConversionRateQ96()
       expect(conversionRate).to.be.greaterThan(oneQ96)
     })
   })
 
   describe("isEmigrating", function () {
     it("should return false if not emigrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      expect(await liquidityPool.isEmigrating()).to.equal(false)
+      const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
+      expect(await reserveManager.isEmigrating()).to.equal(false)
     })
 
     it("should return true if emigrating", async function () {
-      const { liquidityPool, indexToken, liquidityPool0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      await liquidityPool.startEmigration(
-        liquidityPool0, 
+      const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
+      await reserveManager.startEmigration(
+        reserveManager0, 
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
       )
-      expect(await liquidityPool.isEmigrating()).to.equal(true)
+      expect(await reserveManager.isEmigrating()).to.equal(true)
     })
   })
 })

@@ -7,7 +7,7 @@ const expect = require("chai").expect;
 describe("allocationChange - complete lifecycle", function() {
   it("add an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -16,7 +16,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("remove an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -25,7 +25,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("add an asset during normal allocation change", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -34,7 +34,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("remove an asset during normal allocation change", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -43,7 +43,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("normal allocation change while adding an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -52,7 +52,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("normal allocation change while removing an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -61,7 +61,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("add an asset while adding an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -70,7 +70,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("add an asset while removing an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -79,7 +79,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("remove an asset while adding an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
@@ -88,7 +88,7 @@ describe("allocationChange - complete lifecycle", function() {
 
   it("remove an asset while removing an asset", async function() {
     const {
-      indexToken, liquidityPool, liquidityPool0, liquidityPool1, liquidityPool2, liquidityPool3, liquidityPool4, 
+      indexToken, reserveManager, reserveManager0, reserveManager1, reserveManager2, reserveManager3, reserveManager4, 
       admin, unpriviledged, tokenName, tokenSymbol, mintable0, mintable1, mintable2, maxReserves, maxReservesIncreaseRateQ96, 
       assetParams0, assetParams1, assetParams2, setMaxReservesTimestamp, poolMathWrapper, assetParamsNoMintable0, 
       assetParamsNoMintable1, assetParamsNoMintable2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 
