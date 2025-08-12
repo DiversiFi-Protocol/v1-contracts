@@ -153,7 +153,7 @@ describe("IndexToken", function() {
           nextReserveManager,
           minbalanceDivisorChangeDelay -1n,
           maxbalanceDivisorChangePerSecondQ96
-        )).to.be.revertedWith("balance multiplier change delay too short")
+        )).to.be.revertedWith("balance divisor change delay too short")
       })
 
       it("should fail if the balance multiplier change per second is greater than the max rate", async function() {
@@ -161,8 +161,8 @@ describe("IndexToken", function() {
         await expect(indexToken.startMigration(
           nextReserveManager,
           minbalanceDivisorChangeDelay,
-          maxbalanceDivisorChangePerSecondQ96 - 1n
-        )).to.be.revertedWith("balance multiplier change rate too high")
+          maxbalanceDivisorChangePerSecondQ96 + 1n
+        )).to.be.revertedWith("balance divisor change rate too high")
       })
 
       it("should set the relevant variables", async function() {

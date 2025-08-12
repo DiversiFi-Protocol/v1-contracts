@@ -17,7 +17,7 @@ import "./ReserveMath.sol";
 //a balance multiplier below this level gives sufficient space
 //for any reasonable migration, if the balance multiplier is above this number,
 //further soft migrations are not allowed.
-uint96 constant MAX_SAFE_BALANCE_MULTIPLIER = 2 ** (96 - 4);
+uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
 
 contract IndexToken is ERC20Permit {
@@ -72,7 +72,6 @@ contract IndexToken is ERC20Permit {
     _maxBalanceDivisorChangePerSecondQ96 = maxBalanceDivisorChangePerSecondQ96;
   }
 
-
   function isMigrating() public view returns (bool) {
     return _migrationSlot0.nextReserveManager != address(0);
   }
@@ -106,9 +105,9 @@ contract IndexToken is ERC20Permit {
     uint64 balanceDivisorChangeDelay,
     uint104 balanceDivisorChangePerSecondQ96
   ) external onlyReserveManager migrationCheck(false) {
-    require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_MULTIPLIER, "balance multiplier too high for soft migration");
-    require(balanceDivisorChangeDelay >= _minBalanceDivisorChangeDelay, "balance multiplier change delay too short");
-    require(balanceDivisorChangePerSecondQ96 >= _maxBalanceDivisorChangePerSecondQ96, "balance multiplier change rate too high");
+    require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_DIVISOR, "balance divisor too high for soft migration");
+    require(balanceDivisorChangeDelay >= _minBalanceDivisorChangeDelay, "balance divisor change delay too short");
+    require(balanceDivisorChangePerSecondQ96 <= _maxBalanceDivisorChangePerSecondQ96, "balance divisor change rate too high");
     _migrationSlot0.nextReserveManager = nextReserveManager;
     _migrationSlot1.migrationStartTimestamp = uint64(block.timestamp);
     _migrationSlot1.balanceDivisorChangeDelay = balanceDivisorChangeDelay;
