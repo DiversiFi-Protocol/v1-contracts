@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - ILiquidityPoolGetters.sol
+ * @title DiversiFi - IReserveManagerGetters.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -13,7 +13,7 @@ pragma solidity ^0.8.27;
 
 import "../DataStructs.sol";
 
-interface ILiquidityPoolGetters {
+interface IReserveManagerGetters {
   /// @dev The returned value is a 96.96 fixed point number
   /// @return mintFeeQ96 The mint fee rate
   function getMintFeeQ96() external view returns (uint256);
@@ -43,7 +43,7 @@ interface ILiquidityPoolGetters {
   /// @return allAssets An array of the addresses of all active underlying collateral in the pool
   function getAllAssets() external view returns (address[] memory);
 
-  /// @dev Current assets refer to all assets that have liquidity in the pool that are backing index tokens
+  /// @dev Current assets refer to all assets held by the reserve manager that are backing index tokens
   /// @return currentAssetParams A list of asset params for every current asset
   function getCurrentAssetParams() external view returns (AssetParams[] memory);
 
@@ -86,7 +86,7 @@ interface ILiquidityPoolGetters {
   /// @return lastMaxReservesChangeTimestamp The last block.timestamp where maxReserves was increased.
   function getLastMaxReservesChangeTimestamp() external view returns (uint256);
   
-  /// @dev A reward in the liquidity token applied as a discount/premium to traders who call arbitrage functions
+  /// @dev A reward in the index token applied as a discount/premium to traders who call arbitrage functions
   /// that move the pools reserves closer to equalization with the target allocations.
   /// @return equalizationBounty The total reward for bringing the pool to equalization
   function getEqualizationBounty() external view returns (uint256);

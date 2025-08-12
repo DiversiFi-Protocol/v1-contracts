@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - ILiquidityPoolAdmin.sol
+ * @title DiversiFi - IReserveManagerAdmin.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -11,7 +11,7 @@
 
 pragma solidity ^0.8.27;
 
-interface ILiquidityPoolEvents {
+interface IReserveManagerEvents {
     // emitted when a user mints the index token directly in exchange
   // for depositing every asset in the pool at the same time
   // the updated scaled reserves of each asset are included in the scaledReserves array

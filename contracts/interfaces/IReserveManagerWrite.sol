@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - ILiquidityPoolWrite.sol
+ * @title DiversiFi - IReserveManagerWrite.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -13,7 +13,7 @@ pragma solidity ^0.8.27;
 
 import "../DataStructs.sol";
 
-interface ILiquidityPoolWrite {
+interface IReserveManagerWrite {
     // ~~~~~~~~~~~~~~~~~~~~~ Public Core Functions ~~~~~~~~~~~~~~~~~~~~~
 
     /** 
@@ -22,7 +22,7 @@ interface ILiquidityPoolWrite {
      * tokens that will be transferred. Transfers according to the TARGET allocation of each asset
      * @param mintAmount the amount of tokens to be minted - in atomic units
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
-     * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
+     * Caller must implement IReserveManagerCallback for this to work. see IReserveManagerCallback for details.
      * This parameter can be ignored by passing in an empty value
      * @return inputAmounts an array of assets and amounts required to mint the desired amount of tokens
      */
@@ -34,7 +34,7 @@ interface ILiquidityPoolWrite {
      *  Transfers according to the Current allocation of each asset
      * @param burnAmount the amount of tokens to be burned - in atomic units
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
-     * Caller must implement ILiquidityPoolCallback for this to work. see ILiquidityPoolCallback for details.
+     * Caller must implement IReserveManagerCallback for this to work. see IReserveManagerCallback for details.
      * This parameter can be ignored by passing in an empty value
      * @return outputAmounts an array of assets and amounts returned for burning the desired amount of tokens
      */
@@ -56,7 +56,7 @@ interface ILiquidityPoolWrite {
 
     /** 
      * @dev Applies the equalization vector to the pool via exchange with the caller's account. 
-     * See ILiquidityPoolGetters.getEqualizationVector(), or the whitepaper v1 for more details.
+     * See IReserveManagerGetters.getEqualizationVector(), or the whitepaper v1 for more details.
      * Successfully calling this function always results in the pool being equalized.
      * Transferres the remaining equalization bounty to the caller if successful.
      * ERC20.approve() must be called for all target reserve assets in the pool.

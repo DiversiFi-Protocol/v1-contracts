@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - LiquidityPool.sol
+ * @title DiversiFi - ReserveManagerV1.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -13,19 +13,19 @@ pragma solidity ^0.8.27;
 
 import "./PoolMath.sol";
 import "./DataStructs.sol";
-import "./interfaces/ILiquidityPoolAdmin.sol";
-import "./interfaces/ILiquidityPoolGetters.sol";
-import "./interfaces/ILiquidityPoolWrite.sol";
-import "./interfaces/ILiquidityPoolEvents.sol";
-import "./interfaces/ILiquidityPoolCallback.sol";
+import "./interfaces/IReserveManagerAdmin.sol";
+import "./interfaces/IReserveManagerGetters.sol";
+import "./interfaces/IReserveManagerWrite.sol";
+import "./interfaces/IReserveManagerEvents.sol";
+import "./interfaces/IReserveManagerCallback.sol";
 import "./interfaces/IIndexToken.sol";
 import "openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "openzeppelin/contracts/utils/math/SignedMath.sol";
 import "openzeppelin/contracts/access/AccessControl.sol";
 
 
-contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGetters, 
-  ILiquidityPoolWrite, ILiquidityPoolEvents {
+contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManagerGetters, 
+  IReserveManagerWrite, IReserveManagerEvents {
   //assets in this pool will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -43,7 +43,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
 
   //related contracts
   IIndexToken private indexToken_;
-  address private nextLiquidityPool_;
+  address private nextReserveManager_;
 
   //configuration
   AssetParams[] private targetAssetParamsList_;//the asset params of all underlying assets that have nonzero target allocations
@@ -103,7 +103,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Core Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
-  /// @inheritdoc ILiquidityPoolWrite
+  /// @inheritdoc IReserveManagerWrite
   function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
@@ -112,7 +112,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     );
 
     //forward data to callback for a flash mint
-    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashMintCallback(_forwardData); }
+    if (_forwardData.length != 0) { IReserveManagerCallback(msg.sender).dfiV1FlashMintCallback(_forwardData); }
 
     uint256 fee = PoolMath.fromFixed(_mintAmount * compoundingMintFeeQ96_);
     uint256 trueMintAmount = _mintAmount + fee;
@@ -148,7 +148,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     );
   }
 
-  /// @inheritdoc ILiquidityPoolWrite
+  /// @inheritdoc IReserveManagerWrite
   function burn(uint256 _burnAmount, bytes calldata _forwardData) external returns (AssetAmount[] memory outputAmounts) {
     uint256 totalReserveReduction = 0;
     uint256 fee = PoolMath.fromFixed(_burnAmount * burnFeeQ96_);
@@ -185,7 +185,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     totalReservesScaled_ -= totalReserveReduction;
 
     //forward data back to the caller for a flash burn
-    if (_forwardData.length != 0) { ILiquidityPoolCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
+    if (_forwardData.length != 0) { IReserveManagerCallback(msg.sender).dfiV1FlashBurnCallback(_forwardData); }
 
     indexToken_.burnFrom(msg.sender, _burnAmount);
     emit Burn(
@@ -202,7 +202,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     only available when target allocation differs from current allocation, and
     the exchange moves the current allocation closer to the target allocation.
   */
-  /// @inheritdoc ILiquidityPoolWrite
+  /// @inheritdoc IReserveManagerWrite
   function swapTowardsTarget(
     address _asset,
     int256 _delta// the change in reserves from the pool's perspective, positive is a deposit, negative is a withdrawal
@@ -302,7 +302,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
 
   // the caller exchanges all assets with the pool such that the current allocations match the target allocations when finished
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
-  /// @inheritdoc ILiquidityPoolWrite
+  /// @inheritdoc IReserveManagerWrite
   function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
@@ -345,7 +345,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     return actualDeltas;
   }
 
-  /// @inheritdoc ILiquidityPoolWrite
+  /// @inheritdoc IReserveManagerWrite
   function withdrawAll() public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
     indexToken_.burnFrom(msg.sender, totalReservesScaled_);
     totalReservesScaled_ = 0;
@@ -372,37 +372,37 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Public Getters~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getMintFeeQ96() external view returns (uint256) {
     return mintFeeQ96_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getCompoundingMintFeeQ96() external view returns (uint256) {
     return compoundingMintFeeQ96_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getBurnFeeQ96() external view returns (uint256) {
     return burnFeeQ96_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getIsMintEnabled() external view returns (bool) {
     return isMintEnabled_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getSurplus() public view returns (int256) {
     return int256(totalReservesScaled_) - int256(indexToken_.totalSupply()) - int256(equalizationBounty_);
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getIndexToken() external view returns (address) {
     return address(indexToken_);
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getAllAssets() external view returns (address[] memory) {
       address[] memory assetsList = new address[](currentAssetParamsList_.length);
       for (uint i = 0; i < currentAssetParamsList_.length; i++) {
@@ -411,63 +411,63 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
       return assetsList;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getCurrentAssetParams() external view returns (AssetParams[] memory) {
     return currentAssetParamsList_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getTargetAssetParams() external view returns (AssetParams[] memory) {
     return targetAssetParamsList_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getAssetParams(address asset) external view returns (AssetParams memory) {
     return assetParams_[asset];
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getSpecificReservesScaled(address asset) external view returns (uint256) {
     return specificReservesScaled_[asset];
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getTotalReservesScaled() external view returns (uint256) {
     return totalReservesScaled_;
   }
 
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getSpecificReserves(address _asset) external view returns (uint256) {
     return PoolMath.scaleDecimals(specificReservesScaled_[_asset], DECIMAL_SCALE, assetParams_[_asset].decimals);
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getMaxReserves() external view returns (uint256) {
     return maxReserves_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getMaxReservesIncreaseRateQ96() external view returns (uint256) {
     return maxReservesIncreaseRateQ96_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getMaxReservesIncreaseCooldown() external view returns (uint256) {
     return maxReservesIncreaseCooldown_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getLastMaxReservesChangeTimestamp() external view returns (uint256) {
     return lastMaxReservesChangeTimestamp_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getEqualizationBounty() external view returns (uint256) {
     return equalizationBounty_;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getIsEqualized() public view returns (bool) {
     //check if the current allocations match the target allocations
     uint256 totalReservesDiscrepencyScaled = getTotalReservesDiscrepencyScaled();
@@ -477,7 +477,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     return totalReservesDiscrepencyScaled <= discrepencyToleranceScaled;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getEqualizationVectorScaled() public view returns (int256[] memory deltasScaled) {
     //calculate the deltas required to equalize the current allocations to the target allocations
     deltasScaled = new int256[](currentAssetParamsList_.length);
@@ -488,7 +488,7 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     }
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getTotalReservesDiscrepencyScaled() public view returns (uint256) {
     uint256 totalReservesDiscrepencyScaled = 0;
     int256[] memory deltasScaled = getEqualizationVectorScaled();
@@ -498,55 +498,55 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     return totalReservesDiscrepencyScaled;
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function getMigrationBurnConversionRateQ96() public view returns (uint256) {
     if (!isEmigrating()) { return PoolMath.toFixed(1); }
     uint256 currentbalanceDivisor = uint256(indexToken_.balanceDivisor());
     return (currentbalanceDivisor << 96) / (migrationSlot_.migrationStartBalanceDivisor);
   }
 
-  /// @inheritdoc ILiquidityPoolGetters
+  /// @inheritdoc IReserveManagerGetters
   function isEmigrating() public view returns (bool) {
-    return nextLiquidityPool_ != address(0);
+    return nextReserveManager_ != address(0);
   }
 
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Admin Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setMintFeeQ96(uint256 _mintFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = PoolMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setMaxReserves(uint256 _maxReserves) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setTargetAssetParams(AssetParams[] memory _params) public onlyRole(ADMIN_ROLE) mustNotEmigrating {
     delete targetAssetParamsList_;
     uint88 totalTargetAllocation = 0;
@@ -586,47 +586,47 @@ contract LiquidityPool is AccessControl, ILiquidityPoolAdmin, ILiquidityPoolGett
     require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function setIsMintEnabled(bool _isMintEnabled) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
     require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function startEmigration(
-    address _nextLiquidityPool,
+    address _nextReserveManager,
     uint64 balanceDivisorChangeDelay,
     uint104 balanceDivisorChangePerSecondQ96
   ) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
-    nextLiquidityPool_ = _nextLiquidityPool;
+    nextReserveManager_ = _nextReserveManager;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
     burnFeeQ96_ = 0;
 
     indexToken_.startMigration(
-      _nextLiquidityPool, 
+      _nextReserveManager, 
       balanceDivisorChangeDelay, 
       balanceDivisorChangePerSecondQ96
     );
   }
 
-  /// @inheritdoc ILiquidityPoolAdmin
+  /// @inheritdoc IReserveManagerAdmin
   function finishEmigration() external mustIsEmigrating {
-    require(nextLiquidityPool_ != address(0), "liquidity pool not migrating");
+    require(nextReserveManager_ != address(0), "reserve manager not migrating");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
     //burn index tokens that may have been accidentally transferred to this address
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
-    uint256 finalTotalReservesScaled = ILiquidityPoolGetters(nextLiquidityPool_).getTotalReservesScaled();
+    uint256 finalTotalReservesScaled = IReserveManagerGetters(nextReserveManager_).getTotalReservesScaled();
     indexToken_.finishMigration(finalTotalReservesScaled);
     delete migrationSlot_;
-    nextLiquidityPool_ = address(0);
+    nextReserveManager_ = address(0);
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/

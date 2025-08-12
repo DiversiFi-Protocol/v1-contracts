@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 /**
- * @title DiversiFi - LiquidityPool.sol
+ * @title DiversiFi - IReserveManagerCallback.sol
  */
 
 pragma solidity ^0.8.27;
 
-interface ILiquidityPoolCallback {
+interface IReserveManagerCallback {
   function dfiV1FlashMintCallback(bytes calldata forwardData) external;
   function dfiV1FlashBurnCallback(bytes calldata forwardData) external;
 }

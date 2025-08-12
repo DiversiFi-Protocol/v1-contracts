@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: BUSL-1.1
 
 /**
- * @title DiversiFi - ILiquidityPoolAdmin.sol
+ * @title DiversiFi - IReserveManagerAdmin.sol
  * @dev Licensed under Business Source License 1.1.
  *
  * You may not use this code in any production or competing service without
@@ -15,7 +15,7 @@ import "../DataStructs.sol";
 
 /// @notice These are administrative functions not for regular users and as such are not documented.
 /// Anyone wishing to understand them will have to interpret the code.
-interface ILiquidityPoolAdmin {
+interface IReserveManagerAdmin {
   function setMintFeeQ96(uint256 mintFeeQ96) external;
   function setBurnFeeQ96(uint256 burnFeeQ96) external;
   function setMaxReserves(uint256 maxReserves) external;
@@ -25,7 +25,7 @@ interface ILiquidityPoolAdmin {
   function setIsMintEnabled(bool isMintEnabled) external;
   function increaseEqualizationBounty(uint256 bountyIncrease) external;
   function startEmigration(
-    address nextLiquidityPool,
+    address nextReserveManager,
     uint64 balanceDivisorChangeDelay,
     uint104 balanceDivisorChangePerSecondQ96
   ) external;
