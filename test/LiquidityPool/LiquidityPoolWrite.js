@@ -164,14 +164,14 @@ describe("ReserveManager - Mint/Burn Functions", function () {
       ).to.be.revertedWith("max reserves limit");
     });
 
-    it("reverts if pool is emigrating", async function() {
+    it("reverts if reserve manager is emigrating", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await reserveManager.startEmigration(
         reserveManager0,
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await expect(reserveManager.mint(42069n, "0x")).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.mint(42069n, "0x")).to.be.revertedWith("reserve manager is emigrating")
     })
 
     it("succeeds if pool is being immigrated into", async function() {
@@ -1287,9 +1287,9 @@ describe("ReserveManager - Mint/Burn Functions", function () {
       expect(await reserveManager.getSpecificReserves(mintable2)).to.equal(0n)
     })
 
-    it("should not be callable if the pool is not emigrating", async function() {
+    it("should not be callable if the reserve manager is not emigrating", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await expect(reserveManager.withdrawAll()).to.be.revertedWith("pool is not emigrating")
+      await expect(reserveManager.withdrawAll()).to.be.revertedWith("reserve manager is not emigrating")
     })
   })
 });

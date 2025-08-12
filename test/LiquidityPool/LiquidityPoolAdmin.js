@@ -29,7 +29,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.setMintFeeQ96(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.setMintFeeQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -50,7 +50,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.setBurnFeeQ96(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.setBurnFeeQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -71,7 +71,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -92,7 +92,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -116,7 +116,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.connect(maintainer).setMaxReserves(0n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.connect(maintainer).setMaxReserves(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -228,7 +228,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.setTargetAssetParams([])).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.setTargetAssetParams([])).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -255,7 +255,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.withdrawFees(unpriviledged.address)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.withdrawFees(unpriviledged.address)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -275,7 +275,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.connect(maintainer).setIsMintEnabled(true)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.connect(maintainer).setIsMintEnabled(true)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
 
@@ -319,7 +319,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
       await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
-      await expect(reserveManager.increaseEqualizationBounty(69n)).to.be.revertedWith("pool is emigrating")
+      await expect(reserveManager.increaseEqualizationBounty(69n)).to.be.revertedWith("reserve manager is emigrating")
     })
   })
 
@@ -337,7 +337,7 @@ describe("ReserveManager - Admin Functions", function() {
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
         )
-      ).to.be.revertedWith("pool is emigrating")
+      ).to.be.revertedWith("reserve manager is emigrating")
     })
 
     it("should set all of the relevant variables", async function() {
@@ -376,7 +376,7 @@ describe("ReserveManager - Admin Functions", function() {
   describe("finishEmigration", function() {
     it("should fail if the pool is not currently migrating", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      await expect(reserveManager.finishEmigration()).to.be.revertedWith("pool is not emigrating")
+      await expect(reserveManager.finishEmigration()).to.be.revertedWith("reserve manager is not emigrating")
     })
 
     it("should fail if there are still reserves in the pool", async function() {
