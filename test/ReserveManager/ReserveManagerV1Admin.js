@@ -27,8 +27,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + 1n + minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.setMintFeeQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -48,8 +50,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + 1n + minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.setBurnFeeQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -69,8 +73,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + 1n + minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseCooldown(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -90,8 +96,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + 1n + minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.connect(maintainer).setMaxReservesIncreaseRateQ96(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -114,8 +122,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + minbalanceDivisorChangeDelay + 1n, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.connect(maintainer).setMaxReserves(0n)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -226,8 +236,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, block0Time + minbalanceDivisorChangeDelay + 1n, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.setTargetAssetParams([])).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -254,7 +266,7 @@ describe("ReserveManager - Admin Functions", function() {
     });
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      await indexToken.startMigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.withdrawFees(unpriviledged.address)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -273,8 +285,10 @@ describe("ReserveManager - Admin Functions", function() {
         .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
     });
     it("reverts when called during migration", async function() {
-      const { reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, minbalanceDivisorChangeDelay + block0Time + 1n, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.connect(maintainer).setIsMintEnabled(true)).to.be.revertedWith("reserve manager is emigrating")
     })
   });
@@ -317,8 +331,10 @@ describe("ReserveManager - Admin Functions", function() {
       expect(await reserveManager.getEqualizationBounty()).to.equal(initialBounty + secondBounty)
     })
     it("reverts when called during migration", async function() {
-      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96)
+      const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(reserveManager0, minbalanceDivisorChangeDelay + block0Time + 1n, maxbalanceDivisorChangePerSecondQ96)
       await expect(reserveManager.increaseEqualizationBounty(69n)).to.be.revertedWith("reserve manager is emigrating")
     })
   })
@@ -326,44 +342,48 @@ describe("ReserveManager - Admin Functions", function() {
   describe("startEmigration", function() {
     it("should fail if the pool is already migrating", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        minbalanceDivisorChangeDelay + block0Time + 1n,
         maxbalanceDivisorChangePerSecondQ96,
       )
       await expect(
-        reserveManager.startEmigration(
+        indexToken.startMigration(
         reserveManager0, 
         minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
         )
-      ).to.be.revertedWith("reserve manager is emigrating")
+      ).to.be.revertedWith("reserve manager is migrating")
     })
 
     it("should set all of the relevant variables", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        minbalanceDivisorChangeDelay + block0Time + 1n,
         maxbalanceDivisorChangePerSecondQ96,
       )
-      const block0 = await hre.ethers.provider.getBlock("latest")
+      const block1 = await hre.ethers.provider.getBlock("latest")
       expect(await indexToken.isMigrating()).to.equal(true)
       expect(await reserveManager.isEmigrating()).to.equal(true)
       expect(await indexToken.getNextReserveManager()).to.equal(reserveManager0)
-      expect(await indexToken.getMigrationStartTimestamp()).to.equal(block0.timestamp)
-      expect(await indexToken.getBalanceDivisorChangeDelay()).to.equal(minbalanceDivisorChangeDelay)
+      expect(await indexToken.getMigrationStartTimestamp()).to.equal(block1.timestamp)
+      expect(await indexToken.getBalanceDivisorChangeStartTimestamp()).to.equal(minbalanceDivisorChangeDelay + block0Time + 1n)
       expect(await indexToken.getBalanceDivisorChangePerSecondQ96()).to.equal(maxbalanceDivisorChangePerSecondQ96)
       expect(await reserveManager.getBurnFeeQ96()).to.equal(0n, "burn fee should be zero if emigrating")
     })
 
     it("admin functions should be disallowed while emigrating", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        minbalanceDivisorChangeDelay + block0Time + 1n,
         maxbalanceDivisorChangePerSecondQ96,
       )
 
@@ -382,25 +402,29 @@ describe("ReserveManager - Admin Functions", function() {
     it("should fail if there are still reserves in the pool", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       await reserveManager.mint(1000n, "0x")
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        minbalanceDivisorChangeDelay + block0Time + 1n,
         maxbalanceDivisorChangePerSecondQ96,
       )
 
-      await expect(reserveManager.finishEmigration()).to.be.revertedWith("cannot finish emigration until all reserves have been moved")
+      await expect(indexToken.finishMigration()).to.be.revertedWith("cannot finish emigration until all reserves have been moved")
     })
 
     it("should set all of the relevant variables", async function() {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        minbalanceDivisorChangeDelay + block0Time + 1n,
         maxbalanceDivisorChangePerSecondQ96,
       )
 
       await increaseTime(Number(minbalanceDivisorChangeDelay * 2n))
-      await reserveManager.finishEmigration()
+      await indexToken.finishMigration()
 
       expect(await indexToken.balanceOf(reserveManager)).to.equal(0n, "old liquidity pool should have burnt all its reserves")
       expect(await reserveManager.isEmigrating()).to.equal(false)

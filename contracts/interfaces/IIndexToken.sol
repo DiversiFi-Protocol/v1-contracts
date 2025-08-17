@@ -5,13 +5,14 @@ pragma solidity ^0.8.27;
 import "./IERC20MintAndBurn.sol";
 
 interface IIndexToken is IERC20MintAndBurn {
+  function transferFromBase(address from, address to, uint256 baseAmount) external;
   function isMigrating() external view returns (bool);
-  function getNextReserveManager() view external returns (address);
-  function getlastBalanceDivisor() view external returns (uint96);
-  function getMigrationStartTimestamp() view external returns (uint64);
-  function getBalanceDivisorChangeDelay() view external returns (uint64);
-  function getBalanceDivisorChangePerSecondQ96() view external returns (uint104);
-  function getReserveManager() view external returns (address);
+  function getNextReserveManager() external view returns (address);
+  function getlastBalanceDivisor() external view returns (uint96);
+  function getMigrationStartTimestamp() external view returns (uint64);
+  function getBalanceDivisorChangeDelay() external view returns (uint64);
+  function getBalanceDivisorChangePerSecondQ96() external view returns (uint104);
+  function getReserveManager() external view returns (address);
   function startMigration(
     address nextReserveManager, 
     uint64 balanceDivisorChangeDelay, 

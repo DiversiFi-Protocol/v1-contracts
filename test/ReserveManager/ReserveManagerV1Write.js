@@ -166,9 +166,11 @@ describe("ReserveManager - Mint/Burn Functions", function () {
 
     it("reverts if reserve manager is emigrating", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await expect(reserveManager.mint(42069n, "0x")).to.be.revertedWith("reserve manager is emigrating")
@@ -176,9 +178,11 @@ describe("ReserveManager - Mint/Burn Functions", function () {
 
     it("succeeds if pool is being immigrated into", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(42069n, "0x")
@@ -276,9 +280,11 @@ describe("ReserveManager - Mint/Burn Functions", function () {
       const initialAmount0Paid = BigInt(balance0Initial - balance0PostMint)
       const initialAmount1Paid = BigInt(balance1Initial - balance1PostMint)
       const initialAmount2Paid = BigInt(balance2Initial - balance2PostMint)
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await increaseTime(Number(minbalanceDivisorChangeDelay) + 100)
@@ -311,9 +317,11 @@ describe("ReserveManager - Mint/Burn Functions", function () {
     it("succeeds if pool is emigrating", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await reserveManager.mint(52069n, "0x")
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager.burn(42069n, "0x")
@@ -321,13 +329,15 @@ describe("ReserveManager - Mint/Burn Functions", function () {
 
     it("fails if pool is being immigrated into", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(52069n, "0x")
-      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only reserve manager")
+      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only reserve manager can burn from")
     })
   });
 
@@ -1271,9 +1281,11 @@ describe("ReserveManager - Mint/Burn Functions", function () {
     it("should be able to withdraw all reserves", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       await reserveManager.mint(utils.scale10Pow18(42069n), "0x")
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0,
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(await reserveManager.getTotalReservesScaled(), "0x")

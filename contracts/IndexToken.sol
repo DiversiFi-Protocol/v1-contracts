@@ -12,7 +12,11 @@
 pragma solidity ^0.8.27;
 
 import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "openzeppelin/contracts/access/Ownable.sol";
 import "./ReserveMath.sol";
+import "./interfaces/IDFICrossChainMessenger.sol";
+import "./interfaces/IReserveManagerAdmin.sol";
+import "./interfaces/IReserveManagerGetters.sol";
 
 //a balance divisor below this level gives sufficient space
 //for any reasonable migration, if the balance divisor is above this number,
@@ -20,10 +24,11 @@ import "./ReserveMath.sol";
 uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
 
-contract IndexToken is ERC20Permit {
+contract IndexToken is ERC20Permit, Ownable {
   uint64 private immutable _minBalanceDivisorChangeDelay;
   uint104 private immutable _maxBalanceDivisorChangePerSecondQ96;
   address private _reserveManager;
+  IDFICrossChainMessenger[] private _crossChainMessengers;
 
   struct MigrationSlot0 {
     address nextReserveManager;
@@ -33,7 +38,7 @@ contract IndexToken is ERC20Permit {
 
   struct MigrationSlot1 {
     uint64 migrationStartTimestamp;
-    uint64 balanceDivisorChangeDelay;
+    uint64 balanceDivisorChangeStartTimestamp;
     uint104 balanceDivisorChangePerSecondQ96;
   }
   MigrationSlot1 private _migrationSlot1;
@@ -45,10 +50,6 @@ contract IndexToken is ERC20Permit {
   /***********************************************************************************
   *------------------------------Unique Functionality---------------------------------
   ***********************************************************************************/
-  modifier onlyReserveManager {
-    require(msg.sender == _reserveManager, "only reserve manager");
-    _;
-  }
 
   modifier migrationCheck(bool checkTrue) {
     if (checkTrue) {
@@ -84,8 +85,8 @@ contract IndexToken is ERC20Permit {
     return _migrationSlot0.lastBalanceDivisor;
   }
 
-  function getBalanceDivisorChangeDelay() view external returns (uint64) {
-    return _migrationSlot1.balanceDivisorChangeDelay;
+  function getBalanceDivisorChangeStartTimestamp() view external returns (uint64) {
+    return _migrationSlot1.balanceDivisorChangeStartTimestamp;
   }
 
   function getMigrationStartTimestamp() view external returns (uint64) {
@@ -100,30 +101,71 @@ contract IndexToken is ERC20Permit {
     return _reserveManager;
   }
 
+  function getCrossChainMessengers() view external returns (IDFICrossChainMessenger[] memory) {
+    return _crossChainMessengers;
+  }
+
+  function addCrossChainMessenger(address crossChainMessenger) external onlyOwner {
+    _crossChainMessengers.push(IDFICrossChainMessenger(crossChainMessenger));
+  }
+
+  function removeCrossChainMessenger(address crossChainMessenger) external onlyOwner {
+    uint length = _crossChainMessengers.length;
+    for(uint i = 0; i < length; i++) {
+      if (address(_crossChainMessengers[i]) == crossChainMessenger) {
+        _crossChainMessengers[i] = _crossChainMessengers[length - 1];
+        _crossChainMessengers.pop();
+        return;
+      }
+    }
+    revert("cross chain messenger not found");
+  }
+
+  function sendMigrationStartMessages(
+    uint96 startingBalanceDivisor,
+    uint64 balanceDivisorChangeStartTimestamp, 
+    uint104 balanceDivisorChangePerSecondQ96
+  ) private {
+    uint length = _crossChainMessengers.length;
+    for (uint i = 0; i < length; i++) {
+      _crossChainMessengers[i].sendStartMigration(
+        startingBalanceDivisor, balanceDivisorChangeStartTimestamp, balanceDivisorChangePerSecondQ96
+      );
+    }
+  }
+
+  function sendMigrationFinishMessages(uint96 finalBalanceDivisor) private {
+    uint length = _crossChainMessengers.length;
+    for (uint i = 0; i < length; i++) {
+      _crossChainMessengers[i].sendFinishMigration(finalBalanceDivisor);
+    }
+  }
+
   function startMigration(
     address nextReserveManager, 
-    uint64 balanceDivisorChangeDelay,
+    uint64 balanceDivisorChangeStartTimestamp,
     uint104 balanceDivisorChangePerSecondQ96
-  ) external onlyReserveManager migrationCheck(false) {
+  ) external onlyOwner migrationCheck(false) {
     require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_DIVISOR, "balance divisor too high for soft migration");
-    require(balanceDivisorChangeDelay >= _minBalanceDivisorChangeDelay, "balance divisor change delay too short");
+    require(balanceDivisorChangeStartTimestamp - uint64(block.timestamp) >= _minBalanceDivisorChangeDelay, "balance divisor change delay too short");
     require(balanceDivisorChangePerSecondQ96 <= _maxBalanceDivisorChangePerSecondQ96, "balance divisor change rate too high");
     _migrationSlot0.nextReserveManager = nextReserveManager;
     _migrationSlot1.migrationStartTimestamp = uint64(block.timestamp);
-    _migrationSlot1.balanceDivisorChangeDelay = balanceDivisorChangeDelay;
+    _migrationSlot1.balanceDivisorChangeStartTimestamp = balanceDivisorChangeStartTimestamp;
     _migrationSlot1.balanceDivisorChangePerSecondQ96 = balanceDivisorChangePerSecondQ96;
+    IReserveManagerAdmin(_reserveManager).startEmigration(nextReserveManager);
   }
 
-  function finishMigration(uint256 totalReservesScaled) external onlyReserveManager migrationCheck(true) {
+  function finishMigration() external migrationCheck(true) {
+    IReserveManagerAdmin(_reserveManager).finishEmigration();
+
     //infer the exact balance divisor based on the totalScaledReserves of the new reserve manager and the total supply
-    (uint96 finalBalanceDivisor, int256 surplus) = ReserveMath.computeFinalBalanceDivisorAndSurplus(
+    uint256 totalReservesScaled = IReserveManagerGetters(_migrationSlot0.nextReserveManager).getTotalReservesScaled();
+    uint96 finalBalanceDivisor = ReserveMath.computeFinalBalanceDivisor(
       totalReservesScaled, _baseTotalSupply, _migrationSlot0.lastBalanceDivisor
     );
     _migrationSlot0.lastBalanceDivisor = finalBalanceDivisor;
-    if (surplus > 0) {
-      //send the surplus to the next reserve manager (ignores normal mint permission check)
-      _mint(_migrationSlot0.nextReserveManager, uint256(surplus));
-    }
+
     _reserveManager = _migrationSlot0.nextReserveManager;
     _migrationSlot0.nextReserveManager = address(0);
   }
@@ -137,12 +179,21 @@ contract IndexToken is ERC20Permit {
     _mint(recipient, amount);
   }
 
-  function burnFrom(address burnAddress, uint256 amount) external onlyReserveManager {
+  function burnFrom(address burnAddress, uint256 amount) external {
+    require(msg.sender == _reserveManager, "only reserve manager can burn from");
     _burn(burnAddress, amount);
   }
 
   function burn(uint256 amount) external {
     _burn(msg.sender, amount);
+  }
+
+  function transferFromBase(address from, address to, uint256 baseAmount) external {
+    uint256 fromBaseBalance = _baseBalances[from];
+    require(fromBaseBalance >= baseAmount, "ERC20: transfer amount exceeds balance");
+    unchecked { _baseBalances[from] = fromBaseBalance - baseAmount; }
+    _baseBalances[to] += baseAmount;
+    emit Transfer(from, to, scaleFromBase(baseAmount));
   }
 
   function balanceDivisor() public view returns (uint96) {
@@ -151,13 +202,11 @@ contract IndexToken is ERC20Permit {
       return migrationSlot0.lastBalanceDivisor;
     } else { //we are migrating - the balance divisor is changing
       MigrationSlot1 memory migrationSlot1 = _migrationSlot1;
-      uint256 timeDiff = block.timestamp - uint256(migrationSlot1.migrationStartTimestamp);
-      if (timeDiff <= migrationSlot1.balanceDivisorChangeDelay) {
+      if (uint64(block.timestamp) <= migrationSlot1.balanceDivisorChangeStartTimestamp) {
         return migrationSlot0.lastBalanceDivisor;
-      } else {
-        timeDiff -= migrationSlot1.balanceDivisorChangeDelay;
       }
-      uint256 compoundedChangeQ96 = ReserveMath.powQ96(uint256(migrationSlot1.balanceDivisorChangePerSecondQ96), timeDiff);
+      uint256 divisorChangeDuration = block.timestamp - uint256(migrationSlot1.balanceDivisorChangeStartTimestamp);
+      uint256 compoundedChangeQ96 = ReserveMath.powQ96(uint256(migrationSlot1.balanceDivisorChangePerSecondQ96), divisorChangeDuration);
       return uint96(
         (migrationSlot0.lastBalanceDivisor * compoundedChangeQ96) >> 96
       );

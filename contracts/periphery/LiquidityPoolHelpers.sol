@@ -47,7 +47,7 @@ contract ReserveManagerHelpers {
     }
   }
 
-  function quoteMint(uint256 mintAmount) external returns (AssetAmount[] memory inputAmounts, uint256 fee) {
+  function quoteMint(uint256 mintAmount) external view returns (AssetAmount[] memory inputAmounts, uint256 fee) {
     require(reserveManager.getIsMintEnabled(), "minting disabled");
     fee = ReserveMath.fromFixed(mintAmount * ReserveMath.calcCompoundingFeeRate(reserveManager.getMintFeeQ96()));
     uint256 trueMintAmount = mintAmount + fee;
@@ -76,7 +76,7 @@ contract ReserveManagerHelpers {
     require(finalTotalReserves < maxTotalReserves, "max reserves limit");
   }
 
-  function quoteBurn(uint256 burnAmount) external returns (AssetAmount[] memory outputAmounts, uint256 fee) {
+  function quoteBurn(uint256 burnAmount) external view returns (AssetAmount[] memory outputAmounts, uint256 fee) {
     uint256 totalReservesScaled = reserveManager.getTotalReservesScaled();
     fee = ReserveMath.fromFixed(burnAmount * reserveManager.getBurnFeeQ96());
     uint256 trueBurnAmount = burnAmount - fee;

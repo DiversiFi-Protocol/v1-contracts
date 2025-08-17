@@ -32,10 +32,11 @@ describe("migration - complete lifecycle", function() {
     const initialAmount0Paid = balance0Initial - balance0PostMint
     const initialAmount1Paid = balance1Initial - balance1PostMint
     const initialAmount2Paid = balance2Initial - balance2PostMint
-
-    await reserveManager.startEmigration(
+    const block0 = await hre.ethers.provider.getBlock("latest");
+    const block0Time = BigInt(block0.timestamp)
+    await indexToken.startMigration(
       reserveManager0,
-      minbalanceDivisorChangeDelay,
+      block0Time + minbalanceDivisorChangeDelay + 1n,
       maxbalanceDivisorChangePerSecondQ96
     )
     const migrationStartingBalance = await indexToken.balanceOf(admin)
@@ -87,7 +88,7 @@ describe("migration - complete lifecycle", function() {
     var totalReserves = await reserveManager0.getTotalReservesScaled()
     var totalSupply = await indexToken.totalSupply()
     expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)
-    await reserveManager.finishEmigration()
+    await indexToken.finishMigration()
     totalReserves = await reserveManager0.getTotalReservesScaled()
     totalSupply = await indexToken.totalSupply()
     expect(totalReserves).to.be.greaterThanOrEqual(totalSupply)  })

@@ -86,11 +86,11 @@ library ReserveMath {
   /// i.e. (the resulting balance multiplier is less than the last balance multiplier)
   /// the resulting balance multiplier will equal the last balance multiplier and the surplus is returned.
   /// if there is a deficit, the deficit is returned
-  function computeFinalBalanceDivisorAndSurplus(
+  function computeFinalBalanceDivisor(
     uint256 totalReserves,
     uint256 baseTotalSupply,
     uint96 lastBalanceDivisor
-  ) internal pure returns (uint96 balanceDivisor, int256 surplus /*(or deficit)*/) {
+  ) internal pure returns (uint96 balanceDivisor) {
     /**
      * SANITY CHECKS:
      * it is practically impossible to end up in these situations to begin with, but
@@ -101,23 +101,23 @@ library ReserveMath {
      * distribution of the reserves. 
      */
     if (totalReserves > baseTotalSupply || lastBalanceDivisor == 0) {
-      return (type(uint96).max, int256(uint256(type(uint160).max)));
+      return type(uint96).max;
     }
     //END SANITY CHECKS
 
-    surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceDivisor));
+    int256 surplus = int256(totalReserves) - int256(baseTotalSupply / uint256(lastBalanceDivisor));
     if (surplus >= 0) {
-      return (lastBalanceDivisor, surplus);
+      return (lastBalanceDivisor);
     } else {
       if (totalReserves == 0) {
         //if there are no reserves, then the total supply should be zero
         //since we get total supply by dividing baseTotalSupply by the balance multiplier,
         //we would need to set the balance multiplier to infinity to achieve this.
         //since there is no infinity, we just use the max possible value instead
-        return (type(uint96).max, int256(baseTotalSupply / uint256(lastBalanceDivisor)));
+        return type(uint96).max;
       }
       //round the multiplier up
-      return (uint96(baseTotalSupply / totalReserves) + 1, surplus);
+      return uint96(baseTotalSupply / totalReserves) + 1;
     }
   }
 

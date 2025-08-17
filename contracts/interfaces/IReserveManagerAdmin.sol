@@ -24,11 +24,7 @@ interface IReserveManagerAdmin {
   function setTargetAssetParams(AssetParams[] calldata params) external;
   function setIsMintEnabled(bool isMintEnabled) external;
   function increaseEqualizationBounty(uint256 bountyIncrease) external;
-  function startEmigration(
-    address nextReserveManager,
-    uint64 balanceDivisorChangeDelay,
-    uint104 balanceDivisorChangePerSecondQ96
-  ) external;
+  function startEmigration(address nextReserveManager) external;
   /// @dev this is technically not an admin-only function
   function finishEmigration() external;
 }

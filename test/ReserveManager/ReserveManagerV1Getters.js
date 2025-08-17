@@ -69,12 +69,14 @@ describe("ReserveManager - Getters", function () {
     })
 
     it("should return zero if the pool is migrating", async function() {
-      const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
+      const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       // Set the burn fee to a random value
       const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
       await reserveManager.setBurnFeeQ96(randomBurnFee);
-      await reserveManager.startEmigration(
-        reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
+        reserveManager0, block0Time + 1n + minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96
       )
 
       // Assert that the burn fee was set correctly
@@ -239,9 +241,11 @@ describe("ReserveManager - Getters", function () {
     it("should return an increasing number if migrating", async function () {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
       const oneQ96 = 1n << utils.SHIFT
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
       )
       await increaseTime(Number(minbalanceDivisorChangeDelay) + 100)
@@ -258,9 +262,11 @@ describe("ReserveManager - Getters", function () {
 
     it("should return true if emigrating", async function () {
       const { reserveManager, indexToken, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll)
-      await reserveManager.startEmigration(
+      const block0 = await hre.ethers.provider.getBlock("latest");
+      const block0Time = BigInt(block0.timestamp)
+      await indexToken.startMigration(
         reserveManager0, 
-        minbalanceDivisorChangeDelay,
+        block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96,
       )
       expect(await reserveManager.isEmigrating()).to.equal(true)

@@ -600,31 +600,20 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function startEmigration(
-    address _nextReserveManager,
-    uint64 balanceDivisorChangeDelay,
-    uint104 balanceDivisorChangePerSecondQ96
-  ) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function startEmigration(address _nextReserveManager) external mustNotEmigrating {
+    require(msg.sender == address(indexToken_), "emigration start call must come from index token");
     nextReserveManager_ = _nextReserveManager;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
     burnFeeQ96_ = 0;
-
-    indexToken_.startMigration(
-      _nextReserveManager, 
-      balanceDivisorChangeDelay, 
-      balanceDivisorChangePerSecondQ96
-    );
   }
 
   /// @inheritdoc IReserveManagerAdmin
   function finishEmigration() external mustIsEmigrating {
-    require(nextReserveManager_ != address(0), "reserve manager not migrating");
+    require(msg.sender == address(indexToken_), "emigration finish call must come from index token");
     require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
     //burn index tokens that may have been accidentally transferred to this address
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
-    uint256 finalTotalReservesScaled = IReserveManagerGetters(nextReserveManager_).getTotalReservesScaled();
-    indexToken_.finishMigration(finalTotalReservesScaled);
     delete migrationSlot_;
     nextReserveManager_ = address(0);
   }
