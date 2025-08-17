@@ -10,12 +10,12 @@ interface IIndexToken is IERC20MintAndBurn {
   function getNextReserveManager() external view returns (address);
   function getlastBalanceDivisor() external view returns (uint96);
   function getMigrationStartTimestamp() external view returns (uint64);
-  function getBalanceDivisorChangeDelay() external view returns (uint64);
+  function getBalanceDivisorChangeStartTimestamp() external view returns (uint64);
   function getBalanceDivisorChangePerSecondQ96() external view returns (uint104);
   function getReserveManager() external view returns (address);
   function startMigration(
     address nextReserveManager, 
-    uint64 balanceDivisorChangeDelay, 
+    uint64 balanceDivisorChangeStartTimestamp, 
     uint104 balanceDivisorChangePerSecondQ96
   ) external;
   function finishMigration(uint256 totalReservesScaled) external;
