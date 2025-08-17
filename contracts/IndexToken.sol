@@ -154,6 +154,9 @@ contract IndexToken is ERC20Permit, Ownable {
     _migrationSlot1.balanceDivisorChangeStartTimestamp = balanceDivisorChangeStartTimestamp;
     _migrationSlot1.balanceDivisorChangePerSecondQ96 = balanceDivisorChangePerSecondQ96;
     IReserveManagerAdmin(_reserveManager).startEmigration(nextReserveManager);
+    sendMigrationStartMessages(
+      _migrationSlot0.lastBalanceDivisor, balanceDivisorChangeStartTimestamp, balanceDivisorChangePerSecondQ96
+    );
   }
 
   function finishMigration() external migrationCheck(true) {
@@ -168,6 +171,7 @@ contract IndexToken is ERC20Permit, Ownable {
 
     _reserveManager = _migrationSlot0.nextReserveManager;
     _migrationSlot0.nextReserveManager = address(0);
+    sendMigrationFinishMessages(finalBalanceDivisor);
   }
 
   function mint(address recipient, uint256 amount) external {
