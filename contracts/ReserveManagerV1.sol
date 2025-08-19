@@ -306,6 +306,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
+    totalReservesScaled_ = 0;
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       if(deltasScaled[i] > 0) {// deposit
@@ -317,7 +318,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         );
         uint256 actualDepositScaled = ReserveMath.scaleDecimals(actualDeposit, params.decimals, DECIMAL_SCALE);
         specificReservesScaled_[params.assetAddress] += actualDepositScaled;
-        totalReservesScaled_ += actualDepositScaled;
         actualDeltas[i] = int256(actualDeposit);
       } else {//withdraw
         uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
@@ -327,9 +327,9 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         );
         uint256 actualWithdrawalScaled = ReserveMath.scaleDecimals(actualWithdrawal, params.decimals, DECIMAL_SCALE);
         specificReservesScaled_[params.assetAddress] -= actualWithdrawalScaled;
-        totalReservesScaled_ -= actualWithdrawalScaled;
         actualDeltas[i] = int256(actualWithdrawal) * -1;
       }
+      totalReservesScaled_ += specificReservesScaled_[params.assetAddress];
     }
     AssetParams[] memory tempCurrentParams = new AssetParams[](currentAssetParamsList_.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
