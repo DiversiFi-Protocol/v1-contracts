@@ -104,7 +104,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   */
 
   /// @inheritdoc IReserveManagerWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
       msg.sender,
@@ -118,7 +118,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
     uint256 totalReservesIncrease = 0;
-    inputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     for (uint i = 0; i < targetAssetParamsList_.length; i++) {
       AssetParams memory params = targetAssetParamsList_[i];
       uint256 targetDepositScaled = ReserveMath.fromFixed(
@@ -127,11 +126,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 trueDeposit = ReserveMath.scaleDecimals(targetDepositScaled, DECIMAL_SCALE, params.decimals) + 1;//round up
       uint256 trueDepositScaled = ReserveMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
-
-      AssetAmount memory assetAmount;
-      assetAmount.assetAddress = params.assetAddress;
-      assetAmount.amount = trueDeposit;
-      inputAmounts[i] = assetAmount;
 
       totalReservesIncrease += trueDepositScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueDepositScaled;
@@ -149,7 +143,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerWrite
-  function burn(uint256 _burnAmount, bytes calldata _forwardData) external returns (AssetAmount[] memory outputAmounts) {
+  function burn(uint256 _burnAmount, bytes calldata _forwardData) external {
     uint256 totalReserveReduction = 0;
     uint256 fee = ReserveMath.fromFixed(_burnAmount * burnFeeQ96_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -157,7 +151,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     //in this case, we must scale up the "true" burn amount proportionally.
     trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
-    outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
@@ -172,11 +165,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
       IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
-
-      AssetAmount memory assetAmount;
-      assetAmount.assetAddress = params.assetAddress;
-      assetAmount.amount = trueWithdrawal;
-      outputAmounts[i] = assetAmount;
 
       totalReserveReduction += trueWithdrawalScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueWithdrawalScaled;

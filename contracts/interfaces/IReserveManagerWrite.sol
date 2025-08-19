@@ -24,9 +24,8 @@ interface IReserveManagerWrite {
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
      * Caller must implement IReserveManagerCallback for this to work. see IReserveManagerCallback for details.
      * This parameter can be ignored by passing in an empty value
-     * @return inputAmounts an array of assets and amounts required to mint the desired amount of tokens
      */
-    function mint(uint256 mintAmount, bytes calldata forwardData) external returns (AssetAmount[] memory inputAmounts);
+    function mint(uint256 mintAmount, bytes calldata forwardData) external;
 
     /** 
      * @dev burns index tokens from the callers account and transferres underlying tokens from the reserve manager to
@@ -36,9 +35,8 @@ interface IReserveManagerWrite {
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
      * Caller must implement IReserveManagerCallback for this to work. see IReserveManagerCallback for details.
      * This parameter can be ignored by passing in an empty value
-     * @return outputAmounts an array of assets and amounts returned for burning the desired amount of tokens
      */
-    function burn(uint256 burnAmount, bytes calldata forwardData) external returns (AssetAmount[] memory outputAmounts);
+    function burn(uint256 burnAmount, bytes calldata forwardData) external;
 
     // ~~~~~~~~~~~~~~~~~~~~ Public Special Functions ~~~~~~~~~~~~~~~~~~~
     /** 
