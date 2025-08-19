@@ -341,6 +341,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     }
     //send the rest of the equalizationBounty to the caller
     indexToken_.mint(msg.sender, equalizationBounty_);
+    equalizationBounty_ = 0;
     emit Equalization(deltasScaled);
     return actualDeltas;
   }
