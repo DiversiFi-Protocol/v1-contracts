@@ -331,18 +331,23 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         actualDeltas[i] = int256(actualWithdrawal) * -1;
       }
     }
+    AssetParams[] memory tempCurrentParams = new AssetParams[](currentAssetParamsList_.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
+      //if the target allocation is 0, remove the asset from the currentAssetParamsList
+      //and delete it from the assetParams mapping
       if(params.targetAllocation == 0) {
-        //if the target allocation is 0, remove the asset from the currentAssetParamsList
-        //and delete it from the assetParams mapping
         delete assetParams_[params.assetAddress];
-        for (uint j = i; j < currentAssetParamsList_.length - 1; j++) {
-          currentAssetParamsList_[j] = currentAssetParamsList_[j + 1];
-        }
-        currentAssetParamsList_.pop();
+      }
+      tempCurrentParams[i] = params;
+    }
+    delete currentAssetParamsList_;
+    for(uint i = 0; i < tempCurrentParams.length; i++) {
+      if (tempCurrentParams[i].targetAllocation != 0) {
+        currentAssetParamsList_.push(tempCurrentParams[i]);
       }
     }
+
     //send the rest of the equalizationBounty to the caller
     indexToken_.mint(msg.sender, equalizationBounty_);
     equalizationBounty_ = 0;
