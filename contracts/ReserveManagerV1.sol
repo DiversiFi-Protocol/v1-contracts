@@ -19,13 +19,14 @@ import "./interfaces/IReserveManagerWrite.sol";
 import "./interfaces/IReserveManagerEvents.sol";
 import "./interfaces/IReserveManagerCallback.sol";
 import "./interfaces/IIndexToken.sol";
-import "openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin/contracts/utils/math/SignedMath.sol";
-import "openzeppelin/contracts/access/AccessControl.sol";
+import "openzeppelin-contracts/access/AccessControl.sol";
+import "openzeppelin-contracts/token/ERC20/SafeERC20.sol";
+import "openzeppelin-contracts/token/ERC20/IERC20.sol";
 
 
 contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManagerGetters, 
   IReserveManagerWrite, IReserveManagerEvents {
+  using SafeERC20 for IERC20;
   //assets in this reserve manager will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -72,6 +73,16 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   modifier mustIsEmigrating {
     require(isEmigrating(), "reserve manager is not emigrating");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(ADMIN_ROLE, msg.sender), "only admin can call this function");
+    _;
+  }
+
+  modifier onlyMaintainer() {
+    require(hasRole(MAINTAINER_ROLE, msg.sender), "only maintainer can call this function");
     _;
   }
 
@@ -491,7 +502,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint256 totalReservesDiscrepencyScaled = 0;
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     for(uint i = 0; i < deltasScaled.length; i++) {
-      totalReservesDiscrepencyScaled += SignedMath.abs(deltasScaled[i]);
+      totalReservesDiscrepencyScaled += ReserveMath.abs(deltasScaled[i]);
     }
     return totalReservesDiscrepencyScaled;
   }
@@ -513,39 +524,39 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   */
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin() mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = ReserveMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin() mustNotEmigrating {
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReserves(uint256 _maxReserves) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReserves(uint256 _maxReserves) external onlyMaintainer() mustNotEmigrating {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyMaintainer() mustNotEmigrating {
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyMaintainer() mustNotEmigrating {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setTargetAssetParams(AssetParams[] memory _params) public onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setTargetAssetParams(AssetParams[] memory _params) public onlyAdmin() mustNotEmigrating {
     delete targetAssetParamsList_;
     for (uint i = 0; i < _params.length; i++) {
       for (uint j = 0; j < _params.length; j++) {
@@ -593,13 +604,13 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setIsMintEnabled(bool _isMintEnabled) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setIsMintEnabled(bool _isMintEnabled) external onlyMaintainer() mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin() mustNotEmigrating {
     require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);

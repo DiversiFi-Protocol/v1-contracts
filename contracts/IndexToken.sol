@@ -11,8 +11,8 @@
 
 pragma solidity ^0.8.27;
 
-import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "openzeppelin/contracts/access/Ownable.sol";
+import "./ERC20Permit.sol";
+import "openzeppelin-contracts/access/Ownable.sol";
 import "./ReserveMath.sol";
 import "./interfaces/IDFICrossChainMessenger.sol";
 import "./interfaces/IReserveManagerAdmin.sol";
@@ -23,6 +23,7 @@ import "./interfaces/IReserveManagerGetters.sol";
 //further soft migrations are not allowed.
 uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
+uint8 constant DECIMALS = 18;
 
 contract IndexToken is ERC20Permit, Ownable {
   uint64 private immutable _minBalanceDivisorChangeDelay;
@@ -66,7 +67,7 @@ contract IndexToken is ERC20Permit, Ownable {
     address reserveManager,
     uint64 minBalanceDivisorChangeDelay,
     uint104 maxBalanceDivisorChangePerSecondQ96
-  ) ERC20(name, symbol) ERC20Permit(name) {
+  ) ERC20(name, symbol, DECIMALS) ERC20Permit(name) {
     _reserveManager = reserveManager;
     _migrationSlot0.lastBalanceDivisor = ReserveMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;

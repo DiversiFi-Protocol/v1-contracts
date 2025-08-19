@@ -370,7 +370,7 @@ describe("IndexToken", function() {
         const decreaseAmount = 101n
         await expect(
           indexToken.decreaseAllowance(unprivileged0, decreaseAmount)
-        ).to.be.revertedWith("ERC20: decreased allowance below zero")
+        ).to.be.revertedWithPanic("0x11")
       });
     });
 
