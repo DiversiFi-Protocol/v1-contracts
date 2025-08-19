@@ -8,7 +8,8 @@ contract MintableERC20 is ERC20 {
     string memory _name, 
     string memory _symbol,
     uint8 _decimals
-  ) ERC20(_name, _symbol, _decimals) {
+  ) ERC20(_name, _symbol) {
+    _setupDecimals(_decimals);
   }
 
   function mint(address _recipient, uint256 _amount) external {

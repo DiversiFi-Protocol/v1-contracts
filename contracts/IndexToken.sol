@@ -67,7 +67,8 @@ contract IndexToken is ERC20Permit, Ownable {
     address reserveManager,
     uint64 minBalanceDivisorChangeDelay,
     uint104 maxBalanceDivisorChangePerSecondQ96
-  ) ERC20(name, symbol, DECIMALS) ERC20Permit(name) {
+  ) ERC20(name, symbol) ERC20Permit(name) {
+    _setupDecimals(DECIMALS);
     _reserveManager = reserveManager;
     _migrationSlot0.lastBalanceDivisor = ReserveMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;
