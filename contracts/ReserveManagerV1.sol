@@ -136,7 +136,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       );
       uint256 trueDeposit = ReserveMath.scaleDecimals(targetDepositScaled, DECIMAL_SCALE, params.decimals) + 1;//round up
       uint256 trueDepositScaled = ReserveMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
-      IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
+      IERC20(params.assetAddress).safeTransferFrom(msg.sender, address(this), trueDeposit);
 
       totalReservesIncrease += trueDepositScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueDepositScaled;
@@ -175,7 +175,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 targetWithdrawalScaled = ReserveMath.fromFixed(currentAllocation * trueBurnAmount);
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
-      IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
+      IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
 
       totalReserveReduction += trueWithdrawalScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueWithdrawalScaled;
@@ -252,7 +252,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         msg.sender,
         indexTransfer
       );
-      IERC20(_asset).transferFrom(msg.sender, address(this), trueDeposit);
+      IERC20(_asset).safeTransferFrom(msg.sender, address(this), trueDeposit);
     } else { // withdraw
       uint256 targetWithdrawalScaled = ReserveMath.scaleDecimals(
         uint256(_delta * -1),
@@ -295,7 +295,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         msg.sender, 
         indexTransfer 
       );
-      IERC20(_asset).transfer(msg.sender, trueWithdrawal);
+      IERC20(_asset).safeTransfer(msg.sender, trueWithdrawal);
     }
   }
 
@@ -310,7 +310,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       AssetParams memory params = currentAssetParamsList_[i];
       if(deltasScaled[i] > 0) {// deposit
         uint256 actualDeposit = ReserveMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals) + 1;
-        IERC20(params.assetAddress).transferFrom(
+        IERC20(params.assetAddress).safeTransferFrom(
           msg.sender, 
           address(this),
           actualDeposit
@@ -320,7 +320,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         actualDeltas[i] = int256(actualDeposit);
       } else {//withdraw
         uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
-        IERC20(params.assetAddress).transfer(
+        IERC20(params.assetAddress).safeTransfer(
           msg.sender, 
           actualWithdrawal
         );
@@ -364,7 +364,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
-      IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount);
+      IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
       AssetAmount memory assetAmount;
       assetAmount.assetAddress = params.assetAddress;
       assetAmount.amount = withdrawalAmount;
