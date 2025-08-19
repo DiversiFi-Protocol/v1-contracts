@@ -354,7 +354,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   function withdrawAll() public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
     indexToken_.burnFrom(msg.sender, totalReservesScaled_);
     totalReservesScaled_ = 0;
-    outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
+    outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
 
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
