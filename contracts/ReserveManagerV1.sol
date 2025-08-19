@@ -103,7 +103,9 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     _setupRole(MAINTAINER_ROLE, _maintainer);
     grantRole(ADMIN_ROLE, msg.sender);
     setTargetAssetParams(_assetParams);
-    revokeRole(ADMIN_ROLE, msg.sender);
+    if (_admin != msg.sender) {
+      revokeRole(ADMIN_ROLE, msg.sender);
+    }
     DECIMAL_SCALE = indexToken_.decimals();
     maxReserves_ = _maxReserves;
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
