@@ -320,7 +320,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         totalReservesScaled_ += actualDepositScaled;
         actualDeltas[i] = int256(actualDeposit);
       } else {//withdraw
-        uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals) - 1;
+        uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
         IERC20(params.assetAddress).transfer(
           msg.sender, 
           actualWithdrawal
