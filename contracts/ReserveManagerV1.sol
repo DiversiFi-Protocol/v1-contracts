@@ -559,6 +559,14 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   /// @inheritdoc IReserveManagerAdmin
   function setTargetAssetParams(AssetParams[] memory _params) public onlyRole(ADMIN_ROLE) mustNotEmigrating {
     delete targetAssetParamsList_;
+    for (uint i = 0; i < _params.length; i++) {
+      for (uint j = 0; j < _params.length; j++) {
+        if (i == j) {
+          continue;
+        }
+        require(_params[i].assetAddress != _params[j].assetAddress, "duplicate asset");
+      }
+    }
     uint88 totalTargetAllocation = 0;
     {//scope reduction
     address[] memory assetAddresses = new address[](_params.length);
