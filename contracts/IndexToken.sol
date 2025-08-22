@@ -265,7 +265,7 @@ contract IndexToken is ERC20Permit, Ownable {
       }
     }
 
-    emit Transfer(from, to, baseValue);
+    emit Transfer(from, to, value);
   }
 
   /***********************************************************************************
