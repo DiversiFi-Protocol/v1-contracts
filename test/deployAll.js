@@ -78,6 +78,7 @@ module.exports = async function deployAll() {
     const indexToken = await hre.ethers.deployContract("IndexToken", [
       tokenName,
       tokenSymbol,
+      admin.address,
       reserveManagerAddress,
       minbalanceDivisorChangeDelay,
       maxbalanceDivisorChangePerSecondQ96

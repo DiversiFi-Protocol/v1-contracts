@@ -19,9 +19,9 @@ import "./interfaces/IReserveManagerWrite.sol";
 import "./interfaces/IReserveManagerEvents.sol";
 import "./interfaces/IReserveManagerCallback.sol";
 import "./interfaces/IIndexToken.sol";
-import "openzeppelin-contracts/access/AccessControl.sol";
-import "openzeppelin-contracts/token/ERC20/SafeERC20.sol";
-import "openzeppelin-contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManagerGetters, 
@@ -99,12 +99,12 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     indexToken_ = IIndexToken(_indexToken);
     _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
     _setRoleAdmin(MAINTAINER_ROLE, ADMIN_ROLE);
-    _setupRole(ADMIN_ROLE, _admin);
-    _setupRole(MAINTAINER_ROLE, _maintainer);
-    grantRole(ADMIN_ROLE, msg.sender);
+    _grantRole(ADMIN_ROLE, _admin);
+    _grantRole(MAINTAINER_ROLE, _maintainer);
+    _grantRole(ADMIN_ROLE, msg.sender);
     setTargetAssetParams(_assetParams);
     if (_admin != msg.sender) {
-      revokeRole(ADMIN_ROLE, msg.sender);
+      _revokeRole(ADMIN_ROLE, msg.sender);
     }
     DECIMAL_SCALE = indexToken_.decimals();
     maxReserves_ = _maxReserves;
