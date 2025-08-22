@@ -24,7 +24,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.02);
       await expect(reserveManager.connect(unpriviledged).setMintFeeQ96(newFee))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        .to.be.revertedWith("only admin can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -47,7 +47,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.03);
       await expect(reserveManager.connect(unpriviledged).setBurnFeeQ96(newFee))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        .to.be.revertedWith("only admin can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -70,7 +70,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newCooldown = 12345;
       await expect(reserveManager.connect(unpriviledged).setMaxReservesIncreaseCooldown(newCooldown))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
+        .to.be.revertedWith("only maintainer can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -93,7 +93,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
       await expect(reserveManager.connect(unpriviledged).setMaxReservesIncreaseRateQ96(newRate))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
+        .to.be.revertedWith("only maintainer can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -119,7 +119,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newMax = 123456789n;
       await expect(reserveManager.connect(unpriviledged).setMaxReserves(newMax))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
+        .to.be.revertedWith("only maintainer can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -233,7 +233,7 @@ describe("ReserveManager - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n }
       ];
       await expect(reserveManager.connect(unpriviledged).setTargetAssetParams(params))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        .to.be.revertedWith("only admin can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -262,7 +262,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called by non-admin", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       await expect(reserveManager.connect(unpriviledged).withdrawFees(unpriviledged.address))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0xa49807205ce4d355092ef5a8a18f56e8913cf4a201fbe287825b095693c21775");
+        .to.be.revertedWith("only admin can call this function");
     });
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -279,10 +279,10 @@ describe("ReserveManager - Admin Functions", function() {
       expect(await reserveManager.getIsMintEnabled()).to.equal(false);
     });
 
-    it("reverts when called by non-admin", async function() {
+    it("reverts when called by non-maintainer", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       await expect(reserveManager.connect(unpriviledged).setIsMintEnabled(true))
-        .to.be.revertedWith("AccessControl: account 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc is missing role 0x339759585899103d2ace64958e37e18ccb0504652c81d4a1b8aa80fe2126ab95");
+        .to.be.revertedWith("only maintainer can call this function");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);

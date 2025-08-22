@@ -19,13 +19,14 @@ import "./interfaces/IReserveManagerWrite.sol";
 import "./interfaces/IReserveManagerEvents.sol";
 import "./interfaces/IReserveManagerCallback.sol";
 import "./interfaces/IIndexToken.sol";
-import "openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin/contracts/utils/math/SignedMath.sol";
-import "openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManagerGetters, 
   IReserveManagerWrite, IReserveManagerEvents {
+  using SafeERC20 for IERC20;
   //assets in this reserve manager will be scaled to have this number of decimals
   //must be the same number of decimals as the index token
   uint8 public immutable DECIMAL_SCALE;
@@ -75,6 +76,16 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     _;
   }
 
+  modifier onlyAdmin() {
+    require(hasRole(ADMIN_ROLE, msg.sender), "only admin can call this function");
+    _;
+  }
+
+  modifier onlyMaintainer() {
+    require(hasRole(MAINTAINER_ROLE, msg.sender), "only maintainer can call this function");
+    _;
+  }
+
   constructor(
     address _admin,
     address _maintainer,
@@ -88,9 +99,13 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     indexToken_ = IIndexToken(_indexToken);
     _setRoleAdmin(ADMIN_ROLE, ADMIN_ROLE);
     _setRoleAdmin(MAINTAINER_ROLE, ADMIN_ROLE);
-    _setupRole(ADMIN_ROLE, _admin);
-    _setupRole(MAINTAINER_ROLE, _maintainer);
+    _grantRole(ADMIN_ROLE, _admin);
+    _grantRole(MAINTAINER_ROLE, _maintainer);
+    _grantRole(ADMIN_ROLE, msg.sender);
     setTargetAssetParams(_assetParams);
+    if (_admin != msg.sender) {
+      _revokeRole(ADMIN_ROLE, msg.sender);
+    }
     DECIMAL_SCALE = indexToken_.decimals();
     maxReserves_ = _maxReserves;
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
@@ -104,7 +119,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   */
 
   /// @inheritdoc IReserveManagerWrite
-  function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating returns (AssetAmount[] memory inputAmounts) {
+  function mint(uint256 _mintAmount, bytes calldata _forwardData) external mustNotEmigrating {
     require(isMintEnabled_, "minting disabled");
     indexToken_.mint(
       msg.sender,
@@ -118,7 +133,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint256 trueMintAmount = _mintAmount + fee;
     uint256[] memory scaledReservesList = new uint256[](targetAssetParamsList_.length);
     uint256 totalReservesIncrease = 0;
-    inputAmounts = new AssetAmount[](targetAssetParamsList_.length);
     for (uint i = 0; i < targetAssetParamsList_.length; i++) {
       AssetParams memory params = targetAssetParamsList_[i];
       uint256 targetDepositScaled = ReserveMath.fromFixed(
@@ -126,12 +140,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       );
       uint256 trueDeposit = ReserveMath.scaleDecimals(targetDepositScaled, DECIMAL_SCALE, params.decimals) + 1;//round up
       uint256 trueDepositScaled = ReserveMath.scaleDecimals(trueDeposit, params.decimals, DECIMAL_SCALE);
-      IERC20(params.assetAddress).transferFrom(msg.sender, address(this), trueDeposit);
-
-      AssetAmount memory assetAmount;
-      assetAmount.assetAddress = params.assetAddress;
-      assetAmount.amount = trueDeposit;
-      inputAmounts[i] = assetAmount;
+      IERC20(params.assetAddress).safeTransferFrom(msg.sender, address(this), trueDeposit);
 
       totalReservesIncrease += trueDepositScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] + trueDepositScaled;
@@ -149,7 +158,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerWrite
-  function burn(uint256 _burnAmount, bytes calldata _forwardData) external returns (AssetAmount[] memory outputAmounts) {
+  function burn(uint256 _burnAmount, bytes calldata _forwardData) external {
     uint256 totalReserveReduction = 0;
     uint256 fee = ReserveMath.fromFixed(_burnAmount * burnFeeQ96_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -157,7 +166,6 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     //in this case, we must scale up the "true" burn amount proportionally.
     trueBurnAmount = (trueBurnAmount * getMigrationBurnConversionRateQ96()) >> 96;
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
-    outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256 totalReservesScaled = totalReservesScaled_;
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
@@ -171,12 +179,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 targetWithdrawalScaled = ReserveMath.fromFixed(currentAllocation * trueBurnAmount);
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
-      IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal);
-
-      AssetAmount memory assetAmount;
-      assetAmount.assetAddress = params.assetAddress;
-      assetAmount.amount = trueWithdrawal;
-      outputAmounts[i] = assetAmount;
+      IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
 
       totalReserveReduction += trueWithdrawalScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueWithdrawalScaled;
@@ -253,7 +256,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         msg.sender,
         indexTransfer
       );
-      IERC20(_asset).transferFrom(msg.sender, address(this), trueDeposit);
+      IERC20(_asset).safeTransferFrom(msg.sender, address(this), trueDeposit);
     } else { // withdraw
       uint256 targetWithdrawalScaled = ReserveMath.scaleDecimals(
         uint256(_delta * -1),
@@ -296,7 +299,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         msg.sender, 
         indexTransfer 
       );
-      IERC20(_asset).transfer(msg.sender, trueWithdrawal);
+      IERC20(_asset).safeTransfer(msg.sender, trueWithdrawal);
     }
   }
 
@@ -306,41 +309,51 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
+    totalReservesScaled_ = 0;
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       if(deltasScaled[i] > 0) {// deposit
-        uint256 actualDeposit = ReserveMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals);
-        IERC20(params.assetAddress).transferFrom(
+        uint256 actualDeposit = ReserveMath.scaleDecimals(uint256(deltasScaled[i]), DECIMAL_SCALE, params.decimals) + 1;
+        IERC20(params.assetAddress).safeTransferFrom(
           msg.sender, 
           address(this),
           actualDeposit
         );
-        specificReservesScaled_[params.assetAddress] += uint256(deltasScaled[i]);
+        uint256 actualDepositScaled = ReserveMath.scaleDecimals(actualDeposit, params.decimals, DECIMAL_SCALE);
+        specificReservesScaled_[params.assetAddress] += actualDepositScaled;
         actualDeltas[i] = int256(actualDeposit);
       } else {//withdraw
         uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
-        IERC20(params.assetAddress).transfer(
+        IERC20(params.assetAddress).safeTransfer(
           msg.sender, 
           actualWithdrawal
         );
-        specificReservesScaled_[params.assetAddress] -= uint256(deltasScaled[i] * -1);
+        uint256 actualWithdrawalScaled = ReserveMath.scaleDecimals(actualWithdrawal, params.decimals, DECIMAL_SCALE);
+        specificReservesScaled_[params.assetAddress] -= actualWithdrawalScaled;
         actualDeltas[i] = int256(actualWithdrawal) * -1;
       }
+      totalReservesScaled_ += specificReservesScaled_[params.assetAddress];
     }
+    AssetParams[] memory tempCurrentParams = new AssetParams[](currentAssetParamsList_.length);
     for(uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
+      //if the target allocation is 0, remove the asset from the currentAssetParamsList
+      //and delete it from the assetParams mapping
       if(params.targetAllocation == 0) {
-        //if the target allocation is 0, remove the asset from the currentAssetParamsList
-        //and delete it from the assetParams mapping
         delete assetParams_[params.assetAddress];
-        for (uint j = i; j < currentAssetParamsList_.length - 1; j++) {
-          currentAssetParamsList_[j] = currentAssetParamsList_[j + 1];
-        }
-        currentAssetParamsList_.pop();
+      }
+      tempCurrentParams[i] = params;
+    }
+    delete currentAssetParamsList_;
+    for(uint i = 0; i < tempCurrentParams.length; i++) {
+      if (tempCurrentParams[i].targetAllocation != 0) {
+        currentAssetParamsList_.push(tempCurrentParams[i]);
       }
     }
+
     //send the rest of the equalizationBounty to the caller
     indexToken_.mint(msg.sender, equalizationBounty_);
+    equalizationBounty_ = 0;
     emit Equalization(deltasScaled);
     return actualDeltas;
   }
@@ -349,13 +362,13 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   function withdrawAll() public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
     indexToken_.burnFrom(msg.sender, totalReservesScaled_);
     totalReservesScaled_ = 0;
-    outputAmounts = new AssetAmount[](targetAssetParamsList_.length);
+    outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
     uint256[] memory scaledReservesList = new uint256[](currentAssetParamsList_.length);
 
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
-      IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount);
+      IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
       AssetAmount memory assetAmount;
       assetAmount.assetAddress = params.assetAddress;
       assetAmount.amount = withdrawalAmount;
@@ -493,7 +506,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint256 totalReservesDiscrepencyScaled = 0;
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     for(uint i = 0; i < deltasScaled.length; i++) {
-      totalReservesDiscrepencyScaled += SignedMath.abs(deltasScaled[i]);
+      totalReservesDiscrepencyScaled += ReserveMath.abs(deltasScaled[i]);
     }
     return totalReservesDiscrepencyScaled;
   }
@@ -515,40 +528,48 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   */
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin() mustNotEmigrating {
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = ReserveMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin() mustNotEmigrating {
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReserves(uint256 _maxReserves) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReserves(uint256 _maxReserves) external onlyMaintainer() mustNotEmigrating {
     maxReserves_ = _maxReserves;
     lastMaxReservesChangeTimestamp_ = block.timestamp;
     emit MaxReservesChange(_maxReserves, block.timestamp);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReservesIncreaseRateQ96(uint256 _maxReservesIncreaseRateQ96) external onlyMaintainer() mustNotEmigrating {
     maxReservesIncreaseRateQ96_ = _maxReservesIncreaseRateQ96;
     emit MaxReservesIncreaseRateChange(_maxReservesIncreaseRateQ96);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setMaxReservesIncreaseCooldown(uint256 _maxReservesIncreaseCooldown) external onlyMaintainer() mustNotEmigrating {
     maxReservesIncreaseCooldown_ = _maxReservesIncreaseCooldown;
     emit MaxReservesIncreaseCooldownChange(_maxReservesIncreaseCooldown);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setTargetAssetParams(AssetParams[] memory _params) public onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function setTargetAssetParams(AssetParams[] memory _params) public onlyAdmin() mustNotEmigrating {
     delete targetAssetParamsList_;
+    for (uint i = 0; i < _params.length; i++) {
+      for (uint j = 0; j < _params.length; j++) {
+        if (i == j) {
+          continue;
+        }
+        require(_params[i].assetAddress != _params[j].assetAddress, "duplicate asset");
+      }
+    }
     uint88 totalTargetAllocation = 0;
     {//scope reduction
     address[] memory assetAddresses = new address[](_params.length);
@@ -587,13 +608,13 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function setIsMintEnabled(bool _isMintEnabled) external onlyRole(MAINTAINER_ROLE) mustNotEmigrating {
+  function setIsMintEnabled(bool _isMintEnabled) external onlyMaintainer() mustNotEmigrating {
     isMintEnabled_ = _isMintEnabled;
     emit IsMintEnabledChange(_isMintEnabled);
   }
 
   /// @inheritdoc IReserveManagerAdmin
-  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyRole(ADMIN_ROLE) mustNotEmigrating {
+  function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin() mustNotEmigrating {
     require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);

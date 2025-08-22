@@ -11,8 +11,8 @@
 
 pragma solidity ^0.8.27;
 
-import "openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
-import "openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./ReserveMath.sol";
 import "./interfaces/IDFICrossChainMessenger.sol";
 import "./interfaces/IReserveManagerAdmin.sol";
@@ -23,6 +23,7 @@ import "./interfaces/IReserveManagerGetters.sol";
 //further soft migrations are not allowed.
 uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
 uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
+uint8 constant DECIMALS = 18;
 
 contract IndexToken is ERC20Permit, Ownable {
   uint64 private immutable _minBalanceDivisorChangeDelay;
@@ -63,10 +64,11 @@ contract IndexToken is ERC20Permit, Ownable {
   constructor(
     string memory name, 
     string memory symbol,
+    address admin,
     address reserveManager,
     uint64 minBalanceDivisorChangeDelay,
     uint104 maxBalanceDivisorChangePerSecondQ96
-  ) ERC20(name, symbol) ERC20Permit(name) {
+  ) ERC20(name, symbol) ERC20Permit(name) Ownable(admin) {
     _reserveManager = reserveManager;
     _migrationSlot0.lastBalanceDivisor = ReserveMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;
@@ -103,6 +105,10 @@ contract IndexToken is ERC20Permit, Ownable {
 
   function getCrossChainMessengers() view external returns (IDFICrossChainMessenger[] memory) {
     return _crossChainMessengers;
+  }
+
+  function baseBalanceOf(address account) view external returns (uint256) {
+    return _baseBalances[account];
   }
 
   function addCrossChainMessenger(address crossChainMessenger) external onlyOwner {
@@ -192,12 +198,17 @@ contract IndexToken is ERC20Permit, Ownable {
     _burn(msg.sender, amount);
   }
 
-  function transferFromBase(address from, address to, uint256 baseAmount) external {
+  function transferFromBase(address from, address to, uint256 baseAmount) external returns (bool) {
+    require(from != address(0), "ERC20: transfer from the zero address");
+    require(to != address(0), "ERC20: transfer to the zero address");
+    uint256 normalizedAmount = scaleFromBase(baseAmount);
     uint256 fromBaseBalance = _baseBalances[from];
     require(fromBaseBalance >= baseAmount, "ERC20: transfer amount exceeds balance");
     unchecked { _baseBalances[from] = fromBaseBalance - baseAmount; }
     _baseBalances[to] += baseAmount;
-    emit Transfer(from, to, scaleFromBase(baseAmount));
+    _approve(from, msg.sender, allowance(from, msg.sender) - normalizedAmount);
+    emit Transfer(from, to, normalizedAmount);
+    return true;
   }
 
   function balanceDivisor() public view returns (uint96) {
@@ -230,46 +241,35 @@ contract IndexToken is ERC20Permit, Ownable {
     return scaleFromBase(_baseBalances[account]);
   }
 
-  function _transfer(
-    address from,
-    address to,
-    uint256 amount
-  ) internal override {
-    uint256 baseAmount = scaleToBase(amount);
-    uint256 fromBaseBalance = _baseBalances[from];
+  function _update(address from, address to, uint256 value) internal override {
+    uint256 baseValue = scaleToBase(value);
+    if (from == address(0)) {
+      // Overflow check required: The rest of the code assumes that totalSupply never overflows
+      _baseTotalSupply += baseValue;
+    } else {
+      uint256 fromBaseBalance = _baseBalances[from];
+      if (fromBaseBalance < baseValue) {
+        revert ERC20InsufficientBalance(from, fromBaseBalance, baseValue);
+      }
+      unchecked {
+        // Overflow not possible: baseValue <= fromBaseBalance <= totalSupply.
+        _baseBalances[from] = fromBaseBalance - baseValue;
+      }
+    }
 
-    require(fromBaseBalance >= baseAmount, "ERC20: transfer amount exceeds balance");
-    unchecked { _baseBalances[from] = fromBaseBalance - baseAmount; }
-    _baseBalances[to] += baseAmount;
+    if (to == address(0)) {
+      unchecked {
+        // Overflow not possible: baseValue <= baseTotalSupply or baseValue <= fromBaseBalance <= baseTotalSupply.
+        _baseTotalSupply -= baseValue;
+      }
+    } else {
+      unchecked {
+        // Overflow not possible: baseBalance + baseValue is at most baseTotalSupply, which we know fits into a uint256.
+        _baseBalances[to] += baseValue;
+      }
+    }
 
-    emit Transfer(from, to, amount);
-  }
-
-  function _mint(
-    address account,
-    uint256 amount
-  ) internal override {
-    require(totalSupply() + amount <= MAX_TOTAL_SUPPLY, "max supply");
-    uint256 baseAmount = scaleToBase(amount);
-
-    _baseTotalSupply += baseAmount;
-    _baseBalances[account] += baseAmount;
-    
-    emit Transfer(address(0), account, amount);
-  }
-
-  function _burn(
-    address account,
-    uint256 amount
-  ) internal override {
-    uint256 baseAmount = scaleToBase(amount);
-
-    uint256 baseAccountBalance = _baseBalances[account];
-    require(baseAccountBalance >= baseAmount, "ERC20: burn amount exceeds balance");
-    unchecked { _baseBalances[account] = baseAccountBalance - baseAmount; }
-    _baseTotalSupply -= baseAmount;
-
-    emit Transfer(account, address(0), amount);
+    emit Transfer(from, to, value);
   }
 
   /***********************************************************************************

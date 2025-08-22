@@ -135,4 +135,12 @@ library ReserveMath {
       exp /= 2;
     }
   }
+  
+  /// @notice returns the absolute value of a number
+  function abs(int256 n) internal pure returns (uint256) {
+    if (n < 0) {
+      return uint256(n * -1);
+    }
+    return uint256(n);
+  }
 }

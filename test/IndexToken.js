@@ -17,6 +17,7 @@ async function deployIndex() {
     tokenName,
     tokenSymbol,
     reserveManager.address,
+    reserveManager.address,
     minbalanceDivisorChangeDelay,
     maxbalanceDivisorChangePerSecondQ96
   ]);
@@ -170,7 +171,7 @@ describe("IndexToken", function() {
           reserveManager0,
           minbalanceDivisorChangeDelay + block0Time + 1n,
           maxbalanceDivisorChangePerSecondQ96
-        )).to.be.revertedWith("Ownable: caller is not the owner")
+        )).to.be.revertedWithCustomError(indexToken, "OwnableUnauthorizedAccount")
       })
 
       it("should not be callable if a migration is already happening", async function() {
@@ -332,45 +333,6 @@ describe("IndexToken", function() {
       it("should return the symbol", async function () {
         const { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
         expect(await indexToken.symbol()).to.equal("USD1");
-      });
-    });
-
-    describe("increaseAllowance", function () {
-      it("should increase the allowance", async function () {
-        const { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-        const approveAmount = 100n
-        await indexToken.approve(unprivileged0.address, approveAmount);
-        
-        const increaseAmount = 50n
-        await indexToken.increaseAllowance(unprivileged0, 50n);
-        
-        const allowance = await indexToken.allowance(reserveManager, unprivileged0);
-        expect(allowance).to.equal(approveAmount + increaseAmount);
-      });
-    });
-
-    describe("decreaseAllowance", function () {
-      it("should decrease the allowance", async function () {
-        const { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-        const approveAmount = 100n
-        await indexToken.approve(unprivileged0.address, approveAmount);
-        
-        const decreaseAmount = 70n
-        await indexToken.decreaseAllowance(unprivileged0, 70n);
-        
-        const allowance = await indexToken.allowance(reserveManager, unprivileged0);
-        expect(allowance).to.equal(approveAmount - decreaseAmount);
-      });
-
-      it("should revert if trying to decrease allowance below zero", async function () {
-        const { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
-        const approveAmount = 100n
-        await indexToken.approve(unprivileged0.address, approveAmount);
-        
-        const decreaseAmount = 101n
-        await expect(
-          indexToken.decreaseAllowance(unprivileged0, decreaseAmount)
-        ).to.be.revertedWith("ERC20: decreased allowance below zero")
       });
     });
 
