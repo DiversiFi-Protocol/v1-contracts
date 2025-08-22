@@ -107,6 +107,10 @@ contract IndexToken is ERC20Permit, Ownable {
     return _crossChainMessengers;
   }
 
+  function baseBalanceOf(address account) view external returns (uint256) {
+    return _baseBalances[account];
+  }
+
   function addCrossChainMessenger(address crossChainMessenger) external onlyOwner {
     _crossChainMessengers.push(IDFICrossChainMessenger(crossChainMessenger));
   }
