@@ -364,7 +364,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerWrite
-  function withdrawAll() public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
+  function withdrawAll(bool _unsafe) public mustIsEmigrating returns (AssetAmount[] memory outputAmounts) {
     indexToken_.burnFrom(msg.sender, totalReservesScaled_);
     totalReservesScaled_ = 0;
     outputAmounts = new AssetAmount[](currentAssetParamsList_.length);
@@ -373,7 +373,11 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     for (uint i = 0; i < currentAssetParamsList_.length; i++) {
       AssetParams memory params = currentAssetParamsList_[i];
       uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
-      IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
+      if (_unsafe && allowUnsafeBurn_) {
+        try IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount) {} catch {}
+      } else {
+        IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
+      }
       AssetAmount memory assetAmount;
       assetAmount.assetAddress = params.assetAddress;
       assetAmount.amount = withdrawalAmount;

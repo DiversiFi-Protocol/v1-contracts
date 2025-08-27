@@ -69,7 +69,10 @@ interface IReserveManagerWrite {
      * @dev Withdraws everything from the reserve manager and burns equivalent index tokens from the caller.
      * Useful for removing dust accumulated from rounding errors when finishing a reserve manager migration.
      * Because there can be no reserves in the reserve manager when the migration finishes.
+     * @param unsafe whether or not this burn can be carried out as an "unsafe" burn (token transfers may fail withhis out revert)
+     * This parameter should almost always be false, the only reason to call an unsafe burn would to be to recover funds from
+     * the reserve manager in the event that one of the reserve assets is failing to transfer for some reason.
      * @return outputAmounts the token amounts that are withdrawn
      */
-    function withdrawAll() external returns (AssetAmount[] memory outputAmounts);
+    function withdrawAll(bool unsafe) external returns (AssetAmount[] memory outputAmounts);
 }
