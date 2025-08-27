@@ -113,4 +113,9 @@ interface IReserveManagerGetters {
   /// @dev Emigrating in this context refers to a soft migration where reserves are moving to a new reserve manager
   /// @return isEmigrating true if the reserves are Emigrating, false if not
   function isEmigrating() external view returns (bool);
+
+  /// @dev returns whether or not "unsafe" burning is allowed. Unsafe burning refers to burnign where outgoing transfers
+  /// of the underlying tokens are allowed to fail. Useful for emergency recovery situations
+  /// @return allowUnsafeBurn true if unsafe burning is allowed, false if not
+  function getAllowUnsafeBurn() external view returns (bool);
 }

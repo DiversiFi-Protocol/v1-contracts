@@ -32,11 +32,14 @@ interface IReserveManagerWrite {
      * the caller. No approvals are needed to call this function.
      *  Transfers according to the Current allocation of each asset
      * @param burnAmount the amount of tokens to be burned - in atomic units
+     * @param unsafe whether or not this burn can be carried out as an "unsafe" burn (token transfers may fail withhis out revert)
+     * This parameter should almost always be false, the only reason to call an unsafe burn would to be to recover funds from
+     * the reserve manager in the event that one of the reserve assets is failing to transfer for some reason.
      * @param forwardData (optional) data that will be forwarded to the caller for flash mint functionality.
      * Caller must implement IReserveManagerCallback for this to work. see IReserveManagerCallback for details.
      * This parameter can be ignored by passing in an empty value
      */
-    function burn(uint256 burnAmount, bytes calldata forwardData) external;
+    function burn(uint256 burnAmount, bool unsafe, bytes calldata forwardData) external;
 
     // ~~~~~~~~~~~~~~~~~~~~ Public Special Functions ~~~~~~~~~~~~~~~~~~~
     /** 
