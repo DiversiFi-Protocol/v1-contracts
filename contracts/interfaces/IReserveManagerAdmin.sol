@@ -27,4 +27,5 @@ interface IReserveManagerAdmin {
   function startEmigration(address nextReserveManager) external;
   /// @dev this is technically not an admin-only function
   function finishEmigration() external;
+  function setAllowUnsafeBurn(bool unsafeBurnAllowed) external;
 }

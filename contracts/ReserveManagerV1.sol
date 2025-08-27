@@ -54,6 +54,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   uint256 private compoundingMintFeeQ96_ = 0;//cached value, see ReserveMath.calcCompoundingFeeRate for details
   uint256 private burnFeeQ96_ = 0;
   uint256 private equalizationBounty_ = 0;//a bounty paid to callers of swapTowardsTarget or EqualizeToTarget in the form of a discount applied to the swap
+  bool private allowUnsafeBurn_ = false;//unsafe burning refers to burning where underlying token transfers are allowed to fail
 
   /*~~~~~~~~~~~~~~~~~~~~~loss prevention measures~~~~~~~~~~~~~~~~~~~~*/
   //admin switches
@@ -158,7 +159,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   /// @inheritdoc IReserveManagerWrite
-  function burn(uint256 _burnAmount, bytes calldata _forwardData) external {
+  function burn(uint256 _burnAmount, bool _unsafe, bytes calldata _forwardData) external {
     uint256 totalReserveReduction = 0;
     uint256 fee = ReserveMath.fromFixed(_burnAmount * burnFeeQ96_);
     uint256 trueBurnAmount = _burnAmount - fee;
@@ -179,7 +180,11 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 targetWithdrawalScaled = ReserveMath.fromFixed(currentAllocation * trueBurnAmount);
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
-      IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
+      if (_unsafe && allowUnsafeBurn_) {
+        try IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal) {} catch {}
+      } else {
+        IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
+      }
 
       totalReserveReduction += trueWithdrawalScaled;
       scaledReservesList[i] = specificReservesScaled_[params.assetAddress] - trueWithdrawalScaled;
@@ -523,6 +528,11 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     return nextReserveManager_ != address(0);
   }
 
+  /// @inheritdoc IReserveManagerGetters
+  function getAllowUnsafeBurn() public view returns (bool) {
+    return allowUnsafeBurn_;
+  }
+
   /*
     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Admin Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   */
@@ -637,6 +647,12 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
     delete migrationSlot_;
     nextReserveManager_ = address(0);
+  }
+
+  /// since this action is not particularly useful to observers, and is only meant to be called in 
+  /// emergency recovery situations, it emits no events
+  function setAllowUnsafeBurn(bool _allowUnsafeBurn) external onlyAdmin {
+    allowUnsafeBurn_ = _allowUnsafeBurn;
   }
 
   /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Helper Functions~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
