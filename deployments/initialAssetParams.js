@@ -1,40 +1,50 @@
 const utils = require("../test/testModules/utils.js");
 const addressBook = require("./addressBook.js");
 
+const USDC_ALLOC = utils.formatAllocationFromDecimal(0.3)
+const USDS_ALLOC = utils.formatAllocationFromDecimal(0.15)
+const DAI_ALLOC = utils.formatAllocationFromDecimal(0.15)
+const USDT_ALLOC = utils.formatAllocationFromDecimal(0.1)
+const FRXUSD_ALLOC = utils.formatAllocationFromDecimal(0.1)
+const FDUSD_ALLOC = utils.formatAllocationFromDecimal(0.1)
+const GHO_ALLOC = utils.allocationRemainder([ //0.1
+  USDC_ALLOC, USDS_ALLOC, DAI_ALLOC, USDT_ALLOC, FRXUSD_ALLOC, FDUSD_ALLOC
+])
+
 module.exports = [
   {
     assetAddress: addressBook.USDC.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.3),
+    targetAllocation: USDC_ALLOC,
     decimals: addressBook.USDC.decimals
   },
   {
     assetAddress: addressBook.USDS.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.15),
+    targetAllocation: USDS_ALLOC,
     decimals: addressBook.USDS.decimals
   },
   {
     assetAddress: addressBook.DAI.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.15),
+    targetAllocation: DAI_ALLOC,
     decimals: addressBook.DAI.decimals
   },
   {
     assetAddress: addressBook.USDT.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.10),
+    targetAllocation: USDT_ALLOC,
     decimals: addressBook.USDT.decimals
   },
   {
-    assetAddress: addressBook.FrxUSD.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.10),
-    decimals: addressBook.FrxUSD.decimals
+    assetAddress: addressBook.FRXUSD.address,
+    targetAllocation: FRXUSD_ALLOC,
+    decimals: addressBook.FRXUSD.decimals
   },
   {
     assetAddress: addressBook.FDUSD.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.10),
+    targetAllocation: FDUSD_ALLOC,
     decimals: addressBook.FDUSD.decimals
   },
   {
     assetAddress: addressBook.GHO.address,
-    targetAllocation: utils.formatAllocationFromDecimal(0.10),
+    targetAllocation: GHO_ALLOC,
     decimals: addressBook.GHO.decimals
   }
 ]
