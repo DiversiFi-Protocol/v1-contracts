@@ -637,6 +637,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function startEmigration(address _nextReserveManager) external mustNotEmigrating {
+    require(_nextReserveManager != address(0));
     require(msg.sender == address(indexToken_), "emigration start call must come from index token");
     nextReserveManager_ = _nextReserveManager;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
