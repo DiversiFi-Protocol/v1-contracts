@@ -156,6 +156,7 @@ contract IndexToken is ERC20Permit, Ownable {
     require(_migrationSlot0.lastBalanceDivisor <= MAX_SAFE_BALANCE_DIVISOR, "balance divisor too high for soft migration");
     require(balanceDivisorChangeStartTimestamp - uint64(block.timestamp) >= _minBalanceDivisorChangeDelay, "balance divisor change delay too short");
     require(balanceDivisorChangePerSecondQ96 <= _maxBalanceDivisorChangePerSecondQ96, "balance divisor change rate too high");
+    require(balanceDivisorChangePerSecondQ96 >= 1 << 96, "balance divisor change rate must be positive");
     _migrationSlot0.nextReserveManager = nextReserveManager;
     _migrationSlot1.migrationStartTimestamp = uint64(block.timestamp);
     _migrationSlot1.balanceDivisorChangeStartTimestamp = balanceDivisorChangeStartTimestamp;

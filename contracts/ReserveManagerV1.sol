@@ -68,22 +68,22 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
   modifier mustNotEmigrating {
-    require(!isEmigrating(), "reserve manager is emigrating");
+    require(!isEmigrating(), "!E");
     _;
   }
 
   modifier mustIsEmigrating {
-    require(isEmigrating(), "reserve manager is not emigrating");
+    require(isEmigrating(), "E");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(ADMIN_ROLE, msg.sender), "only admin can call this function");
+    require(hasRole(ADMIN_ROLE, msg.sender), "A");
     _;
   }
 
   modifier onlyMaintainer() {
-    require(hasRole(MAINTAINER_ROLE, msg.sender), "only maintainer can call this function");
+    require(hasRole(MAINTAINER_ROLE, msg.sender), "M");
     _;
   }
 
@@ -582,7 +582,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         if (i == j) {
           continue;
         }
-        require(_params[i].assetAddress != _params[j].assetAddress, "duplicate asset");
+        require(_params[i].assetAddress != _params[j].assetAddress, "0");//duplicate asset
       }
     }
     uint88 totalTargetAllocation = 0;
@@ -591,8 +591,8 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint88[] memory targetAllocations = new uint88[](_params.length);
     uint8[] memory decimalsList = new uint8[](_params.length);
     for (uint i = 0; i < _params.length; i++) {
-      require(_params[i].assetAddress != address(indexToken_), "index not allowed");
-      require(IIndexToken(_params[i].assetAddress).decimals() == _params[i].decimals, "decimal mismatch");
+      require(_params[i].assetAddress != address(indexToken_), "1");//index not allowed
+      require(IIndexToken(_params[i].assetAddress).decimals() == _params[i].decimals, "2");//decimal mismatch
       assetAddresses[i] = _params[i].assetAddress;
       targetAllocations[i] = _params[i].targetAllocation;
       decimalsList[i] = _params[i].decimals;
@@ -619,7 +619,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         assetParams_[currentAssetParamsList_[iC].assetAddress].targetAllocation = 0;
       }
     }
-    require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
+    require(totalTargetAllocation == type(uint88).max, "3");//total target allocation must be 1
   }
 
   /// @inheritdoc IReserveManagerAdmin
@@ -630,7 +630,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin() mustNotEmigrating {
-    require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
+    require(getSurplus() >= int256(_bountyIncrease), "4");//not enough tokens to cover bounty
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
   }
@@ -638,7 +638,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   /// @inheritdoc IReserveManagerAdmin
   function startEmigration(address _nextReserveManager) external mustNotEmigrating {
     require(_nextReserveManager != address(0));
-    require(msg.sender == address(indexToken_), "emigration start call must come from index token");
+    require(msg.sender == address(indexToken_), "5");//emigration start call must come from index token
     nextReserveManager_ = _nextReserveManager;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
@@ -647,8 +647,8 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function finishEmigration() external mustIsEmigrating {
-    require(msg.sender == address(indexToken_), "emigration finish call must come from index token");
-    require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
+    require(msg.sender == address(indexToken_), "6");//emigration finish call must come from index token
+    require(totalReservesScaled_ == 0, "7");//cannot finish emigration until all reserves have been moved
     //burn index tokens that may have been accidentally transferred to this address
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
     delete migrationSlot_;
