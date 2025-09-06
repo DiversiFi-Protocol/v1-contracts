@@ -40,7 +40,7 @@ contract ReserveManagerHelpers {
         asset.approve(address(reserveManager), type(uint256).max);
       }
     }
-    IReserveManagerWrite(address(reserveManager)).burn(burnAmount, "");
+    IReserveManagerWrite(address(reserveManager)).burn(burnAmount, false, "");
     for(uint i = 0; i < currentAssetParams.length; i++) {
       IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
       asset.transfer(msg.sender, asset.balanceOf(address(this)));

@@ -22,7 +22,7 @@ describe("normal minting and burning activity", function() {
       totalReservesScaled = await reserveManager.getTotalReservesScaled()
       totalSupply = await indexToken.totalSupply()
       expect(totalReservesScaled).to.be.greaterThanOrEqual(totalSupply)
-      await reserveManager.burn(changeAmount, "0x")
+      await reserveManager.burn(changeAmount, false, "0x")
       totalReservesScaled = await reserveManager.getTotalReservesScaled()
       totalSupply = await indexToken.totalSupply()
       expect(totalReservesScaled).to.be.greaterThanOrEqual(totalSupply)

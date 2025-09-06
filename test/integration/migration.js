@@ -78,7 +78,7 @@ describe("migration - complete lifecycle", function() {
     const preWithdrawalCallerBalance0 = await mintable0.balanceOf(admin)
     const preWithdrawalCallerBalance1 = await mintable1.balanceOf(admin)
     const preWithdrawalCallerBalance2 = await mintable2.balanceOf(admin)
-    await reserveManager.withdrawAll()
+    await reserveManager.withdrawAll(false)
     const postWithdrawalCallerBalance0 = await mintable0.balanceOf(admin)
     const postWithdrawalCallerBalance1 = await mintable1.balanceOf(admin)
     const postWithdrawalCallerBalance2 = await mintable2.balanceOf(admin)

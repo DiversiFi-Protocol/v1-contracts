@@ -210,7 +210,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
       const currentAllocation1 = (previousSpecificReservesScaled1 << 96n) / totalReservesScaled
       const currentAllocation2 = (previousSpecificReservesScaled2 << 96n) / totalReservesScaled
       await expect(
-        reserveManager.connect(admin).burn(burnAmount, "0x")
+        reserveManager.connect(admin).burn(burnAmount, false, "0x")
       ).to.emit(reserveManager, "Burn");
 
       const balance0 = await mintable0.balanceOf(admin.address);
@@ -310,7 +310,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
       await reserveManager.connect(admin).mint(mintAmount, "0x");
       await indexToken.connect(admin).approve(reserveManager.target, mintAmount + 1n);
       await expect(
-        reserveManager.connect(admin).burn(mintAmount + 1n, "0x")
+        reserveManager.connect(admin).burn(mintAmount + 1n, false, "0x")
       ).to.be.reverted;
     });
 
@@ -324,7 +324,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
         block0Time + 1n + minbalanceDivisorChangeDelay,
         maxbalanceDivisorChangePerSecondQ96
       )
-      await reserveManager.burn(42069n, "0x")
+      await reserveManager.burn(42069n, false, "0x")
     })
 
     it("fails if pool is being immigrated into", async function() {
@@ -337,7 +337,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(52069n, "0x")
-      await expect(reserveManager0.burn(42069n, "0x")).to.be.revertedWith("only reserve manager can burn from")
+      await expect(reserveManager0.burn(42069n, false, "0x")).to.be.revertedWith("only reserve manager can burn from")
     })
   });
 
@@ -1289,7 +1289,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
         maxbalanceDivisorChangePerSecondQ96
       )
       await reserveManager0.mint(await reserveManager.getTotalReservesScaled(), "0x")
-      await reserveManager.withdrawAll()
+      await reserveManager.withdrawAll(false)
       expect(await reserveManager.getTotalReservesScaled()).to.equal(0n)
       expect(await reserveManager.getSpecificReservesScaled(mintable0)).to.equal(0n)
       expect(await reserveManager.getSpecificReservesScaled(mintable1)).to.equal(0n)
@@ -1301,7 +1301,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
 
     it("should not be callable if the reserve manager is not emigrating", async function() {
       const { reserveManager, reserveManager0, indexToken, admin, mintable0, mintable1, mintable2, assetParams0, assetParams1, assetParams2, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
-      await expect(reserveManager.withdrawAll()).to.be.revertedWith("reserve manager is not emigrating")
+      await expect(reserveManager.withdrawAll(false)).to.be.revertedWith("reserve manager is not emigrating")
     })
   })
 });
