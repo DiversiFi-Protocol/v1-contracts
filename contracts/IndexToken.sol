@@ -22,8 +22,6 @@ import "./interfaces/IReserveManagerGetters.sol";
 //for any reasonable migration, if the balance divisor is above this number,
 //further soft migrations are not allowed.
 uint96 constant MAX_SAFE_BALANCE_DIVISOR = 2 ** (96 - 4);
-uint256 constant MAX_TOTAL_SUPPLY = 2 ** (256 - 96) - 1;
-uint8 constant DECIMALS = 18;
 
 contract IndexToken is ERC20Permit, Ownable {
   uint64 private immutable _minBalanceDivisorChangeDelay;
