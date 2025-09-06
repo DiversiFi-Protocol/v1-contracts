@@ -251,7 +251,7 @@ describe("IndexToken", function() {
         )
         await expect(
           indexToken.finishMigration()
-        ).to.be.revertedWith("cannot finish emigration until all reserves have been moved")
+        ).to.be.revertedWith("7")//cannot finish emigration until all reserves have been moved
       })
 
       it("should set the relevant variables", async function() {

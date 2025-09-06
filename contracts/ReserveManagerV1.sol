@@ -68,12 +68,12 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   uint256 private lastMaxReservesChangeTimestamp_ = 0;
 
   modifier mustNotEmigrating {
-    require(!isEmigrating(), "!E");
+    require(!isEmigrating(), "reserve manager is emigrating");
     _;
   }
 
   modifier mustIsEmigrating {
-    require(isEmigrating(), "E");
+    require(isEmigrating(), "reserve manager is not emigrating");
     _;
   }
 

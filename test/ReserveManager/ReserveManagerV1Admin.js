@@ -24,7 +24,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.02);
       await expect(reserveManager.connect(unpriviledged).setMintFeeQ96(newFee))
-        .to.be.revertedWith("only admin can call this function");
+        .to.be.revertedWith("A");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -47,7 +47,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newFee = utils.decimalToFixed(0.03);
       await expect(reserveManager.connect(unpriviledged).setBurnFeeQ96(newFee))
-        .to.be.revertedWith("only admin can call this function");
+        .to.be.revertedWith("A");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -70,7 +70,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newCooldown = 12345;
       await expect(reserveManager.connect(unpriviledged).setMaxReservesIncreaseCooldown(newCooldown))
-        .to.be.revertedWith("only maintainer can call this function");
+        .to.be.revertedWith("M");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -93,7 +93,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newRate = utils.decimalToFixed(0.2);
       await expect(reserveManager.connect(unpriviledged).setMaxReservesIncreaseRateQ96(newRate))
-        .to.be.revertedWith("only maintainer can call this function");
+        .to.be.revertedWith("M");
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -119,7 +119,7 @@ describe("ReserveManager - Admin Functions", function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       const newMax = 123456789n;
       await expect(reserveManager.connect(unpriviledged).setMaxReserves(newMax))
-        .to.be.revertedWith("only maintainer can call this function");
+        .to.be.revertedWith("M");//only maintainer can call this function
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -187,7 +187,7 @@ describe("ReserveManager - Admin Functions", function() {
       ];
       await expect(
         reserveManager.setTargetAssetParams(params0)
-      ).to.be.revertedWith("index not allowed");
+      ).to.be.revertedWith("1");//index not allowed
     })
 
     it("reverts if an underlying asset specifies incorrect decimals", async function() {
@@ -200,7 +200,7 @@ describe("ReserveManager - Admin Functions", function() {
       ];
       await expect(
         reserveManager.setTargetAssetParams(params0)
-      ).to.be.revertedWith("decimal mismatch");
+      ).to.be.revertedWith("2");//decimal mismatch
     })
 
     it("reverts if total target allocation is above 1", async function() {
@@ -223,7 +223,7 @@ describe("ReserveManager - Admin Functions", function() {
       ];
       await expect(
         reserveManager.connect(admin).setTargetAssetParams(params)
-      ).to.be.revertedWith("total target allocation must be 1");
+      ).to.be.revertedWith("3");//total target allocation must be 1
     });
     it("reverts when called by non-admin", async function() {
       const { reserveManager, unpriviledged, mintable0, mintable1, mintable2 } = await loadFixture(deployAll);
@@ -233,7 +233,7 @@ describe("ReserveManager - Admin Functions", function() {
         { assetAddress: mintable2.target, targetAllocation: (2n ** 88n - 1n) - utils.formatAllocationFromDecimal(0.5) - utils.formatAllocationFromDecimal(0.3), decimals: 6n }
       ];
       await expect(reserveManager.connect(unpriviledged).setTargetAssetParams(params))
-        .to.be.revertedWith("only admin can call this function");
+        .to.be.revertedWith("A");//only admin can call this function
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -262,7 +262,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called by non-admin", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       await expect(reserveManager.connect(unpriviledged).withdrawFees(unpriviledged.address))
-        .to.be.revertedWith("only admin can call this function");
+        .to.be.revertedWith("A");//only admin can call this function
     });
     it("reverts when called during migration", async function() {
       const { reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -282,7 +282,7 @@ describe("ReserveManager - Admin Functions", function() {
     it("reverts when called by non-maintainer", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
       await expect(reserveManager.connect(unpriviledged).setIsMintEnabled(true))
-        .to.be.revertedWith("only maintainer can call this function");
+        .to.be.revertedWith("M");//only maintainer can call this function
     });
     it("reverts when called during migration", async function() {
       const { indexToken, reserveManager, maintainer, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unpriviledged, admin } = await loadFixture(deployAll);
@@ -302,7 +302,7 @@ describe("ReserveManager - Admin Functions", function() {
       const surplus = await reserveManager.getSurplus()
       await expect(
         reserveManager.increaseEqualizationBounty(surplus + 1n)
-      ).to.be.revertedWith("not enough tokens to cover bounty");
+      ).to.be.revertedWith("4");
     })
 
     it("should fail in the case that the balance is greater than the bounty increase, but fees collected are not", async function () {
@@ -315,7 +315,7 @@ describe("ReserveManager - Admin Functions", function() {
       const surplus = await reserveManager.getSurplus()
       await expect(
         reserveManager.increaseEqualizationBounty(surplus + 1n)
-      ).to.be.revertedWith("not enough tokens to cover bounty")
+      ).to.be.revertedWith("4")
     })
 
     it("should add the equalization bounty to the previous equalization bounty", async function () {
@@ -410,7 +410,7 @@ describe("ReserveManager - Admin Functions", function() {
         maxbalanceDivisorChangePerSecondQ96,
       )
 
-      await expect(indexToken.finishMigration()).to.be.revertedWith("cannot finish emigration until all reserves have been moved")
+      await expect(indexToken.finishMigration()).to.be.revertedWith("7")
     })
 
     it("should set all of the relevant variables", async function() {
