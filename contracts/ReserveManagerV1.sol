@@ -32,6 +32,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   uint8 public immutable DECIMAL_SCALE;
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
   bytes32 public constant MAINTAINER_ROLE = keccak256("MAINTAINER_ROLE");
+  uint256 private constant MAX_FEE = (1 << ReserveMath.SHIFT) / 100; //1% max fee
 
   //reserve manager state
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
@@ -544,6 +545,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin() mustNotEmigrating {
+    require(_mintFeeQ96 < MAX_FEE, "8");
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = ReserveMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
@@ -551,6 +553,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin() mustNotEmigrating {
+    require(_burnFeeQ96 < MAX_FEE, "9");
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }

@@ -15,14 +15,14 @@ describe("ReserveManager - Admin Functions", function() {
   describe("setMintFeeQ96", function() {
     it("sets new mint fee and emits event when called by admin", async function() {
       const { reserveManager, admin } = await loadFixture(deployAll);
-      const newFee = utils.decimalToFixed(0.02);
+      const newFee = utils.decimalToFixed(0.002);
       await expect(reserveManager.connect(admin).setMintFeeQ96(newFee))
         .to.emit(reserveManager, "MintFeeChange").withArgs(newFee, utils.calcCompoundingFeeRate(newFee));
       expect(await reserveManager.getMintFeeQ96()).to.equal(newFee);
     });
     it("reverts when called by non-admin", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
-      const newFee = utils.decimalToFixed(0.02);
+      const newFee = utils.decimalToFixed(0.002);
       await expect(reserveManager.connect(unpriviledged).setMintFeeQ96(newFee))
         .to.be.revertedWith("A");
     });
@@ -38,14 +38,14 @@ describe("ReserveManager - Admin Functions", function() {
   describe("setBurnFeeQ96", function() {
     it("sets new burn fee and emits event when called by admin", async function() {
       const { reserveManager, admin } = await loadFixture(deployAll);
-      const newFee = utils.decimalToFixed(0.03);
+      const newFee = utils.decimalToFixed(0.003);
       await expect(reserveManager.connect(admin).setBurnFeeQ96(newFee))
         .to.emit(reserveManager, "BurnFeeChange").withArgs(newFee);
       expect(await reserveManager.getBurnFeeQ96()).to.equal(newFee);
     });
     it("reverts when called by non-admin", async function() {
       const { reserveManager, unpriviledged } = await loadFixture(deployAll);
-      const newFee = utils.decimalToFixed(0.03);
+      const newFee = utils.decimalToFixed(0.003);
       await expect(reserveManager.connect(unpriviledged).setBurnFeeQ96(newFee))
         .to.be.revertedWith("A");
     });
