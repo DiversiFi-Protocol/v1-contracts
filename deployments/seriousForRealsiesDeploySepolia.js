@@ -51,7 +51,7 @@ async function main() {
     utils.scaleToQ96(0n), //mintFeeQ96
     utils.scaleToQ96(0n), //burnFeeQ96
     utils.scale10Pow18(100_000_000n), //initial max reserves
-    utils.decimalToFixed(0.0001), //0.01% per hour
+    utils.decimalToFixed(0.0004), //0.04% per hour (~1% per day)
     initialAssetParams
   );
 
