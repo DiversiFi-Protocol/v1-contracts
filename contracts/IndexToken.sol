@@ -203,6 +203,7 @@ contract IndexToken is ERC20Permit, Ownable {
   function transferFromBase(address from, address to, uint256 baseAmount) external returns (bool) {
     require(from != address(0), "ERC20: transfer from the zero address");
     require(to != address(0), "ERC20: transfer to the zero address");
+    require(baseAmount >= balanceDivisor(), "base transfer cannot be lt divisor");
     uint256 normalizedAmount = scaleFromBase(baseAmount);
     uint256 fromBaseBalance = _baseBalances[from];
     require(fromBaseBalance >= baseAmount, "ERC20: transfer amount exceeds balance");
