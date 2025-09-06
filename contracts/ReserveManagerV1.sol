@@ -312,6 +312,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
   /// @inheritdoc IReserveManagerWrite
   function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
+    require(!getIsEqualized(), "reserve manager is already equalized");
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
     totalReservesScaled_ = 0;
