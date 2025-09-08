@@ -14,17 +14,17 @@ pragma solidity ^0.8.27;
 import "../DataStructs.sol";
 
 interface IReserveManagerGetters {
-  /// @dev The returned value is a 96.96 fixed point number
+  /// @dev The returned value is a 160.96 fixed point number
   /// @return mintFeeQ96 The mint fee rate
   function getMintFeeQ96() external view returns (uint256);
 
-  /// @dev the returned value is a 96.96 fixed point numbe
+  /// @dev the returned value is a 160.96 fixed point numbe
   /// The compounding fee refers the the fee for minting n tokens,
   /// plus the fee to mint the tokens for the fee, plus the fee of minting the fee.. etc etc
   /// @return compoundingMintFeeQ96 The effective mint fee when minting n tokens
   function getCompoundingMintFeeQ96() external view returns (uint256);
   
-  /// @dev The returned value is a 96.96 fixed point number
+  /// @dev The returned value is a 160.96 fixed point number
   /// compounding burn fee is not needed like with the mint fee
   /// @return burnFeeQ96 The burn fee rate
   function getBurnFeeQ96() external view returns (uint256);
