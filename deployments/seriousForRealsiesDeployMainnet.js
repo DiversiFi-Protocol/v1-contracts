@@ -82,6 +82,15 @@ async function main() {
     chalk.yellow("Predicted ReserveManager address:"),
     reserveManagerAddress
   );
+
+  const ReserveManagerHelpersFactory = await ethers.getContractFactory("ReserveManagerHelpers")
+  
+  const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManager.getAddress())
+  console.log("reserveManagerHelpers deployed to:", await reserveManagerHelpers.getAddress())
+
+  console.log("\n----------------------------------\n");
+
+
 } catch (err) {
   console.log(err)
 }
