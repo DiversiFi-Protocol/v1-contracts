@@ -20,7 +20,7 @@ module.exports = {
     decimals: 18n
   },
   FDUSD: {
-    address: "0x40D16FC0246aD3160Ccc09B8D0D3A2cD28aE6C2f",
+    address: "0xc5f0f7b66764F6ec8C8Dff7BA683102295E16409",
     decimals: 18n
   },
   FRXUSD: {

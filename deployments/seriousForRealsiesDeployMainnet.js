@@ -4,39 +4,6 @@ const chalk = require("chalk");
 const utils = require("../test/testModules/utils.js");
 const initialAssetParams = require("./initialAssetParams.js")
 
-const token0Decimals = 18n;
-const token0Address = "0xa814D1722125151c1BcD363E79a60d59BFb8F53e"
-
-const token1Decimals = 20n;
-const token1Address = "0x1537e0CD1eAC6Dc732d0847139d9eACAEc323Db0"
-
-const token2Decimals = 6n;
-const token2Address = "0x8E9c43c72ab3a49Fdd242e5BB44B337e94979dd1"
-
-const targetAllocation0 = utils.formatAllocationFromDecimal(0.4);
-const targetAllocation1 = utils.formatAllocationFromDecimal(0.35);
-const targetAllocation2 = utils.allocationRemainder([
-  targetAllocation0,
-  targetAllocation1,
-]);
-const testnetAssetParams = [
-  {
-    assetAddress: token0Address,
-    targetAllocation: targetAllocation0,
-    decimals: token0Decimals,
-  },
-  {
-    assetAddress: token1Address,
-    targetAllocation: targetAllocation1,
-    decimals: token1Decimals,
-  },
-  {
-    assetAddress: token2Address,
-    targetAllocation: targetAllocation2,
-    decimals: token2Decimals,
-  },
-];
-
 //Bravo Labs DFI Admin Wallet
 const MULTISIG_ADMIN = "0xD5ade97228C6d11B25aDc8A50AFc2d73fEEa2D8D"
 
@@ -78,10 +45,10 @@ async function main() {
 
   //Deploy TimelockController
   const timelockController = await TimelockControllerFactory.deploy(
-    60n * 10n, //10 minutes
+    60n * 60n * 24n * 7n, //7 days
     [MULTISIG_ADMIN], //proposers
     [MULTISIG_ADMIN], //executors
-    MULTISIG_ADMIN, //admin
+    ethers.ZeroAddress, //default admin
   )
   console.log(
     `TimelockController deployed to: ${await timelockController.getAddress()}`
@@ -106,7 +73,7 @@ async function main() {
     utils.scaleToQ96(0n), //burnFeeQ96
     utils.scale10Pow18(100_000_000n), //initial max reserves
     utils.decimalToFixed(0.0004), //0.04% per hour (~1% per day)
-    testnetAssetParams
+    initialAssetParams
   );
 
   await reserveManager.waitForDeployment();
