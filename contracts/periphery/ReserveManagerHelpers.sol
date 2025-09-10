@@ -16,8 +16,10 @@ import "../interfaces/IReserveManagerWrite.sol";
 import "../interfaces/IIndexToken.sol";
 import "../DataStructs.sol";
 import "../ReserveMath.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract ReserveManagerHelpers {
+  using SafeERC20 for IERC20;
   IReserveManagerGetters reserveManager;
   IIndexToken indexToken;
 
@@ -29,7 +31,7 @@ contract ReserveManagerHelpers {
   /// @dev burns the caller's entire balance, useful if the reserve manager is migrating
   /// and the caller's balance is constantly decreasing, making it difficult to
   /// predict the balance at the moment of execution.
-  function burnAll() external {
+  function burnAll(bool unsafe) external {
     uint256 burnAmount = indexToken.balanceOf(msg.sender);
     indexToken.transferFrom(msg.sender, address(this), burnAmount);
     AssetParams[] memory currentAssetParams = reserveManager.getCurrentAssetParams();
@@ -40,10 +42,14 @@ contract ReserveManagerHelpers {
         asset.approve(address(reserveManager), type(uint256).max);
       }
     }
-    IReserveManagerWrite(address(reserveManager)).burn(burnAmount, false, "");
+    IReserveManagerWrite(address(reserveManager)).burn(burnAmount, unsafe, "");
     for(uint i = 0; i < currentAssetParams.length; i++) {
       IERC20 asset = IERC20(currentAssetParams[i].assetAddress);
-      asset.transfer(msg.sender, asset.balanceOf(address(this)));
+      if (unsafe) {
+        asset.trySafeTransfer(msg.sender, asset.balanceOf(address(this)));
+      } else {
+        asset.safeTransfer(msg.sender, asset.balanceOf(address(this)));
+      }
     }
   }
 
