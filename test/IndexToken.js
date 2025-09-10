@@ -7,7 +7,7 @@ const utils = require("./testModules/utils");
 const DEFAULT_BALANCE_MULTIPLIER = 2n ** 48n - 1n
 
 async function deployIndex() {
-  const [reserveManager, nextReserveManager, unprivileged0] = await hre.ethers.getSigners()
+  const [reserveManager, nextReserveManager, unprivileged0, maintainer, admin] = await hre.ethers.getSigners()
   const tokenName = "Diversified USD";
   const tokenSymbol = "USD1";
   const minbalanceDivisorChangeDelay = 100n
@@ -16,14 +16,15 @@ async function deployIndex() {
   const indexToken = await hre.ethers.deployContract("IndexToken", [
     tokenName,
     tokenSymbol,
+    admin,
     reserveManager.address,
-    reserveManager.address,
+    [maintainer.address],
     minbalanceDivisorChangeDelay,
     maxbalanceDivisorChangePerSecondQ96
   ]);
   const startingTotalSupply = utils.scale10Pow18(1_000_000n)
   await indexToken.mint(reserveManager.address, startingTotalSupply)
-  return { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply }
+  return { indexToken, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply, maintainer, admin }
 }
 
 async function increaseTime(seconds) {
@@ -317,6 +318,88 @@ describe("IndexToken", function() {
         await increaseTime(Number(minbalanceDivisorChangeDelay) - 1)
         const endingbalanceDivisor = await indexToken.balanceDivisor()
         expect(startingbalanceDivisor).to.equal(endingbalanceDivisor)
+      })
+    })
+
+    describe("setFrozen", function() {
+      it("should not be callable by an unprivileged account", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await expect(
+          indexToken.connect(unprivileged0).setFrozen(reserveManager, true)
+        ).to.be.revertedWith("only maintainer can call this function")
+      })
+
+      it("should set the accounts status to frozen", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        expect(await indexToken.isFrozen(unprivileged0)).to.equal(false);
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        expect(await indexToken.isFrozen(unprivileged0)).to.equal(true)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, false)
+        expect(await indexToken.isFrozen(unprivileged0)).to.equal(false)
+      })
+
+      it("reserve manager should not be able to burn tokens from a frozen account", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        await expect(
+          indexToken.connect(reserveManager).burnFrom(unprivileged0, 42069n)
+        ).to.be.revertedWith("account frozen")
+      })
+
+      it("should not be able to burn its own tokens if frozen", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        await expect(
+          indexToken.connect(unprivileged0).burn(42069n)
+        ).to.be.revertedWith("account frozen")
+      })
+
+      it("should not be able to transfer its own tokens if frozen", async function() {
+        const { indexToken, maintainer, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        await expect(
+          indexToken.connect(unprivileged0).transfer(reserveManager, 42069n)
+        ).to.be.revertedWith("account frozen")
+      })
+
+      it("should not be able to transfer from base if frozen", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        await expect(
+          indexToken.connect(reserveManager).transferFromBase(unprivileged0, reserveManager, 42069n)
+        ).to.be.revertedWith("account frozen")
+      })
+
+      it("should be able to mint tokens if frozen", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(maintainer).setFrozen(unprivileged0, true)
+        await indexToken.connect(reserveManager).mint(unprivileged0, 42069n)
+      })
+    })
+
+    describe("setMaintainer", function() {
+      it("should not be callable from a non-admin account", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await expect(
+          indexToken.connect(unprivileged0).setMaintainer(unprivileged0, true)
+        ).to.be.revertedWithCustomError(indexToken, "OwnableUnauthorizedAccount")
+      })
+
+      it("should not be callable from a maintainer account", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        await indexToken.connect(admin).setMaintainer(unprivileged0, true)
+        await expect(
+          indexToken.connect(unprivileged0).setMaintainer(unprivileged0, true)
+        ).to.be.revertedWithCustomError(indexToken, "OwnableUnauthorizedAccount")
+      })
+
+      it("should set and unset the status of an account", async function() {
+        const { indexToken, maintainer, admin, reserveManager, nextReserveManager, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96, unprivileged0, startingTotalSupply } = await loadFixture(deployIndex)
+        expect(await indexToken.isMaintainer(unprivileged0)).to.equal(false)
+        await indexToken.connect(admin).setMaintainer(unprivileged0, true)
+        expect(await indexToken.isMaintainer(unprivileged0)).to.equal(true)
+        await indexToken.connect(admin).setMaintainer(unprivileged0, false)
+        expect(await indexToken.isMaintainer(unprivileged0)).to.equal(false)
       })
     })
   })

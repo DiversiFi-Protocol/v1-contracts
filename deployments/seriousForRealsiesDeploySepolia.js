@@ -66,6 +66,7 @@ async function main() {
     "DFiUSD",
     timelockControllerAddress,
     reserveManagerAddress,
+    [MULTISIG_ADMIN],
     60n * 60n * 12n, //12 hour minimum balance change delay
     utils.decimalToFixed(1.0000027639846123) //equivalent to 1.01 max change per hour
   );

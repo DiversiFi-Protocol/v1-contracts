@@ -28,6 +28,7 @@ contract IndexToken is ERC20Permit, Ownable {
   uint104 private immutable _maxBalanceDivisorChangePerSecondQ96;
   address private _reserveManager;
   IDFICrossChainMessenger[] private _crossChainMessengers;
+  mapping(address => bool) private _maintainers;
 
   struct MigrationSlot0 {
     address nextReserveManager;
@@ -43,7 +44,7 @@ contract IndexToken is ERC20Permit, Ownable {
   MigrationSlot1 private _migrationSlot1;
 
   mapping(address => uint256) private _baseBalances;
-  // mapping(address => mapping(address => uint256)) private _baseAllowances;
+  mapping(address => bool) private _frozenAccounts;
   uint256 private _baseTotalSupply;
 
   /***********************************************************************************
@@ -59,11 +60,17 @@ contract IndexToken is ERC20Permit, Ownable {
     _;
   }
 
+  modifier onlyMaintainer {
+    require(_maintainers[msg.sender] == true, "only maintainer can call this function");
+    _;
+  }
+
   constructor(
     string memory name, 
     string memory symbol,
     address admin,
     address reserveManager,
+    address[] memory maintainers,
     uint64 minBalanceDivisorChangeDelay,
     uint104 maxBalanceDivisorChangePerSecondQ96
   ) ERC20(name, symbol) ERC20Permit(name) Ownable(admin) {
@@ -71,6 +78,18 @@ contract IndexToken is ERC20Permit, Ownable {
     _migrationSlot0.lastBalanceDivisor = ReserveMath.DEFAULT_BALANCE_MULTIPLIER;
     _minBalanceDivisorChangeDelay = minBalanceDivisorChangeDelay;
     _maxBalanceDivisorChangePerSecondQ96 = maxBalanceDivisorChangePerSecondQ96;
+    for(uint i = 0; i < maintainers.length; i++) {
+      _maintainers[maintainers[i]] = true;
+    }
+    _maintainers[admin] = true;
+  }
+
+  function isFrozen(address account) public view returns (bool) {
+    return _frozenAccounts[account];
+  }
+
+  function isMaintainer(address account) public view returns (bool) {
+    return _maintainers[account];
   }
 
   function isMigrating() public view returns (bool) {
@@ -107,6 +126,15 @@ contract IndexToken is ERC20Permit, Ownable {
 
   function baseBalanceOf(address account) view external returns (uint256) {
     return _baseBalances[account];
+  }
+
+  function setFrozen(address account, bool freezeStatus) public onlyMaintainer {
+    _frozenAccounts[account] = freezeStatus;
+  }
+
+  function setMaintainer(address account, bool maintainerStatus) external onlyOwner {
+    require(account != owner(), "cannot set maintainer status of owner account");
+    _maintainers[account] = maintainerStatus;
   }
 
   function addCrossChainMessenger(address crossChainMessenger) external onlyOwner {
@@ -190,15 +218,18 @@ contract IndexToken is ERC20Permit, Ownable {
   }
 
   function burnFrom(address burnAddress, uint256 amount) external {
+    require(!isFrozen(burnAddress), "account frozen");
     require(msg.sender == _reserveManager, "only reserve manager can burn from");
     _burn(burnAddress, amount);
   }
 
   function burn(uint256 amount) external {
+    require(!isFrozen(msg.sender), "account frozen");
     _burn(msg.sender, amount);
   }
 
   function transferFromBase(address from, address to, uint256 baseAmount) external returns (bool) {
+    require(!isFrozen(from), "account frozen");
     require(from != address(0), "ERC20: transfer from the zero address");
     require(to != address(0), "ERC20: transfer to the zero address");
     require(baseAmount >= balanceDivisor(), "base transfer cannot be lt divisor");
@@ -243,6 +274,7 @@ contract IndexToken is ERC20Permit, Ownable {
   }
 
   function _update(address from, address to, uint256 value) internal override {
+    require(!isFrozen(from), "account frozen");
     uint256 baseValue = scaleToBase(value);
     if (from == address(0)) {
       // Overflow check required: The rest of the code assumes that totalSupply never overflows

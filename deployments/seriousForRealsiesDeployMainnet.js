@@ -14,7 +14,7 @@ async function main() {
   const TimelockControllerFactory = await ethers.getContractFactory("TimelockController")
   const IndexTokenFactory = await ethers.getContractFactory("IndexToken");
 
-  let nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+  let nonce = 0//await hre.ethers.provider.getTransactionCount(deployer.address)
 
   const timelockControllerAddress = getCreateAddress({
     from: deployer.address,
@@ -33,6 +33,7 @@ async function main() {
     "DFiUSD",
     timelockControllerAddress,
     reserveManagerAddress,
+    [MULTISIG_ADMIN],
     60n * 60n * 12n, //12 hour minimum balance change delay
     utils.decimalToFixed(1.0000027639846123) //equivalent to 1.01 max change per hour
   );
