@@ -14,88 +14,112 @@ async function main() {
   const TimelockControllerFactory = await ethers.getContractFactory("TimelockController")
   const IndexTokenFactory = await ethers.getContractFactory("IndexToken");
 
-  let nonce = 0//await hre.ethers.provider.getTransactionCount(deployer.address)
+  const indexTokenAddress = getCreateAddress({
+    from: deployer.address,
+    nonce: 0
+  })
+
+  if (indexTokenAddress != "0xDF100b8ABd3cd41fC5cC1236AD7c6629A901AfBf") {
+    console.log("incorrect deployer account")
+    return
+  }
 
   const timelockControllerAddress = getCreateAddress({
     from: deployer.address,
-    nonce: nonce + 1,
+    nonce: 1,
   });
 
   const reserveManagerAddress = getCreateAddress({
     from: deployer.address,
-    nonce: nonce + 2,
+    nonce: 2,
   });
 
   // Deploy IndexToken Contract
-  console.log(chalk.cyan("Deploying IndexToken contract..."));
-  const indexToken = await IndexTokenFactory.deploy(
-    "Diversified USD",
-    "DFiUSD",
-    timelockControllerAddress,
-    reserveManagerAddress,
-    [MULTISIG_ADMIN],
-    60n * 60n * 12n, //12 hour minimum balance change delay
-    utils.decimalToFixed(1.0000027639846123) //equivalent to 1.01 max change per hour
-  );
-  await indexToken.waitForDeployment();
-  console.log(
-    `IndexToken deployed to: ${await indexToken.getAddress()}`
-  );
+  let nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+  console.log("nonce:", nonce)
+  if (nonce == 0) {
+    console.log(chalk.cyan("Deploying IndexToken contract..."));
+    const indexToken = await IndexTokenFactory.deploy(
+      "Diversified USD",
+      "DFiUSD",
+      timelockControllerAddress,
+      reserveManagerAddress,
+      [MULTISIG_ADMIN],
+      60n * 60n * 12n, //12 hour minimum balance change delay
+      utils.decimalToFixed(1.0000027639846123) //equivalent to 1.01 max change per hour
+    );
+    await indexToken.waitForDeployment();
+    console.log(
+      `IndexToken deployed to: ${await indexToken.getAddress()}`
+    );
 
-  console.log("\n----------------------------------\n");
+    console.log("\n----------------------------------\n");
+    return
+  }
+
 
   //Deploy TimelockController
-  const timelockController = await TimelockControllerFactory.deploy(
-    60n * 60n * 24n * 7n, //7 days
-    [MULTISIG_ADMIN], //proposers
-    [MULTISIG_ADMIN], //executors
-    ethers.ZeroAddress, //default admin
-  )
-  console.log(
-    `TimelockController deployed to: ${await timelockController.getAddress()}`
-  );
-  console.log(
-    chalk.yellow("Predicted TimelockController address:"),
-    timelockControllerAddress
-  );
+  nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+  console.log("nonce:", nonce)
+  if (nonce == 1) {
+    const timelockController = await TimelockControllerFactory.deploy(
+      60n * 60n * 24n * 7n, //7 days
+      [MULTISIG_ADMIN], //proposers
+      [MULTISIG_ADMIN], //executors
+      ethers.ZeroAddress, //default admin
+    )
+    console.log(
+      `TimelockController deployed to: ${await timelockController.getAddress()}`
+    );
+    console.log(
+      chalk.yellow("Predicted TimelockController address:"),
+      timelockControllerAddress
+    );
 
-  console.log("\n----------------------------------\n");
+    console.log("\n----------------------------------\n");
+    return
+  }
+
 
   // Deploy reserveManager Contract
-  console.log(chalk.cyan("Deploying ReserveManager contract..."));
-  try {
+  nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+  console.log("nonce:", nonce)
+  if (nonce == 2) {
+    console.log(chalk.cyan("Deploying ReserveManager contract..."));
+    console.log(initialAssetParams)
+    const reserveManager = await ReserveManagerFactory.deploy(
+      timelockControllerAddress,
+      MULTISIG_ADMIN,
+      indexToken.getAddress(),
+      utils.scaleToQ96(0n), //mintFeeQ96
+      utils.scaleToQ96(0n), //burnFeeQ96
+      utils.scale10Pow18(100_000_000n), //initial max reserves
+      utils.decimalToFixed(0.0004), //0.04% per hour (~1% per day)
+      initialAssetParams
+    );
 
-  console.log(initialAssetParams)
-  const reserveManager = await ReserveManagerFactory.deploy(
-    timelockControllerAddress,
-    MULTISIG_ADMIN,
-    indexToken.getAddress(),
-    utils.scaleToQ96(0n), //mintFeeQ96
-    utils.scaleToQ96(0n), //burnFeeQ96
-    utils.scale10Pow18(100_000_000n), //initial max reserves
-    utils.decimalToFixed(0.0004), //0.04% per hour (~1% per day)
-    initialAssetParams
-  );
+    await reserveManager.waitForDeployment();
+    console.log(`ReserveManager deployed to: ${await reserveManager.getAddress()}`);
+    console.log(
+      chalk.yellow("Predicted ReserveManager address:"),
+      reserveManagerAddress
+    );
 
-  await reserveManager.waitForDeployment();
-  console.log(`ReserveManager deployed to: ${await reserveManager.getAddress()}`);
-  console.log(
-    chalk.yellow("Predicted ReserveManager address:"),
-    reserveManagerAddress
-  );
+    console.log("\n----------------------------------\n");
+    return
+  }
 
-  const ReserveManagerHelpersFactory = await ethers.getContractFactory("ReserveManagerHelpers")
-  
-  const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManager.getAddress())
-  console.log("reserveManagerHelpers deployed to:", await reserveManagerHelpers.getAddress())
+  nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
+  console.log("nonce:", nonce)
+  if (nonce == 3) {
+    const ReserveManagerHelpersFactory = await ethers.getContractFactory("ReserveManagerHelpers")
+    
+    const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManager.getAddress())
+    console.log("reserveManagerHelpers deployed to:", await reserveManagerHelpers.getAddress())
 
-  console.log("\n----------------------------------\n");
-
-
-} catch (err) {
-  console.log(err)
-}
-
+    console.log("\n----------------------------------\n");
+    return
+  }
   console.log(chalk.green("Done"));
 
   console.log("\n----------------------------------\n");
