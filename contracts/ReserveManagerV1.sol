@@ -182,7 +182,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
       if (_unsafe && allowUnsafeBurn_) {
-        try IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal) {} catch {}
+        IERC20(params.assetAddress).trySafeTransfer(msg.sender, trueWithdrawal);
       } else {
         IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
       }
@@ -376,7 +376,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       AssetParams memory params = currentAssetParamsList_[i];
       uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
       if (_unsafe && allowUnsafeBurn_) {
-        try IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount) {} catch {}
+        IERC20(params.assetAddress).trySafeTransfer(msg.sender, withdrawalAmount);
       } else {
         IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
       }
