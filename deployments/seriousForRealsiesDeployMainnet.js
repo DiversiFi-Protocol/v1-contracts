@@ -39,6 +39,7 @@ async function main() {
   console.log("nonce:", nonce)
   if (nonce == 0) {
     console.log(chalk.cyan("Deploying IndexToken contract..."));
+    await sleep(5000)
     const indexToken = await IndexTokenFactory.deploy(
       "Diversified USD",
       "DFiUSD",
@@ -62,6 +63,8 @@ async function main() {
   nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
   console.log("nonce:", nonce)
   if (nonce == 1) {
+    console.log("deploying timlockController...")
+    await sleep(5000)
     const timelockController = await TimelockControllerFactory.deploy(
       60n * 60n * 24n * 7n, //7 days
       [MULTISIG_ADMIN], //proposers
@@ -86,6 +89,7 @@ async function main() {
   console.log("nonce:", nonce)
   if (nonce == 2) {
     console.log(chalk.cyan("Deploying ReserveManager contract..."));
+    await sleep(5000)
     console.log(initialAssetParams)
     const reserveManager = await ReserveManagerFactory.deploy(
       timelockControllerAddress,
@@ -112,6 +116,8 @@ async function main() {
   nonce = await hre.ethers.provider.getTransactionCount(deployer.address)
   console.log("nonce:", nonce)
   if (nonce == 3) {
+    console.log("deploying ReserveManagerHelpers contract...")
+    await sleep(5000)
     const ReserveManagerHelpersFactory = await ethers.getContractFactory("ReserveManagerHelpers")
     
     const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManager.getAddress())
@@ -132,3 +138,7 @@ main()
     console.error(error);
     process.exit(1);
   });
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
