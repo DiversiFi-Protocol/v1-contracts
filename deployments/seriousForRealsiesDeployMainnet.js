@@ -94,7 +94,7 @@ async function main() {
     const reserveManager = await ReserveManagerFactory.deploy(
       timelockControllerAddress,
       MULTISIG_ADMIN,
-      indexToken.getAddress(),
+      indexTokenAddress,
       utils.scaleToQ96(0n), //mintFeeQ96
       utils.scaleToQ96(0n), //burnFeeQ96
       utils.scale10Pow18(100_000_000n), //initial max reserves
@@ -120,7 +120,7 @@ async function main() {
     await sleep(5000)
     const ReserveManagerHelpersFactory = await ethers.getContractFactory("ReserveManagerHelpers")
     
-    const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManager.getAddress())
+    const reserveManagerHelpers = await ReserveManagerHelpersFactory.deploy(await reserveManagerAddress)
     console.log("reserveManagerHelpers deployed to:", await reserveManagerHelpers.getAddress())
 
     console.log("\n----------------------------------\n");
