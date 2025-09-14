@@ -32,6 +32,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   uint8 public immutable DECIMAL_SCALE;
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
   bytes32 public constant MAINTAINER_ROLE = keccak256("MAINTAINER_ROLE");
+  uint256 private constant MAX_FEE = (1 << ReserveMath.SHIFT) / 100; //1% max fee
 
   //reserve manager state
   mapping(address => uint256) private specificReservesScaled_; //reserves scaled by 10^DECIMAL_SCALE
@@ -78,12 +79,12 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   }
 
   modifier onlyAdmin() {
-    require(hasRole(ADMIN_ROLE, msg.sender), "only admin can call this function");
+    require(hasRole(ADMIN_ROLE, msg.sender), "A");
     _;
   }
 
   modifier onlyMaintainer() {
-    require(hasRole(MAINTAINER_ROLE, msg.sender), "only maintainer can call this function");
+    require(hasRole(MAINTAINER_ROLE, msg.sender), "M");
     _;
   }
 
@@ -181,7 +182,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       uint256 trueWithdrawal = ReserveMath.scaleDecimals(targetWithdrawalScaled, DECIMAL_SCALE, params.decimals);
       uint256 trueWithdrawalScaled = ReserveMath.scaleDecimals(trueWithdrawal, params.decimals, DECIMAL_SCALE);
       if (_unsafe && allowUnsafeBurn_) {
-        try IERC20(params.assetAddress).transfer(msg.sender, trueWithdrawal) {} catch {}
+        IERC20(params.assetAddress).trySafeTransfer(msg.sender, trueWithdrawal);
       } else {
         IERC20(params.assetAddress).safeTransfer(msg.sender, trueWithdrawal);
       }
@@ -312,6 +313,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
   // also retires assets from the currentAssetParamsList if they are not in the targetAssetParamsList
   /// @inheritdoc IReserveManagerWrite
   function equalizeToTarget() external mustNotEmigrating returns (int256[] memory) {
+    require(!getIsEqualized(), "reserve manager is already equalized");
     int256[] memory deltasScaled = getEqualizationVectorScaled();
     int256[] memory actualDeltas = new int256[](deltasScaled.length);
     totalReservesScaled_ = 0;
@@ -327,7 +329,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         uint256 actualDepositScaled = ReserveMath.scaleDecimals(actualDeposit, params.decimals, DECIMAL_SCALE);
         specificReservesScaled_[params.assetAddress] += actualDepositScaled;
         actualDeltas[i] = int256(actualDeposit);
-      } else {//withdraw
+      } else if (deltasScaled[i] < 0) {//withdraw
         uint256 actualWithdrawal = ReserveMath.scaleDecimals(uint256(-deltasScaled[i]), DECIMAL_SCALE, params.decimals);
         IERC20(params.assetAddress).safeTransfer(
           msg.sender, 
@@ -374,7 +376,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
       AssetParams memory params = currentAssetParamsList_[i];
       uint256 withdrawalAmount = IERC20(params.assetAddress).balanceOf(address(this));
       if (_unsafe && allowUnsafeBurn_) {
-        try IERC20(params.assetAddress).transfer(msg.sender, withdrawalAmount) {} catch {}
+        IERC20(params.assetAddress).trySafeTransfer(msg.sender, withdrawalAmount);
       } else {
         IERC20(params.assetAddress).safeTransfer(msg.sender, withdrawalAmount);
       }
@@ -543,6 +545,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function setMintFeeQ96(uint256 _mintFeeQ96) external onlyAdmin() mustNotEmigrating {
+    require(_mintFeeQ96 < MAX_FEE, "8");
     mintFeeQ96_ = _mintFeeQ96;
     compoundingMintFeeQ96_ = ReserveMath.calcCompoundingFeeRate(_mintFeeQ96);
     emit MintFeeChange(_mintFeeQ96, compoundingMintFeeQ96_);
@@ -550,6 +553,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function setBurnFeeQ96(uint256 _burnFeeQ96) external onlyAdmin() mustNotEmigrating {
+    require(_burnFeeQ96 < MAX_FEE, "9");
     burnFeeQ96_ = _burnFeeQ96;
     emit BurnFeeChange(_burnFeeQ96);
   }
@@ -581,7 +585,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         if (i == j) {
           continue;
         }
-        require(_params[i].assetAddress != _params[j].assetAddress, "duplicate asset");
+        require(_params[i].assetAddress != _params[j].assetAddress, "0");//duplicate asset
       }
     }
     uint88 totalTargetAllocation = 0;
@@ -590,8 +594,8 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
     uint88[] memory targetAllocations = new uint88[](_params.length);
     uint8[] memory decimalsList = new uint8[](_params.length);
     for (uint i = 0; i < _params.length; i++) {
-      require(_params[i].assetAddress != address(indexToken_), "index not allowed");
-      require(IIndexToken(_params[i].assetAddress).decimals() == _params[i].decimals, "decimal mismatch");
+      require(_params[i].assetAddress != address(indexToken_), "1");//index not allowed
+      require(IIndexToken(_params[i].assetAddress).decimals() == _params[i].decimals, "2");//decimal mismatch
       assetAddresses[i] = _params[i].assetAddress;
       targetAllocations[i] = _params[i].targetAllocation;
       decimalsList[i] = _params[i].decimals;
@@ -618,7 +622,7 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
         assetParams_[currentAssetParamsList_[iC].assetAddress].targetAllocation = 0;
       }
     }
-    require(totalTargetAllocation == type(uint88).max, "total target allocation must be 1");
+    require(totalTargetAllocation == type(uint88).max, "3");//total target allocation must be 1
   }
 
   /// @inheritdoc IReserveManagerAdmin
@@ -629,14 +633,15 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function increaseEqualizationBounty(uint256 _bountyIncrease) external onlyAdmin() mustNotEmigrating {
-    require(getSurplus() >= int256(_bountyIncrease), "not enough tokens to cover bounty");
+    require(getSurplus() >= int256(_bountyIncrease), "4");//not enough tokens to cover bounty
     equalizationBounty_ += _bountyIncrease;
     emit EqualizationBountySet(equalizationBounty_);
   }
 
   /// @inheritdoc IReserveManagerAdmin
   function startEmigration(address _nextReserveManager) external mustNotEmigrating {
-    require(msg.sender == address(indexToken_), "emigration start call must come from index token");
+    require(_nextReserveManager != address(0));
+    require(msg.sender == address(indexToken_), "5");//emigration start call must come from index token
     nextReserveManager_ = _nextReserveManager;
     migrationSlot_.migrationStartBalanceDivisor = indexToken_.balanceDivisor();
     migrationSlot_.migrationStartTimestamp = uint64(block.timestamp);
@@ -645,8 +650,8 @@ contract ReserveManagerV1 is AccessControl, IReserveManagerAdmin, IReserveManage
 
   /// @inheritdoc IReserveManagerAdmin
   function finishEmigration() external mustIsEmigrating {
-    require(msg.sender == address(indexToken_), "emigration finish call must come from index token");
-    require(totalReservesScaled_ == 0, "cannot finish emigration until all reserves have been moved");
+    require(msg.sender == address(indexToken_), "6");//emigration finish call must come from index token
+    require(totalReservesScaled_ == 0, "7");//cannot finish emigration until all reserves have been moved
     //burn index tokens that may have been accidentally transferred to this address
     indexToken_.burnFrom(address(this), indexToken_.balanceOf(address(this)));
     delete migrationSlot_;

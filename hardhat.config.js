@@ -1,7 +1,10 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-gas-reporter");
 require("hardhat-contract-sizer");
+require("hardhat-dependency-compiler");
 require("@nomicfoundation/hardhat-verify");
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -9,7 +12,7 @@ module.exports = {
 		enabled: true,
 	},
 	etherscan: {
-		apiKey: process.env.ETHERSCAN_API_KEY, // or put your key directly (not recommended)
+		apiKey: process.env.ETHERSCAN_API_KEY,
 	},
 	solidity: {
 		version: "0.8.27",
@@ -32,28 +35,21 @@ module.exports = {
 		mainnet: {
 			url: "https://eth-mainnet.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
 			chainId: 1,
-			accounts: {
-				mnemonic: typeof process.env.MNEMONIC === "undefined" ? "test test test test test test test test test test test junk" : process.env.MNEMONIC,
-				path: "m/420'/69'/0'/0",
-				initialIndex: 0,
-				count: 20,
-				passphrase: "",
-			},
+			accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
 		},
 		sepolia: {
 			url: "https://eth-sepolia.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
 			chainId: 11155111,
-			accounts: {
-				mnemonic: typeof process.env.MNEMONIC === "undefined" ? "test test test test test test test test test test test junk" : process.env.MNEMONIC,
-				path: "m/420'/69'/0'/0",
-				initialIndex: 0,
-				count: 20,
-				passphrase: "",
-			},
+			accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
 		},
 	},
 	contractSizer: {
 		runOnCompile: true,
 		strict: true,
 	},
+	dependencyCompiler: {
+    paths: [
+      "@openzeppelin/contracts/governance/TimelockController.sol",
+    ],
+  },
 };

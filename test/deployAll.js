@@ -80,6 +80,7 @@ module.exports = async function deployAll() {
       tokenSymbol,
       admin.address,
       reserveManagerAddress,
+      [maintainer.address],
       minbalanceDivisorChangeDelay,
       maxbalanceDivisorChangePerSecondQ96
     ]);

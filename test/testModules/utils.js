@@ -14,6 +14,10 @@ const compareFunctions = (func0, func1, args, args1=[]) => {
   return diff
 }
 
+const scaleToQ96 = num => {
+  return num << 96n
+}
+
 const calcCompoundingFeeRate = rate => {
   return (rate << SHIFT) / (SCALE - rate)
 }
@@ -171,6 +175,7 @@ module.exports = {
   closeToBig,
   closeToBigPct,
   compareFunctions,
+  scaleToQ96,
   SCALE,
   MAX_UINT_256,
   ALLOCATION_SHIFT,

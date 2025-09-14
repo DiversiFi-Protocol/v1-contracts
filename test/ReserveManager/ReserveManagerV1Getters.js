@@ -48,7 +48,7 @@ describe("ReserveManager - Getters", function () {
   it("getMintFeeQ96", async function() {
     const { reserveManager } = await loadFixture(deployAll);
     // Set the mint fee to a random value
-    const randomMintFee = utils.decimalToFixed(0.01); // Example: 1% mint fee
+    const randomMintFee = utils.decimalToFixed(0.001); // Example: 0.1% mint fee
     await reserveManager.setMintFeeQ96(randomMintFee);
 
     // Assert that the mint fee was set correctly
@@ -60,7 +60,7 @@ describe("ReserveManager - Getters", function () {
     it("should return the burn fee", async function() {
       const { reserveManager } = await loadFixture(deployAll);
       // Set the burn fee to a random value
-      const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
+      const randomBurnFee = utils.decimalToFixed(0.002); // Example: 0.2% burn fee
       await reserveManager.setBurnFeeQ96(randomBurnFee);
 
       // Assert that the burn fee was set correctly
@@ -71,7 +71,7 @@ describe("ReserveManager - Getters", function () {
     it("should return zero if the pool is migrating", async function() {
       const { indexToken, reserveManager, reserveManager0, minbalanceDivisorChangeDelay, maxbalanceDivisorChangePerSecondQ96 } = await loadFixture(deployAll);
       // Set the burn fee to a random value
-      const randomBurnFee = utils.decimalToFixed(0.02); // Example: 2% burn fee
+      const randomBurnFee = utils.decimalToFixed(0.002); // Example: 0.2% burn fee
       await reserveManager.setBurnFeeQ96(randomBurnFee);
       const block0 = await hre.ethers.provider.getBlock("latest");
       const block0Time = BigInt(block0.timestamp)

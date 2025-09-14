@@ -471,6 +471,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams1, 
             assetParams2 
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable0 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           await reserveManager.equalizeToTarget()
@@ -503,6 +504,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams2,
             poolMathWrapper
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable0 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           await reserveManager.equalizeToTarget()
@@ -530,6 +532,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams2,
             poolMathWrapper
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable0 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           await reserveManager.equalizeToTarget()
@@ -559,6 +562,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable0 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           await reserveManager.equalizeToTarget()
@@ -603,6 +607,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable0 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable0)
           await reserveManager.equalizeToTarget()
@@ -756,6 +761,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams1, 
             assetParams2 
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable2 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           await reserveManager.equalizeToTarget()
@@ -788,6 +794,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams2,
             poolMathWrapper
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable2 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           await reserveManager.equalizeToTarget()
@@ -815,6 +822,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams2,
             poolMathWrapper
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable2 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           await reserveManager.equalizeToTarget()
@@ -844,6 +852,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable2 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           await reserveManager.equalizeToTarget()
@@ -888,6 +897,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable2 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable2)
           await reserveManager.equalizeToTarget()
@@ -1042,6 +1052,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams1, 
             assetParams2 
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable1 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           await reserveManager.equalizeToTarget()
@@ -1075,6 +1086,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper
           } = await loadFixture(deployAll)
           //remove mintable1 from the pool and equalize
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           await reserveManager.equalizeToTarget()
           //mint tokens and then add mintable1 back to the pool
@@ -1101,6 +1113,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             assetParams2,
             poolMathWrapper
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable1 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           await reserveManager.equalizeToTarget()
@@ -1130,6 +1143,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable1 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           await reserveManager.equalizeToTarget()
@@ -1174,6 +1188,7 @@ describe("ReserveManager - Mint/Burn Functions", function () {
             poolMathWrapper,
             indexToken
           } = await loadFixture(deployAll)
+          await reserveManager.mint(utils.scale10Pow18(10000n), "0x")
           //remove mintable1 from the pool and equalize
           await reserveManager.setTargetAssetParams(assetParamsNoMintable1)
           await reserveManager.equalizeToTarget()
