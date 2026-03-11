@@ -1,3 +1,4 @@
+require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 require("hardhat-gas-reporter");
 require("hardhat-contract-sizer");
@@ -5,6 +6,12 @@ require("hardhat-dependency-compiler");
 require("@nomicfoundation/hardhat-verify");
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MNEMONIC = process.env.MNEMONIC;
+const networkAccounts = PRIVATE_KEY
+	? [PRIVATE_KEY]
+	: MNEMONIC
+	? { mnemonic: MNEMONIC }
+	: [];
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -35,12 +42,12 @@ module.exports = {
 		mainnet: {
 			url: "https://eth-mainnet.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
 			chainId: 1,
-			accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+			accounts: networkAccounts,
 		},
 		sepolia: {
 			url: "https://eth-sepolia.g.alchemy.com/v2/yHITndLemsVURB6z0335Y5aX3PHzRiXZ", // bravo labs deployer
 			chainId: 11155111,
-			accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
+			accounts: networkAccounts,
 		},
 	},
 	contractSizer: {
