@@ -54,7 +54,7 @@ describe("migration - complete lifecycle", function() {
     const balance0Before = await mintable0.balanceOf(admin)
     const balance1Before = await mintable1.balanceOf(admin)
     const balance2Before = await mintable2.balanceOf(admin)
-    await reserveManagerHelpers.burnAll();
+    await reserveManagerHelpers.burnAll(false);
     const balance0After = await mintable0.balanceOf(admin)
     const balance1After = await mintable1.balanceOf(admin)
     const balance2After = await mintable2.balanceOf(admin)
